@@ -1,0 +1,39 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: rubocop
+        name: RuboCop
+        entry: bin/rubocop
+        language: system
+        files: \.rb$
+        # --force-exclusion：pre-commit 明確傳檔名時，RuboCop 才會尊重 .rubocop.yml 的 Exclude（例如 db/schema.rb）
+        args: [--autocorrect, --force-exclusion]
+
+      - id: rubocop-check
+        name: RuboCop Check
+        entry: bin/rubocop
+        language: system
+        files: \.rb$
+        args: [--force-exclusion]
+
+      - id: brakeman
+        name: Brakeman Security Scan
+        entry: bin/brakeman
+        language: system
+        files: \.rb$
+        args: [--no-pager, --quiet]
+        pass_filenames: false
+
+      - id: bundler-audit
+        name: Bundler Audit (CVE Check)
+        entry: bin/bundler-audit check --update
+        language: system
+        files: Gemfile\.lock$
+        pass_filenames: false
