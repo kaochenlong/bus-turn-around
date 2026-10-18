@@ -9,7 +9,7 @@ spec_dir: docs/spectra
 locale: tw
 
 # Workflow toggles
-# tdd: true
+tdd: true
 audit: true
 
 # CLI command written into generated tool files (spectra, spxa)

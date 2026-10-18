@@ -2,19 +2,46 @@ schema: spec-driven
 
 # Project context (optional)
 # This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  專案：TurnAround 折返點。台北公車路網的證據層與決策支援系統，不是乘客 app。
+
+  要解決的問題：台北公車缺司機（缺額依來源與時點在 12% 到近三成之間）、路線與捷運疊床架屋。
+  2023 到 2026 年市府對 288 條路線中 147 條做調整、80 條調降離峰服務水準，依據是「哪裡人不夠就減哪裡」。
+  審議規則已有門檻（與捷運重疊 70% 以上可列裁撤或縮短、尖峰每班次低於 5 人上下車可檢討），
+  缺的是逐路線、持續、公開的證據：重疊路段實際載多少人、折返點實際能休幾分鐘。
+  核心立場：路線調整要包裝成「把省下的駕駛工時換成合法休息與穩定班距」，不是省錢。
+
+  三樣交付物：
+  1. 路線健檢卡：重疊度與競爭力、分時段載客剖面、班表達成、折返停留分佈、法規風險、折返點設施、建議動作。
+  2. 「換休息」試算：縮駛、改區間、離峰改預約、每趟加 15 分鐘緩衝，輸出工時變化、休息達成率、受影響乘客。
+  3. 對齊《臺北市聯營公車申請分配調整路線及車次處理原則》的提案草稿，以及每月公開報告。
+
+  受益者：駕駛（休息變成可量、可對照法規的數字）、公運處與審議會（逐路線的公開依據）、業者（合法又跑得完的班表）、
+  乘客（班距穩、脫班少）、工會與研究者（公開報告與原始檔）。代價也要算：被縮駛路段的乘客、失去路線的業者。
+
+  非目標：乘客用的到站 app、即時地圖、全網排班最佳化、依賴拿不到的票證 OD 或 TDX 歷史資料。
+
+  資料與架構：
+  - 原始事件由 n-gear gem（../gems/n-gear，零依賴 Ruby，獨立 repo）每 10 秒收 data.taipei 三支 feed：
+    bus_event 到離站、bus_seat_event 車上人數（RemainingNum，票證衍生值）、bus_data GPS。
+    存成 <feed>/<台北日期>/<HH>.jsonl，兩小時後壓成同名 .jsonl.gz。
+    原始檔的契約是「允許重複、不漏」，下游一律以 (BusID, DataTime) 再去重。
+  - 指標用 DuckDB 直接讀檔案做批次計算（每晚），只有衍生表進 PostgreSQL；Rails 只查衍生表，不碰原始檔。
+  - 時間：檔案分區與分析都按台北時間；每筆的 _fetched_at 是 UTC。
+  - 法規錨點：汽車運輸業管理規則第 19 條之 2（每日駕車 10 小時、連續 4 小時休 30 分、工作日間隔 10 小時）；
+    處理原則第五點（新闢接駁 10 公里內、重疊 70%、尖峰每班次低於 5 人、起迄點停車場 3 公里內）。
+  - 資料限制要在產出上誠實標示：車不等於人（雙班制下一台車兩人開，折返停留是駕駛休息的上限，不是工時）；
+    車上人數準確度取決於下車刷卡率；10 秒輪詢仍會漏站；DutyStatus 實測只有 1 和 2，BusStatus 有文件沒列的 92、93。
+  - 資料授權：政府資料開放授權條款第 1 版，衍生物要帶顯名聲明，不得暗示機關背書。詳見 docs/data-sources.md。
+
+  技術棧與慣例見 AGENTS.md（Rails 8.1、PostgreSQL、Vite + Tailwind v4、Turbo + Alpine、ViewComponent、RSpec）。
+  使用場景（docs/use-cases.md）：最小單位是一條路線一頁，節奏是每月一份公開報告；
+  最早發生的是業者站長排班、研究者拿原始資料、維護者每月校驗；審議會與新市府百日要政治意願。
+  文件：docs/background.md、docs/data-sources.md、docs/decisions.md、docs/use-cases.md、docs/100-days.md。
 
 # Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - 開頭說明這個 change 服務三樣交付物中的哪一樣，以及它需要哪些資料、資料從哪裡來
+    - 一定要有「非目標」一節
+    - 牽涉指標定義時，寫出資料限制與假設：車不等於人、刷卡率、漏站、跨小時重複

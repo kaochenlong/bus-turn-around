@@ -37,3 +37,7 @@
 /node_modules
 /public/vite
 .spectra/
+
+# Ignore key files for decrypting credentials and more.
+/config/credentials/*.key
+
