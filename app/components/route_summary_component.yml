@@ -1,0 +1,11 @@
+---
+tw: &tw
+  trips: 趟次
+  complete_trips: 完整趟次
+  unit: 趟
+zh-TW:
+  <<: *tw
+en:
+  trips: Trips
+  complete_trips: Complete trips
+  unit: ""

@@ -7,6 +7,13 @@
 /* Alpine 接手前先藏住 x-cloak 的元素（Alpine 官方寫法）。不放進 @layer：一般的 Tailwind utilities 蓋不過它 */
 [x-cloak] { display: none !important; }
 
+/* 路線頁：拉丁字與數字用 Barlow（公路標誌字形，有等寬數字），中文用照台灣字形標準的 Noto Sans TC；
+   字型檔由 app/views/routes/show.html.erb 從 Google Fonts 載入 */
+@theme {
+  --font-route: "Barlow", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --font-route-figure: "Barlow Semi Condensed", "Barlow", "Noto Sans TC", ui-sans-serif, sans-serif;
+}
+
 /* pages#home 可愛火車主題：字體 / 色 / 動畫（給 home 的 Tailwind utilities）*/
 @theme {
   --font-fredoka: "Fredoka", sans-serif;

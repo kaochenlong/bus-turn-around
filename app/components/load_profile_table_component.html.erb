@@ -1,0 +1,30 @@
+<section data-section="load-profile" class="mb-10">
+  <h2 class="mb-1 text-[24px] leading-snug font-bold text-slate-900"><%= t(".title") %></h2>
+  <p class="mb-5 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm tabular-nums">
+      <thead class="text-slate-500">
+        <tr>
+          <th class="text-left font-normal"><%= t(".direction") %></th>
+          <th class="text-right font-normal"><%= t(".seq") %></th>
+          <th class="text-left font-normal"><%= t(".stop") %></th>
+          <% BANDS.each do |band| %>
+            <th class="text-right font-normal"><%= t(".bands.#{band}") %></th>
+          <% end %>
+        </tr>
+      </thead>
+      <tbody>
+        <% stops.each do |(go_back, seq, stop_name), by_band| %>
+          <tr>
+            <td><%= t(".directions.#{go_back}") %></td>
+            <td class="text-right"><%= seq %></td>
+            <td><%= stop_name %></td>
+            <% BANDS.each do |band| %>
+              <td class="text-right"><%= cell(by_band[band]) %></td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

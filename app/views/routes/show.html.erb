@@ -1,0 +1,18 @@
+<% content_for :head do %>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<% end %>
+
+<main class="mx-auto max-w-5xl px-4 py-8 font-route text-[15px] leading-relaxed text-slate-800 [font-variant-numeric:tabular-nums]">
+  <%= render RouteCoverageComponent.new(coverage: @coverage) %>
+
+  <% if @coverage.data? %>
+    <% route_days = @coverage.route_days %>
+    <%= render RouteSummaryComponent.new(summary: RoutePage::Summary.new(route_days)) %>
+    <%= render RunTimeTableComponent.new(run_times: RoutePage::RunTimes.new(route_days)) %>
+    <%= render LayoverTableComponent.new(layover_stats: RoutePage::LayoverStats.new(route_days)) %>
+    <%= render LoadProfileTableComponent.new(load_profile: RoutePage::LoadProfile.new(route_days)) %>
+    <%= render DataLimitationsComponent.new %>
+  <% end %>
+</main>

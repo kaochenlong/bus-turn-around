@@ -1,0 +1,21 @@
+---
+tw: &tw
+  ranges:
+    day: 當天
+    7d: 最近 7 天
+  covered: 涵蓋的日子
+  no_day_type: 沒有分平日與假日。
+  no_data: "%{day} 還沒有資料。"
+  no_days: 這條路線還沒有任何資料。
+  stored: 已有資料的日子
+zh-TW:
+  <<: *tw
+en:
+  ranges:
+    day: The day
+    7d: Last 7 days
+  covered: Days covered
+  no_day_type: Weekdays and holidays are not separated.
+  no_data: "No data for %{day} yet."
+  no_days: This route has no data yet.
+  stored: Days with data

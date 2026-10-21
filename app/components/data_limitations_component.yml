@@ -1,0 +1,17 @@
+---
+tw: &tw
+  title: 資料限制
+  items:
+    - 車不等於人：資料認的是車牌，不是駕駛。折返停留是駕駛休息的上限；雙班制下一台車由兩個人開，這些數字對不回單一駕駛。
+    - 車上人數是票證推出來的值，不是點人頭，準確度看下車刷卡率；實測它不會在趟次之間歸零。
+    - 10 秒輪詢一定會漏站；漏了起站或末站的趟次不算行駛時間。
+    - 涵蓋的日子沒有分平日與假日。
+zh-TW:
+  <<: *tw
+en:
+  title: Data limitations
+  items:
+    - A vehicle is not a driver. A layover is an upper bound on rest; with two shifts per vehicle these numbers do not map to one driver.
+    - On-board counts are derived from fare-card taps, not head counts, and depend on how many riders tap off; they do not return to zero between trips.
+    - Polling every 10 seconds misses stops; trips missing their first or last stop are left out of run times.
+    - The covered days do not separate weekdays and holidays.

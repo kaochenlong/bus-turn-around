@@ -1,0 +1,11 @@
+# Routes that have a route page. A route is added only after its definitions
+# have been checked on its own data; 15373 is 中山幹線. The tests use the
+# fixture route 9001.
+shared:
+  route_ids:
+    - 15373
+
+test:
+  route_ids:
+    - 15373
+    - 9001

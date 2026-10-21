@@ -1,0 +1,39 @@
+<header class="mb-8 space-y-3">
+  <% if @coverage.data? %>
+    <h1 class="text-[32px] leading-tight font-bold tracking-[0.01em] text-slate-900"><%= route_day.route_name %> <span class="font-route-figure font-medium text-slate-500"><%= @coverage.route_id %></span></h1>
+    <p class="text-slate-600"><%= route_day.departure %>－<%= route_day.destination %></p>
+  <% end %>
+
+  <nav data-range="<%= @coverage.range %>" class="flex gap-2 text-sm">
+    <% range_options.each do |range| %>
+      <%= link_to t(".ranges.#{range}"), range_path(range),
+                  class: [ "rounded px-3 py-1", range == @coverage.range ? "bg-slate-800 text-white" : "bg-slate-100" ] %>
+    <% end %>
+  </nav>
+
+  <% if @coverage.data? %>
+    <div class="text-sm text-slate-600">
+      <span><%= t(".covered") %>：</span>
+      <ul data-covered-days class="inline-flex flex-wrap gap-2">
+        <% covered_days.each do |day| %>
+          <li data-day="<%= day.iso8601 %>"><%= day_label(day) %></li>
+        <% end %>
+      </ul>
+      <% if @coverage.range == "7d" %>
+        <span data-no-day-type><%= t(".no_day_type") %></span>
+      <% end %>
+    </div>
+  <% else %>
+    <div data-no-data class="rounded border border-amber-300 bg-amber-50 p-4">
+      <p><%= @coverage.day ? t(".no_data", day: @coverage.day.iso8601) : t(".no_days") %></p>
+      <% if @coverage.stored_days.any? %>
+        <p class="mt-2 text-sm"><%= t(".stored") %>：</p>
+        <ul class="flex flex-wrap gap-2 text-sm">
+          <% @coverage.stored_days.each do |day| %>
+            <li><%= link_to day_label(day), day_path(day), data: { stored_day: day.iso8601 }, class: "underline" %></li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+  <% end %>
+</header>

@@ -1,20 +1,17 @@
 #!/usr/bin/env ruby
 require "date"
 require "fileutils"
-require "json"
-require "open3"
 require "optparse"
 require "tmpdir"
+require_relative "../lib/analysis_run"
 
 # Writes the one-day health card of one route and one Taipei day from the raw
 # n-gear files: a Markdown card on standard output or in --out, and the
 # inspection CSVs in --inspect-dir. The SQL of analysis/ runs in a DuckDB CLI
-# subprocess. Rails is never loaded and only default gems are required, so the
+# subprocess through lib/analysis_run.rb. Rails is never loaded and only default gems are required, so the
 # script also runs under bundler, whose Gemfile has no csv.
 module HealthCard
   ROOT = File.expand_path("..", __dir__)
-  ANALYSIS_DIR = File.join(ROOT, "analysis")
-  DUCKDB_FLAGS = %w[-no-init -bail -batch -json].freeze
   STATIC_FILES = %w[GetRoute.gz GetStop.gz GetPathDetail.gz].freeze
   INSPECTION_FILES = %w[trips.csv layovers.csv chains.csv profile.csv quality.csv].freeze
   ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/
@@ -103,8 +100,7 @@ module HealthCard
     def usage_error(reason) = Failure.new("#{reason}\n\n#{parser.help}", 1)
 
     def find_duckdb
-      candidates = @env.fetch("PATH", "").split(File::PATH_SEPARATOR).reject(&:empty?).map { File.join(it, "duckdb") }
-      duckdb = candidates.find { File.file?(it) && File.executable?(it) }
+      duckdb = AnalysisRun.find_duckdb(@env["PATH"])
       raise Failure.new("需要 DuckDB CLI，安裝：brew install duckdb\n", 2) unless duckdb
 
       duckdb
@@ -143,27 +139,11 @@ module HealthCard
 
     # Returns the card row, the one result the SQL prints.
     def run_sql(duckdb, options, inspect_dir)
-      stdout, stderr, status = Open3.capture3(duckdb, *DUCKDB_FLAGS, stdin_data: sql(options, inspect_dir))
-      raise Failure.new(stderr.empty? ? "duckdb 失敗（#{status}），沒有印出錯誤訊息\n" : stderr, 4) unless status.success?
-
-      JSON.parse(stdout).fetch(0).fetch("card")
-    end
-
-    # The variables, then params.sql, then the numbered stages in file name
-    # order. Sorting every file by name would put params.sql after the stages.
-    def sql(options, inspect_dir)
       variables = { data_root: options.data_root, route_id: options.route_id, day: options.day,
                     static_day: options.static_day, inspect_dir: }
-      stages = [ "params.sql", *Dir.glob("[0-9]*.sql", base: ANALYSIS_DIR).sort ].map { File.join(ANALYSIS_DIR, it) }
-      [ *variables.map { |name, value| "SET VARIABLE #{name} = #{sql_literal(value)};" }, *stages.map { File.read(it) } ].join("\n")
-    end
-
-    def sql_literal(value)
-      case value
-      when Integer then value.to_s
-      when Date then "DATE '#{value.iso8601}'"
-      else "'#{value.to_s.gsub("'", "''")}'"
-      end
+      AnalysisRun.run(duckdb, variables).fetch(0).fetch("card")
+    rescue AnalysisRun::Error => e
+      raise Failure.new(e.message, 4)
     end
 
     def write_outputs(markdown, scratch_dir, options)

@@ -1,0 +1,30 @@
+<section data-section="layovers" class="mb-10">
+  <h2 class="mb-1 text-[24px] leading-snug font-bold text-slate-900"><%= t(".title") %></h2>
+  <p class="mb-5 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <table class="w-full text-sm tabular-nums">
+    <thead class="text-slate-500">
+      <tr>
+        <th class="text-left font-normal"><%= t(".direction") %></th>
+        <th class="text-left font-normal"><%= t(".last_stop") %></th>
+        <th class="text-right font-normal"><%= t(".count") %></th>
+        <th class="text-right font-normal">p10</th>
+        <th class="text-right font-normal">p50</th>
+        <th class="text-right font-normal">p90</th>
+        <th class="text-right font-normal"><%= t(".short", minutes: short_minutes) %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.each do |row| %>
+        <tr data-direction="<%= row.go_back %>">
+          <td><%= t(".directions.#{row.go_back}") %></td>
+          <td><%= row.stop_name %></td>
+          <td class="text-right"><%= row.n_layovers %></td>
+          <% row.percentiles.each do |value| %>
+            <td class="text-right"><%= minutes(value) %></td>
+          <% end %>
+          <td class="text-right"><%= share(row.short_share) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

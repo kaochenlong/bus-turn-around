@@ -1,0 +1,25 @@
+---
+tw: &tw
+  title: 行駛時間
+  note: 完整趟次從起站離站到末站到站的分鐘數，依發車的小時分組。趟數少於 5 的列標「樣本少」。
+  directions:
+    "0": 去程
+    "1": 返程
+  hour: 發車時
+  trips: 趟數
+  small_sample: 樣本少
+  none: 沒有可算的趟次。
+  excluded: 起點或終點不是實測離站、到站時刻而排除的完整趟次：%{count} 趟
+zh-TW:
+  <<: *tw
+en:
+  title: Run time
+  note: Minutes from leaving the first stop to reaching the last stop, complete trips only, by departure hour. Rows with fewer than 5 trips are marked as small samples.
+  directions:
+    "0": Outbound
+    "1": Inbound
+  hour: Hour
+  trips: Trips
+  small_sample: small sample
+  none: No trips to count.
+  excluded: "Complete trips left out because a terminal time is not an observed departure or arrival: %{count}"

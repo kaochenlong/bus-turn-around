@@ -67,6 +67,18 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 要在 `duckdb` 互動 shell 裡探索，先用 `SET VARIABLE` 設好 `data_root`、`route_id`、`day`、`static_day`、`inspect_dir` 五個變數，再依上表的順序 `.read` 各檔。
 
+「先 `params.sql`、再依檔名排序的編號階段檔」這個組法寫在 `lib/analysis_run.rb`，`bin/health-card` 與 `bin/rails derived:load` 共用。
+
+## 衍生表的匯出
+
+`derived_export.sql` 不以數字開頭，`bin/health-card` 不會執行它。`bin/rails derived:load ROUTE=15373 DAY=2026-10-19`（或 `FROM=… TO=…`，資料根目錄給環境變數 `TURNAROUND_DATA`）對每一天先跑 `params.sql`、全部編號階段檔，最後接 `derived_export.sql`，多一個變數 `derived_dir`；再把寫出的 CSV 在一個交易裡替換進 PostgreSQL 的衍生表。一天要等讀檔視窗結束（隔天的 01 時檔出現）才能算。
+
+| 讀 | 寫到 `derived_dir` |
+| --- | --- |
+| `routes`、`stops`、`trips`、`trip_bands`、`layovers`、`trip_stop_counts`，變數 `route_id`、`day`、`static_day` | `route_day.csv`、`stops.csv`、`trips.csv`（含時段 `band`）、`layovers.csv`（本趟終點與下一趟起點，不寫分鐘數）、`trip_stop_counts.csv`（以 `bus_id` 加 `start_time` 指回趟次） |
+
+時刻帶 `+08:00` 寫出；每個檔的欄位順序與列的排序固定，同樣的輸入連跑兩次位元組相同。
+
 ## 測試
 
 ```

@@ -1,0 +1,31 @@
+---
+tw: &tw
+  title: 載客剖面
+  note: 車上人數取每站的離站記錄，沒有離站記錄時取到站記錄。每格是中位數 / p90，括號裡是那一站有人數的趟數；時段依趟次起點的小時。
+  directions:
+    "0": 去程
+    "1": 返程
+  direction: 方向
+  seq: 站序
+  stop: 站名
+  bands:
+    morning_peak: 早尖峰
+    daytime: 日間
+    evening_peak: 晚尖峰
+    other: 其餘
+zh-TW:
+  <<: *tw
+en:
+  title: Load profile
+  note: The on-board count when leaving each stop, or when arriving where no departure was recorded. Each cell is the median / p90, with the number of trips counted at that stop; bands follow the trip's start hour.
+  directions:
+    "0": Outbound
+    "1": Inbound
+  direction: Direction
+  seq: Seq
+  stop: Stop
+  bands:
+    morning_peak: Morning peak
+    daytime: Daytime
+    evening_peak: Evening peak
+    other: Other

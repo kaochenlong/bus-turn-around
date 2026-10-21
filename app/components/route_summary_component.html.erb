@@ -1,0 +1,10 @@
+<section data-section="summary" class="mb-10 flex flex-wrap gap-12 border-y border-slate-200 py-6">
+  <div data-trips="<%= @summary.trips %>">
+    <div class="mb-1 text-sm text-slate-600"><%= t(".trips") %></div>
+    <div class="font-route-figure text-[44px] leading-none font-semibold text-slate-900"><%= @summary.trips %> <span class="ml-1 font-route text-base font-medium text-slate-500"><%= t(".unit") %></span></div>
+  </div>
+  <div data-complete-trips="<%= @summary.complete_trips %>">
+    <div class="mb-1 text-sm text-slate-600"><%= t(".complete_trips") %></div>
+    <div class="font-route-figure text-[44px] leading-none font-semibold text-slate-900"><%= @summary.complete_trips %> <span class="ml-1 font-route text-base font-medium text-slate-500"><%= t(".unit") %></span></div>
+  </div>
+</section>
