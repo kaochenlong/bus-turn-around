@@ -6,6 +6,7 @@ tw: &tw
     - 車上人數是票證推出來的值，不是點人頭，準確度看下車刷卡率；實測它不會在趟次之間歸零。
     - 10 秒輪詢一定會漏站；漏了起站或末站的趟次不算行駛時間。
     - 涵蓋的日子沒有分平日與假日。
+    - 站牌靠近捷運出入口，不等於這一段可以被捷運取代：公車橫越捷運線時，路口附近的站也會算進去。距離是直線距離，不是步行距離；捷運出入口資料不定期更新。
 zh-TW:
   <<: *tw
 en:
@@ -15,3 +16,4 @@ en:
     - On-board counts are derived from fare-card taps, not head counts, and depend on how many riders tap off; they do not return to zero between trips.
     - Polling every 10 seconds misses stops; trips missing their first or last stop are left out of run times.
     - The covered days do not separate weekdays and holidays.
+    - A stop near an MRT entrance does not mean the bus segment can be replaced by the MRT: stops near a crossing count too. Distances are straight-line, not walking distances, and the entrance data is updated irregularly.

@@ -4,14 +4,15 @@
 #
 # Table name: route_days
 #
-#  id          :bigint           not null, primary key
-#  day         :date             not null
-#  departure   :string           not null
-#  destination :string           not null
-#  loaded_at   :timestamptz      not null
-#  route_name  :string           not null
-#  static_day  :date             not null
-#  route_id    :integer          not null
+#  id            :bigint           not null, primary key
+#  day           :date             not null
+#  departure     :string           not null
+#  destination   :string           not null
+#  loaded_at     :timestamptz      not null
+#  mrt_exits_day :date
+#  route_name    :string           not null
+#  static_day    :date             not null
+#  route_id      :integer          not null
 #
 # Indexes
 #

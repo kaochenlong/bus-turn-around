@@ -1,7 +1,8 @@
 require "tmpdir"
 
 # Writes one route on one Taipei day into the derived tables. DuckDB runs the
-# stages of analysis/ and analysis/derived_export.sql into CSV files; then, in
+# stages of analysis/, analysis/mrt_overlap.sql with the newest MRT entrance
+# snapshot, and analysis/derived_export.sql into CSV files; then, in
 # one transaction, the stored day is deleted and the files are copied in. A
 # failure anywhere leaves the stored day as it was, and loading the same input
 # again leaves the same rows.
@@ -11,8 +12,10 @@ class RouteDayLoader
 
   # Staging table columns, in the column order of each CSV file.
   STAGING = {
-    "route_day" => "route_id integer, day date, route_name text, departure text, destination text, static_day date",
-    "stops" => "go_back integer, seq integer, stop_name text",
+    "route_day" => "route_id integer, day date, route_name text, departure text, destination text, static_day date, " \
+                   "mrt_exits_day date",
+    "stops" => "go_back integer, seq integer, stop_name text, latitude double precision, longitude double precision, " \
+               "nearest_exit_name text, nearest_exit_meters double precision",
     "trips" => "bus_id text, path_attribute_id integer, go_back integer, band text, start_time timestamptz, " \
                "end_time timestamptz, first_seq integer, last_seq integer, n_events integer, n_stops_observed integer, " \
                "completeness text, start_from_arrival boolean, end_from_departure boolean",
@@ -45,11 +48,22 @@ class RouteDayLoader
   private
 
   def export(dir)
+    mrt_exits_path, mrt_exits_day = newest_mrt_exits
     variables = { data_root: @data_root, route_id: @route_id, day: @day, static_day: @day,
-                  inspect_dir: dir, derived_dir: dir }
-    AnalysisRun.run(@duckdb, variables, extra_files: [ "derived_export.sql" ])
+                  inspect_dir: dir, derived_dir: dir, mrt_exits_path:, mrt_exits_day: }
+    AnalysisRun.run(@duckdb, variables, extra_files: %w[mrt_overlap.sql derived_export.sql])
   rescue AnalysisRun::Error => e
     raise Error, e.message
+  end
+
+  # The snapshot with the latest date in its file name, and that date. Which
+  # one was used is stored with the route day.
+  def newest_mrt_exits
+    directory = File.join(@data_root, MrtExitsSnapshot::DIRECTORY)
+    name = Dir.glob("*.csv", base: directory).grep(/\A\d{4}-\d{2}-\d{2}\.csv\z/).max
+    raise Error, "沒有捷運出入口快照：先跑 bin/rails external:mrt_exits" unless name
+
+    [ File.join(directory, name), Date.iso8601(File.basename(name, ".csv")) ]
   end
 
   def replace(dir)
@@ -74,16 +88,18 @@ class RouteDayLoader
 
   def insert_route_day
     connection.select_value(<<~SQL)
-      INSERT INTO route_days (route_id, day, route_name, departure, destination, static_day, loaded_at)
-      SELECT route_id, day, route_name, departure, destination, static_day, now() FROM staging_route_day
+      INSERT INTO route_days (route_id, day, route_name, departure, destination, static_day, mrt_exits_day, loaded_at)
+      SELECT route_id, day, route_name, departure, destination, static_day, mrt_exits_day, now() FROM staging_route_day
       RETURNING id
     SQL
   end
 
   def insert_stops(route_day_id)
     insert("route_day_stops", "stops", route_day_id, <<~SQL)
-      INSERT INTO route_day_stops (route_day_id, go_back, seq, stop_name)
-      SELECT :route_day_id, go_back, seq, stop_name FROM staging_stops
+      INSERT INTO route_day_stops (route_day_id, go_back, seq, stop_name, latitude, longitude, nearest_exit_name,
+                                   nearest_exit_meters)
+      SELECT :route_day_id, go_back, seq, stop_name, latitude, longitude, nearest_exit_name, nearest_exit_meters
+      FROM staging_stops
     SQL
   end
 

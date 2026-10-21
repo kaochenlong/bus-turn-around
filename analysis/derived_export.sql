@@ -1,13 +1,15 @@
 -- Derived export: the per-trip results of one route and one Taipei day, for
--- the PostgreSQL derived tables. It runs after params.sql and every numbered
--- stage; its name does not start with a digit, so bin/health-card never runs
--- it.
+-- the PostgreSQL derived tables. It runs after params.sql, every numbered
+-- stage and mrt_overlap.sql; its name does not start with a digit, so
+-- bin/health-card never runs it.
 --
 -- Reads routes and stops from stage 10, trips from stage 20, layovers from
--- stage 30, trip_bands and trip_stop_counts from stage 40, and the variables
--- route_id, day, static_day and derived_dir. Writes to derived_dir:
+-- stage 30, trip_bands and trip_stop_counts from stage 40, stop_mrt_distances
+-- from mrt_overlap.sql, and the variables route_id, day, static_day,
+-- mrt_exits_day and derived_dir. Writes to derived_dir:
 --   route_day.csv         the route's name and terminals, one row
---   stops.csv             the stops of both directions
+--   stops.csv             the stops of both directions, with the nearest MRT
+--                         entrance
 --   trips.csv             the day's trips with their time band
 --   layovers.csv          the end of each trip and the start of the next
 --   trip_stop_counts.csv  the on-board count per counted stop of each trip
@@ -24,16 +26,18 @@ COPY (
            route_name,
            departure,
            destination,
-           strftime(getvariable('static_day'), '%Y-%m-%d') AS static_day
+           strftime(getvariable('static_day'), '%Y-%m-%d') AS static_day,
+           strftime(getvariable('mrt_exits_day'), '%Y-%m-%d') AS mrt_exits_day
     FROM routes
     ORDER BY path_attribute_id <> route_id, path_attribute_id
     LIMIT 1
 ) TO (getvariable('derived_dir') || '/route_day.csv') (HEADER);
 
 COPY (
-    SELECT go_back, seq, stop_name
-    FROM stops
-    ORDER BY go_back, seq
+    SELECT s.go_back, s.seq, s.stop_name, d.latitude, d.longitude, d.nearest_exit_name, d.nearest_exit_meters
+    FROM stops s
+    LEFT JOIN stop_mrt_distances d USING (go_back, seq)
+    ORDER BY s.go_back, s.seq
 ) TO (getvariable('derived_dir') || '/stops.csv') (HEADER);
 
 COPY (

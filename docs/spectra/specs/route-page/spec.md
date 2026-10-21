@@ -175,77 +175,61 @@ tests:
 ---
 ### Requirement: Page content
 
-The page SHALL show, in this order: a summary with the route name, departure and destination, the covered days, the number of trips and of complete trips; the run time summary of `run-time` per direction, with the number of excluded trips; the layovers per direction of the ending trip, each row naming that direction's last stop, with the number of layovers, p10, p50, p90 and the share under 15 minutes as defined by `layover-metrics`; and the load profile as defined by `load-profile`, per direction, time band and stop, each cell giving the median, the p90 and the number of trips with a count. Percentiles SHALL be computed over all trips of the covered days, not combined from daily values.
+The page SHALL show, in this order: a summary with the route name, departure and destination, the covered days, the number of trips and of complete trips; the run time summary of `run-time` per direction, with the number of excluded trips; the layovers per direction of the ending trip, each row naming that direction's last stop, with the number of layovers, p10, p50, p90 and the share under 15 minutes as defined by `layover-metrics`; the MRT overlap as defined by `mrt-overlap`, with each direction's number of stops and overlap share at 300, 500 and 800 metres, the overlap stretches at 500 metres with their first and last sequence numbers and stop names, the on-board counts of each stretch per time band, and the day of the entrance snapshot used; and the load profile as defined by `load-profile`, per direction, time band and stop, each cell giving the median, the p90 and the number of trips with a count. Percentiles SHALL be computed over all trips of the covered days, not combined from daily values. The MRT overlap SHALL NOT mark any share as above or below a review threshold. When the stops of the covered days carry no nearest-entrance distance, the MRT overlap block SHALL say that the days need to be loaded again instead of showing shares.
 
 #### Scenario: Seven-day percentile pools trips
 
 - **WHEN** day one has layovers of 10 and 20 minutes in direction 0 and day two has one of 30 minutes, and the page covers both days
 - **THEN** the direction 0 layover row reports 3 layovers and a p50 of 20.0
 
+#### Scenario: Overlap block in place
+
+- **WHEN** a stored day whose stops carry nearest-entrance distances is rendered
+- **THEN** the blocks appear in the order summary, run times, layovers, MRT overlap, load profile, limitations, and the MRT overlap block names the entrance snapshot day
+
+#### Scenario: Distances missing
+
+- **WHEN** a stored day was loaded before stops carried nearest-entrance distances
+- **THEN** the MRT overlap block asks for the day to be loaded again and shows no share
+
 
 <!-- @trace
-source: zhongshan-route-page
+source: zhongshan-mrt-overlap
 updated: 2026-10-22
 code:
-  - app/components/route_summary_component.yml
-  - app/components/load_profile_table_component.yml
-  - app/components/layover_table_component.rb
-  - app/components/route_summary_component.rb
-  - app/controllers/routes_controller.rb
-  - analysis/derived_export.sql
-  - app/components/data_limitations_component.html.erb
-  - app/components/route_coverage_component.rb
-  - app/components/route_coverage_component.yml
-  - app/models/route_page/run_times.rb
-  - app/components/load_profile_table_component.rb
-  - db/migrate/20261021184616_create_derived_tables.rb
-  - app/components/run_time_table_component.yml
-  - app/models/trip_stop_count.rb
-  - app/components/data_limitations_component.rb
-  - app/components/route_summary_component.html.erb
-  - db/schema.rb
-  - bin/health-card
-  - app/views/routes/show.html.erb
-  - config/route_page.yml
-  - lib/analysis_run.rb
-  - app/frontend/stylesheets/application.css
-  - app/components/route_coverage_component.html.erb
-  - app/models/route_page/summary.rb
-  - app/components/load_profile_table_component.html.erb
-  - app/components/run_time_table_component.html.erb
-  - app/models/route_day_stop.rb
-  - app/components/layover_table_component.yml
-  - app/models/derived_load_command.rb
-  - analysis/README.md
-  - app/components/run_time_table_component.rb
-  - app/models/route_day.rb
-  - app/models/route_page/load_profile.rb
-  - app/models/route_page/layover_stats.rb
-  - app/models/trip.rb
-  - lib/tasks/derived.rake
-  - app/models/route_day_loader.rb
-  - app/models/route_page/coverage.rb
-  - app/models/route_page.rb
-  - app/components/layover_table_component.html.erb
-  - app/models/layover.rb
+  - lib/tasks/external.rake
+  - analysis/mrt_overlap.sql
+  - docs/data-sources.md
+  - app/components/mrt_overlap_component.yml
+  - db/migrate/20261021193708_add_mrt_overlap_to_derived_tables.rb
   - app/components/data_limitations_component.yml
-  - config/routes.rb
+  - analysis/10_load.sql
+  - app/models/route_page/mrt_overlap.rb
+  - app/models/route_day.rb
+  - analysis/derived_export.sql
+  - spec/fixtures/analysis/README.md
+  - app/models/route_day_loader.rb
+  - app/models/mrt_exits_snapshot.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
+  - app/components/mrt_overlap_component.rb
+  - app/models/route_day_stop.rb
+  - db/schema.rb
+  - app/components/mrt_overlap_component.html.erb
+  - analysis/README.md
+  - app/views/routes/show.html.erb
+  - spec/fixtures/analysis/external/taipei-mrt-exits/2026-10-19.csv
 tests:
-  - spec/components/run_time_table_component_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/models/route_page/run_times_spec.rb
-  - spec/models/route_page/card_consistency_spec.rb
-  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
   - spec/models/route_day_spec.rb
-  - spec/models/route_page/layover_stats_spec.rb
-  - spec/analysis/derived_export_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/components/layover_table_component_spec.rb
+  - spec/analysis/mrt_overlap_spec.rb
+  - spec/models/derived_load_command_spec.rb
   - spec/requests/route_page_fixture_spec.rb
-  - spec/components/route_coverage_component_spec.rb
-  - spec/analysis/analysis_run_spec.rb
-  - spec/components/load_profile_table_component_spec.rb
-  - spec/components/route_summary_component_spec.rb
+  - spec/components/mrt_overlap_component_spec.rb
+  - spec/models/mrt_exits_snapshot_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/derived_export_spec.rb
 -->
 
 ---
@@ -327,74 +311,48 @@ tests:
 ---
 ### Requirement: Data limitations on the page
 
-The page SHALL state the data limitations that apply to its numbers: a vehicle is not a driver and a layover is an upper bound on rest; on-board counts come from fare-card taps and do not return to zero between trips; 10-second polling misses stops and trips missing a terminal are left out of run times; the covered days do not separate weekdays and holidays.
+The page SHALL state the data limitations that apply to its numbers: a vehicle is not a driver and a layover is an upper bound on rest; on-board counts come from fare-card taps and do not return to zero between trips; 10-second polling misses stops and trips missing a terminal are left out of run times; the covered days do not separate weekdays and holidays; a stop near an MRT entrance does not mean the bus segment can be replaced by the MRT, distances are straight-line, and the entrance data is updated irregularly.
 
 #### Scenario: Limitations present
 
 - **WHEN** any route page with data is rendered
-- **THEN** it contains a 資料限制 section with the four statements above
+- **THEN** it contains a 資料限制 section with the statements above
 
 <!-- @trace
-source: zhongshan-route-page
+source: zhongshan-mrt-overlap
 updated: 2026-10-22
 code:
-  - app/components/route_summary_component.yml
-  - app/components/load_profile_table_component.yml
-  - app/components/layover_table_component.rb
-  - app/components/route_summary_component.rb
-  - app/controllers/routes_controller.rb
-  - analysis/derived_export.sql
-  - app/components/data_limitations_component.html.erb
-  - app/components/route_coverage_component.rb
-  - app/components/route_coverage_component.yml
-  - app/models/route_page/run_times.rb
-  - app/components/load_profile_table_component.rb
-  - db/migrate/20261021184616_create_derived_tables.rb
-  - app/components/run_time_table_component.yml
-  - app/models/trip_stop_count.rb
-  - app/components/data_limitations_component.rb
-  - app/components/route_summary_component.html.erb
-  - db/schema.rb
-  - bin/health-card
-  - app/views/routes/show.html.erb
-  - config/route_page.yml
-  - lib/analysis_run.rb
-  - app/frontend/stylesheets/application.css
-  - app/components/route_coverage_component.html.erb
-  - app/models/route_page/summary.rb
-  - app/components/load_profile_table_component.html.erb
-  - app/components/run_time_table_component.html.erb
-  - app/models/route_day_stop.rb
-  - app/components/layover_table_component.yml
-  - app/models/derived_load_command.rb
-  - analysis/README.md
-  - app/components/run_time_table_component.rb
-  - app/models/route_day.rb
-  - app/models/route_page/load_profile.rb
-  - app/models/route_page/layover_stats.rb
-  - app/models/trip.rb
-  - lib/tasks/derived.rake
-  - app/models/route_day_loader.rb
-  - app/models/route_page/coverage.rb
-  - app/models/route_page.rb
-  - app/components/layover_table_component.html.erb
-  - app/models/layover.rb
+  - lib/tasks/external.rake
+  - analysis/mrt_overlap.sql
+  - docs/data-sources.md
+  - app/components/mrt_overlap_component.yml
+  - db/migrate/20261021193708_add_mrt_overlap_to_derived_tables.rb
   - app/components/data_limitations_component.yml
-  - config/routes.rb
+  - analysis/10_load.sql
+  - app/models/route_page/mrt_overlap.rb
+  - app/models/route_day.rb
+  - analysis/derived_export.sql
+  - spec/fixtures/analysis/README.md
+  - app/models/route_day_loader.rb
+  - app/models/mrt_exits_snapshot.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
+  - app/components/mrt_overlap_component.rb
+  - app/models/route_day_stop.rb
+  - db/schema.rb
+  - app/components/mrt_overlap_component.html.erb
+  - analysis/README.md
+  - app/views/routes/show.html.erb
+  - spec/fixtures/analysis/external/taipei-mrt-exits/2026-10-19.csv
 tests:
-  - spec/components/run_time_table_component_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/models/route_page/run_times_spec.rb
-  - spec/models/route_page/card_consistency_spec.rb
-  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
   - spec/models/route_day_spec.rb
-  - spec/models/route_page/layover_stats_spec.rb
-  - spec/analysis/derived_export_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/components/layover_table_component_spec.rb
+  - spec/analysis/mrt_overlap_spec.rb
+  - spec/models/derived_load_command_spec.rb
   - spec/requests/route_page_fixture_spec.rb
-  - spec/components/route_coverage_component_spec.rb
-  - spec/analysis/analysis_run_spec.rb
-  - spec/components/load_profile_table_component_spec.rb
-  - spec/components/route_summary_component_spec.rb
+  - spec/components/mrt_overlap_component_spec.rb
+  - spec/models/mrt_exits_snapshot_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/derived_export_spec.rb
 -->

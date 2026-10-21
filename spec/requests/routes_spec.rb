@@ -36,10 +36,16 @@ RSpec.describe "Routes", type: :request do
     expect(page.css("[data-covered-days] [data-day]").map(&:text).map(&:squish)).to eq([ "2026-10-19（一）", "2026-10-20（二）", "2026-10-22（四）" ])
   end
 
-  it "有資料的那一天，頁面依序是摘要、行駛時間、折返停留、載客剖面、資料限制" do
+  it "有資料的那一天，頁面依序是摘要、行駛時間、折返停留、捷運重疊、載客剖面、資料限制" do
     store_days("2026-10-19")
     get route_path(9001), params: { day: "2026-10-19" }
-    expect(page.css("[data-section]").map { it["data-section"] }).to eq(%w[summary run-times layovers load-profile limitations])
+    expect(page.css("[data-section]").map { it["data-section"] }).to eq(%w[summary run-times layovers mrt-overlap load-profile limitations])
+  end
+
+  it "站牌還沒有到捷運的距離（之前寫入的資料）時，捷運重疊那一塊提示重算" do
+    store_days("2026-10-19")
+    get route_path(9001), params: { day: "2026-10-19" }
+    expect(page.css("[data-section=mrt-overlap] [data-needs-reload]").size).to eq(1)
   end
 
   it "那一天沒有資料時回 200，標出沒有資料並列出已寫入的日子" do

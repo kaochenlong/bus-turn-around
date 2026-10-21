@@ -39,6 +39,19 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
     expect([ status.zero?, out.lines.first.include?("bus_event/2026-10-21/01.jsonl"), stored_days ]).to eq([ false, true, [] ])
   end
 
+  describe "資料根目錄沒有捷運出入口快照時" do
+    # The fixture's raw files without its external/ folder.
+    def data_root_without_snapshot(dir)
+      %w[bus_event bus_seat_event static].each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, it), File.join(dir, it)) }
+      dir
+    end
+
+    it "那一天失敗，說要先跑 bin/rails external:mrt_exits，什麼都不寫" do
+      status, out = Dir.mktmpdir { run_command("DAY" => "2026-10-19", "TURNAROUND_DATA" => data_root_without_snapshot(it)) }
+      expect([ status.zero?, out.lines.first.include?("bin/rails external:mrt_exits"), stored_days ]).to eq([ false, true, [] ])
+    end
+  end
+
   it "範圍回補停在第一個失敗的日子：10-19 寫入、10-20 失敗、10-21 不跑，最後列出寫入的日子" do
     status, out = run_command("FROM" => "2026-10-19", "TO" => "2026-10-21")
     expect([ status.zero?, out.lines.map { it[/\A[^：]+：/] }, stored_days ]).to eq(

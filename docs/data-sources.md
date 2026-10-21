@@ -52,7 +52,7 @@
 |---|---|---|---|
 | 上面的靜態 feed | 把事件串成趟要知道起訖站序；算脫班要班表；推調度站位置要車輛對應 | 同一個 blob | 待做每日快照 |
 | 辦公日曆（平日、假日、補班） | 分平假日、對應班表日型別 | data.gov.tw 人事行政總處 | 一年一個 CSV |
-| 捷運車站出入口座標 | 站牌到出口距離 | [data.gov.tw/dataset/128428](https://data.gov.tw/dataset/128428)，北捷，同一授權 | 直接可用 |
+| 捷運車站出入口座標 | 站牌到出口距離 | [data.gov.tw/dataset/128428](https://data.gov.tw/dataset/128428)，北捷，同一授權 | 已抓：Big5 編碼的 CSV，`bin/rails external:mrt_exits` 轉成 UTF-8 存到資料根目錄的 `external/taipei-mrt-exits/<台北日>.csv`；不定期更新 |
 | 捷運站間行駛時間、班距 | 門到門競爭力 | TDX（免費帳號，有審核）；北捷另有「相鄰兩站間之行駛時間、停靠站時間」資料集，正式頁面待確認；[轉乘步行時間](https://data.gov.tw/dataset/128417) | 要申請帳號 |
 | 捷運分時 OD 月檔 | 重疊走廊的捷運實際流量 | [data.gov.tw/dataset/128506](https://data.gov.tw/dataset/128506) | 每月 CSV |
 

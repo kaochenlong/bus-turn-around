@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_184616) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_21_193708) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -28,6 +28,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_184616) do
     t.integer "go_back", null: false
     t.integer "seq", null: false
     t.string "stop_name", null: false
+    t.float "latitude"
+    t.float "longitude"
+    t.string "nearest_exit_name"
+    t.float "nearest_exit_meters"
     t.index ["route_day_id", "go_back", "seq"], name: "index_route_day_stops_on_route_day_id_and_go_back_and_seq", unique: true
   end
 
@@ -39,6 +43,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_184616) do
     t.string "destination", null: false
     t.date "static_day", null: false
     t.timestamptz "loaded_at", null: false
+    t.date "mrt_exits_day"
     t.index ["route_id", "day"], name: "index_route_days_on_route_id_and_day", unique: true
   end
 

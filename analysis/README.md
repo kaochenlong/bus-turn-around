@@ -71,11 +71,14 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 ## 衍生表的匯出
 
-`derived_export.sql` 不以數字開頭，`bin/health-card` 不會執行它。`bin/rails derived:load ROUTE=15373 DAY=2026-10-19`（或 `FROM=… TO=…`，資料根目錄給環境變數 `TURNAROUND_DATA`）對每一天先跑 `params.sql`、全部編號階段檔，最後接 `derived_export.sql`，多一個變數 `derived_dir`；再把寫出的 CSV 在一個交易裡替換進 PostgreSQL 的衍生表。一天要等讀檔視窗結束（隔天的 01 時檔出現）才能算。
+`mrt_overlap.sql` 與 `derived_export.sql` 都不以數字開頭，`bin/health-card` 不會執行它們。`bin/rails derived:load ROUTE=15373 DAY=2026-10-19`（或 `FROM=… TO=…`，資料根目錄給環境變數 `TURNAROUND_DATA`）對每一天先跑 `params.sql`、全部編號階段檔，再接 `mrt_overlap.sql`、最後 `derived_export.sql`，多三個變數 `mrt_exits_path`、`mrt_exits_day`、`derived_dir`；再把寫出的 CSV 在一個交易裡替換進 PostgreSQL 的衍生表。一天要等讀檔視窗結束（隔天的 01 時檔出現）才能算，資料根目錄的 `external/taipei-mrt-exits/` 也要至少有一份捷運出入口快照。
 
-| 讀 | 寫到 `derived_dir` |
-| --- | --- |
-| `routes`、`stops`、`trips`、`trip_bands`、`layovers`、`trip_stop_counts`，變數 `route_id`、`day`、`static_day` | `route_day.csv`、`stops.csv`、`trips.csv`（含時段 `band`）、`layovers.csv`（本趟終點與下一趟起點，不寫分鐘數）、`trip_stop_counts.csv`（以 `bus_id` 加 `start_time` 指回趟次） |
+| 檔案 | 讀 | 建立或寫出 |
+| --- | --- | --- |
+| `mrt_overlap.sql` | `stops`（含經緯度），變數 `mrt_exits_path` | `mrt_exits`、`stop_mrt_distances`：每站最近的捷運出入口與直線距離（haversine，地球半徑 6,371,000 公尺，一位小數） |
+| `derived_export.sql` | `routes`、`stops`、`stop_mrt_distances`、`trips`、`trip_bands`、`layovers`、`trip_stop_counts`，變數 `route_id`、`day`、`static_day`、`mrt_exits_day` | 寫到 `derived_dir`：`route_day.csv`（含 `mrt_exits_day`）、`stops.csv`（含經緯度、最近出入口與距離）、`trips.csv`（含時段 `band`）、`layovers.csv`（本趟終點與下一趟起點，不寫分鐘數）、`trip_stop_counts.csv`（以 `bus_id` 加 `start_time` 指回趟次） |
+
+捷運出入口快照由 `bin/rails external:mrt_exits` 下載：北捷的檔是 Big5，存檔前轉成 UTF-8，表頭、資料列與經緯度不對就不寫檔。`derived:load` 用檔名日期最新的那一份，日期存進 `route_days.mrt_exits_day`。哪些站算「靠近捷運」不在這裡決定：300、500、800 公尺三種門檻在路線頁的 `RoutePage::MrtOverlap` 套用。
 
 時刻帶 `+08:00` 寫出；每個檔的欄位順序與列的排序固定，同樣的輸入連跑兩次位元組相同。
 

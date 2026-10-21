@@ -1,0 +1,47 @@
+---
+tw: &tw
+  title: 與捷運重疊
+  note: 站牌到最近捷運出入口的直線距離在門檻內，就算靠近捷運；重疊度是一個方向裡靠近捷運的站牌比例。連續兩站以上靠近捷運的是一段重疊路段，下面列出每段在各時段的車上人數。
+  snapshot: 捷運出入口資料：%{day} 的快照
+  needs_reload: 這幾天的資料還沒有站牌到捷運的距離，重新執行 bin/rails derived:load 後就會出現。
+  directions:
+    "0": 去程
+    "1": 返程
+  direction: 方向
+  stops: 站數
+  within: "%{meters} 公尺內"
+  stretches: 重疊路段（%{meters} 公尺內）
+  no_stretch: 沒有連續兩站以上靠近捷運的路段。
+  stretch: "%{direction} 第 %{first}–%{last} 站：%{first_stop}－%{last_stop}，%{count} 站"
+  band: 時段
+  trips: 趟數
+  median: 中位數
+  bands:
+    morning_peak: 早尖峰
+    daytime: 日間
+    evening_peak: 晚尖峰
+    other: 其餘
+zh-TW:
+  <<: *tw
+en:
+  title: MRT overlap
+  note: A stop counts as near the MRT when the straight-line distance to the nearest MRT entrance is within the threshold; the overlap share is the share of a direction's stops near the MRT. Two or more consecutive near stops form an overlap stretch, listed below with its on-board counts per time band.
+  snapshot: "MRT entrance data: snapshot of %{day}"
+  needs_reload: These days have no stop-to-MRT distances yet; run bin/rails derived:load again to add them.
+  directions:
+    "0": Outbound
+    "1": Inbound
+  direction: Direction
+  stops: Stops
+  within: "Within %{meters} m"
+  stretches: Overlap stretches (within %{meters} m)
+  no_stretch: No stretch of two or more consecutive stops near the MRT.
+  stretch: "%{direction} stops %{first}–%{last}: %{first_stop} – %{last_stop}, %{count} stops"
+  band: Band
+  trips: Trips
+  median: Median
+  bands:
+    morning_peak: Morning peak
+    daytime: Daytime
+    evening_peak: Evening peak
+    other: Other

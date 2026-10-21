@@ -12,6 +12,7 @@
     <%= render RouteSummaryComponent.new(summary: RoutePage::Summary.new(route_days)) %>
     <%= render RunTimeTableComponent.new(run_times: RoutePage::RunTimes.new(route_days)) %>
     <%= render LayoverTableComponent.new(layover_stats: RoutePage::LayoverStats.new(route_days)) %>
+    <%= render MrtOverlapComponent.new(mrt_overlap: RoutePage::MrtOverlap.new(route_days)) %>
     <%= render LoadProfileTableComponent.new(load_profile: RoutePage::LoadProfile.new(route_days)) %>
     <%= render DataLimitationsComponent.new %>
   <% end %>

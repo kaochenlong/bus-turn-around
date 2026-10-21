@@ -7,7 +7,7 @@
 --   bus_events           bus_event records of the route's sub-routes, deduplicated
 --   seat_events          bus_seat_event records of the route's sub-routes, deduplicated
 --   load_counts          records read and removed per feed, after the route filter
---   stops                the route's GetStop.gz stop list, both directions
+--   stops                the route's GetStop.gz stop list, both directions, with coordinates
 --   path_stops           the GetPathDetail.gz stops of the route's sub-routes
 --   stop_events          bus_events mapped to the route and the stop's seqNo
 --   unknown_stop_events  bus_events whose stop is not in their direction's list
@@ -153,7 +153,9 @@ SELECT s.routeId AS route_id,
        TRY_CAST(s.goBack AS INTEGER) AS go_back,
        s.seqNo AS seq,
        s.Id AS stop_id,
-       s.nameZh AS stop_name
+       s.nameZh AS stop_name,
+       TRY_CAST(s.latitude AS DOUBLE) AS latitude,
+       TRY_CAST(s.longitude AS DOUBLE) AS longitude
 FROM (
     SELECT unnest(BusInfo) AS s
     FROM read_json(getvariable('static_dir') || '/GetStop.gz', maximum_object_size = 268435456)

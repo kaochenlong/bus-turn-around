@@ -82,6 +82,17 @@ RSpec.describe "spec/fixtures/analysis" do
         9001 => (0..9).to_a, 9002 => (0..4).to_a, 9003 => (0..3).to_a, 9100 => (0..3).to_a
       )
     end
+
+    it "路線 9001 的十個站牌座標兩兩不同，量得出到捷運出入口的距離" do
+      expect(stops.map { it.values_at("latitude", "longitude") }.uniq.size).to eq(10)
+    end
+  end
+
+  describe "external/taipei-mrt-exits" do
+    it "2026-10-19 的快照有表頭與兩個出入口" do
+      lines = File.readlines(File.join(DuckdbHelpers::FIXTURE_DATA, "external/taipei-mrt-exits/2026-10-19.csv"), chomp: true)
+      expect([ lines.first, lines.size - 1 ]).to eq([ "項次,出入口名稱,出入口編號,經度,緯度,是否為無障礙用", 2 ])
+    end
   end
 
   describe "bus_event" do

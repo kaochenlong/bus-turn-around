@@ -3,11 +3,15 @@
 #
 # Table name: route_day_stops
 #
-#  id           :bigint           not null, primary key
-#  go_back      :integer          not null
-#  seq          :integer          not null
-#  stop_name    :string           not null
-#  route_day_id :bigint           not null
+#  id                  :bigint           not null, primary key
+#  go_back             :integer          not null
+#  latitude            :float
+#  longitude           :float
+#  nearest_exit_meters :float
+#  nearest_exit_name   :string
+#  seq                 :integer          not null
+#  stop_name           :string           not null
+#  route_day_id        :bigint           not null
 #
 # Indexes
 #
