@@ -1,0 +1,431 @@
+#!/usr/bin/env ruby
+require "date"
+require "fileutils"
+require "json"
+require "open3"
+require "optparse"
+require "tmpdir"
+
+# Writes the one-day health card of one route and one Taipei day from the raw
+# n-gear files: a Markdown card on standard output or in --out, and the
+# inspection CSVs in --inspect-dir. The SQL of analysis/ runs in a DuckDB CLI
+# subprocess. Rails is never loaded and only default gems are required, so the
+# script also runs under bundler, whose Gemfile has no csv.
+module HealthCard
+  ROOT = File.expand_path("..", __dir__)
+  ANALYSIS_DIR = File.join(ROOT, "analysis")
+  DUCKDB_FLAGS = %w[-no-init -bail -batch -json].freeze
+  STATIC_FILES = %w[GetRoute.gz GetStop.gz GetPathDetail.gz].freeze
+  INSPECTION_FILES = %w[trips.csv layovers.csv chains.csv profile.csv quality.csv].freeze
+  ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/
+  ROUTE_ID = /\A[1-9]\d*\z/
+
+  # A failure the operator can act on: the message goes to standard error as
+  # it is and the process exits with the code. Nothing has been written yet.
+  class Failure < StandardError
+    attr_reader :exit_code
+
+    def initialize(message, exit_code)
+      super(message)
+      @exit_code = exit_code
+    end
+  end
+
+  Options = Data.define(:data_root, :route_id, :day, :static_day, :out, :inspect_dir)
+
+  class CLI
+    def initialize(argv, env)
+      @argv = argv
+      @env = env
+    end
+
+    def run
+      options = parse_options
+      duckdb = find_duckdb
+      check_inputs(options)
+      # DuckDB writes the CSVs into a scratch directory; they reach
+      # --inspect-dir only after the whole run has succeeded.
+      Dir.mktmpdir("health-card") do |scratch_dir|
+        card = Card.new(run_sql(duckdb, options, scratch_dir), generated_at: Time.now.getlocal("+08:00"))
+        write_outputs(card.to_markdown, scratch_dir, options)
+      end
+      0
+    rescue Failure => e
+      $stderr.write(e.message)
+      e.exit_code
+    end
+
+    private
+
+    def parser
+      @parser ||= OptionParser.new do |opts|
+        opts.banner = "用法：bin/health-card --data DIR --route ID --day YYYY-MM-DD [選項]"
+        opts.separator ""
+        opts.on("--data DIR", "原始檔的資料根目錄；省略時用環境變數 TURNAROUND_DATA")
+        opts.on("--route ID", ROUTE_ID, "路線 Id，例如 15373")
+        opts.on("--day YYYY-MM-DD", ISO_DATE, "台北日")
+        opts.on("--static-day YYYY-MM-DD", ISO_DATE, "靜態快照日；省略時等於 --day")
+        opts.on("--out PATH", "卡寫到這個檔；省略時寫到標準輸出")
+        opts.on("--inspect-dir DIR", "逐趟 CSV 寫到這個目錄；省略時是 tmp/health-card/<路線 Id>-<台北日>")
+      end
+    end
+
+    def parse_options
+      values = {}
+      extra = parser.parse(@argv, into: values)
+      raise usage_error("多出不屬於任何參數的引數：#{extra.join(' ')}") unless extra.empty?
+
+      build_options(values)
+    rescue OptionParser::ParseError => e
+      raise usage_error(e.message)
+    end
+
+    # An empty --data or TURNAROUND_DATA counts as not given.
+    def build_options(values)
+      data_root = [ values[:data], @env["TURNAROUND_DATA"] ].find { !it.to_s.empty? }
+      missing = { "--data 或 TURNAROUND_DATA" => data_root, "--route" => values[:route], "--day" => values[:day] }
+      raise usage_error("缺少 #{missing.select { |_name, value| value.nil? }.keys.join('、')}") if missing.value?(nil)
+
+      route_id = Integer(values[:route], 10)
+      day = parse_day(values[:day])
+      Options.new(data_root: File.expand_path(data_root), route_id:, day:,
+                  static_day: values[:"static-day"] ? parse_day(values[:"static-day"]) : day,
+                  out: values[:out],
+                  inspect_dir: values[:"inspect-dir"] || File.join(ROOT, "tmp/health-card", "#{route_id}-#{day.iso8601}"))
+    end
+
+    def parse_day(text)
+      Date.strptime(text, "%Y-%m-%d")
+    rescue Date::Error
+      raise usage_error("沒有這一天：#{text}")
+    end
+
+    def usage_error(reason) = Failure.new("#{reason}\n\n#{parser.help}", 1)
+
+    def find_duckdb
+      candidates = @env.fetch("PATH", "").split(File::PATH_SEPARATOR).reject(&:empty?).map { File.join(it, "duckdb") }
+      duckdb = candidates.find { File.file?(it) && File.executable?(it) }
+      raise Failure.new("需要 DuckDB CLI，安裝：brew install duckdb\n", 2) unless duckdb
+
+      duckdb
+    end
+
+    # The day's bus_event files must exist; the days around it may be missing.
+    def check_inputs(options)
+      day_dir = File.join(options.data_root, "bus_event", options.day.iso8601)
+      if Dir.glob("[0-9][0-9].jsonl{,.gz}", base: day_dir).empty?
+        raise Failure.new("#{day_dir} 沒有任何 bus_event 的小時檔\n", 3)
+      end
+
+      check_static_snapshot(options)
+    end
+
+    # Another snapshot day is never used in place of the one asked for.
+    def check_static_snapshot(options)
+      static_root = File.join(options.data_root, "static")
+      static_dir = File.join(static_root, options.static_day.iso8601)
+      missing = STATIC_FILES.reject { File.file?(File.join(static_dir, it)) }
+      return if missing.empty?
+
+      reason = Dir.exist?(static_dir) ? "#{static_dir} 缺 #{missing.join('、')}" : "#{static_dir} 不存在"
+      days = snapshot_days(static_root)
+      raise Failure.new(<<~MESSAGE, 3)
+        靜態快照 #{options.static_day.iso8601} 不能用：#{reason}
+        現有的快照日：#{days.empty? ? '沒有' : days.join('、')}
+      MESSAGE
+    end
+
+    def snapshot_days(static_root)
+      return [] unless Dir.exist?(static_root)
+
+      Dir.children(static_root).select { ISO_DATE.match?(it) && File.directory?(File.join(static_root, it)) }.sort
+    end
+
+    # Returns the card row, the one result the SQL prints.
+    def run_sql(duckdb, options, inspect_dir)
+      stdout, stderr, status = Open3.capture3(duckdb, *DUCKDB_FLAGS, stdin_data: sql(options, inspect_dir))
+      raise Failure.new(stderr.empty? ? "duckdb 失敗（#{status}），沒有印出錯誤訊息\n" : stderr, 4) unless status.success?
+
+      JSON.parse(stdout).fetch(0).fetch("card")
+    end
+
+    # The variables, then params.sql, then the numbered stages in file name
+    # order. Sorting every file by name would put params.sql after the stages.
+    def sql(options, inspect_dir)
+      variables = { data_root: options.data_root, route_id: options.route_id, day: options.day,
+                    static_day: options.static_day, inspect_dir: }
+      stages = [ "params.sql", *Dir.glob("[0-9]*.sql", base: ANALYSIS_DIR).sort ].map { File.join(ANALYSIS_DIR, it) }
+      [ *variables.map { |name, value| "SET VARIABLE #{name} = #{sql_literal(value)};" }, *stages.map { File.read(it) } ].join("\n")
+    end
+
+    def sql_literal(value)
+      case value
+      when Integer then value.to_s
+      when Date then "DATE '#{value.iso8601}'"
+      else "'#{value.to_s.gsub("'", "''")}'"
+      end
+    end
+
+    def write_outputs(markdown, scratch_dir, options)
+      FileUtils.mkdir_p(options.inspect_dir)
+      INSPECTION_FILES.each { FileUtils.cp(File.join(scratch_dir, it), options.inspect_dir) }
+      return $stdout.write(markdown) unless options.out
+
+      FileUtils.mkdir_p(File.dirname(options.out))
+      File.write(options.out, markdown)
+    end
+  end
+
+  # Renders the card row of analysis/60_export.sql as Markdown. The numbers,
+  # and the definition constants the text names, all come from that row; a
+  # value the SQL leaves empty, such as a percentile of no layovers, shows as
+  # NONE. The card names no vehicle and no file system path.
+  class Card
+    NONE = "—".freeze
+    DIRECTIONS = { 0 => "去程", 1 => "返程" }.freeze
+    LAYOVER_SCOPES = { nil => "全部", 0 => "去程結束", 1 => "返程結束" }.freeze
+    COMPLETENESS = %w[complete missing_start missing_end missing_both].freeze
+    RESET_ENDS = { "first" => "起站上客前（到站記錄）", "last" => "末站下客後（離站記錄）" }.freeze
+    # Band, its name, and the band_hours keys of its first hour and of the
+    # hour after its last; the other band has every remaining hour.
+    BANDS = [
+      [ "morning_peak", "早尖峰", "morning_peak_start", "daytime_start" ],
+      [ "daytime", "日間", "daytime_start", "evening_peak_start" ],
+      [ "evening_peak", "晚尖峰", "evening_peak_start", "evening_peak_end" ],
+      [ "other", "其餘", nil, nil ]
+    ].freeze
+
+    LIMITATIONS = <<~MARKDOWN.chomp.freeze
+      ## 資料限制
+
+      - 車不等於人：資料認的是車牌，不是駕駛。折返停留包含回場、加油、等發車在內的一切，是駕駛休息的上限；雙班制下一台車由兩個人開，這些數字對不回單一駕駛。
+      - 車上人數是票證推出來的值，不是點人頭，準確度看下車刷卡率與系統的歸零邏輯。
+      - 10 秒輪詢一定會漏站。完整趟次的判定與漏站率是這張卡要量的東西，不是已知。
+      - 同一車同一秒的進站與離站只會留一筆：去重的鍵是 (BusID, DataTime)，採集端用的也是這個鍵。跨小時檔的重複在壓縮時沒有處理，讀檔時一律再去重一次。
+      - 只用了一個台北日，離峰時段一個方向只有幾趟。所有百分位數都只用來看定義對不對，不可引用。
+    MARKDOWN
+
+    # The three attribution paragraphs of the 授權 section of
+    # docs/data-sources.md, word for word; spec/analysis/card_spec.rb compares
+    # them with that file.
+    ATTRIBUTION = <<~MARKDOWN.chomp.freeze
+      ## 資料來源與授權
+
+      臺北市公共運輸處 2026 臺北市公車即時開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent），見 Data.Taipei 平台 API 說明文件 V6.3
+
+      此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。
+
+      政府資料開放授權條款：https://data.gov.tw/license
+    MARKDOWN
+
+    def initialize(data, generated_at:)
+      @data = data
+      @generated_at = generated_at
+    end
+
+    def to_markdown
+      "#{[ header, quality, trips, layovers, load_profile, LIMITATIONS, ATTRIBUTION ].join("\n\n")}\n"
+    end
+
+    private
+
+    def header
+      route = @data.fetch("route")
+      sub_routes = Array(route["sub_routes"]).map { "#{it['name']}（#{it['path_attribute_id']}）" }
+      <<~MARKDOWN.chomp
+        # #{route['name']} 路線健檢卡（一天版）
+
+        > 一天版，驗定義用，不可引用：只用了一個台北日的資料，所有數字都只拿來看趟次、折返停留與車上人數的定義對不對。
+
+        - 路線：#{route['name']}（路線 Id #{route['route_id']}）
+        - 起迄：#{route['departure']}－#{route['destination']}
+        - 附屬路線：#{sub_routes.join('、')}
+        - 資料日：#{@data['day']}
+        - 靜態快照日：#{@data['static_day']}
+        - 產出時刻：#{@generated_at.strftime('%Y-%m-%d %H:%M:%S')}（台北時間）
+      MARKDOWN
+    end
+
+    def quality
+      quality = @data.fetch("quality")
+      [ "## 資料品質",
+        "讀到與去掉的筆數只算這條路線的附屬路線，是整個讀檔視窗內的筆數。兩支 feed 各自以 (BusID, DataTime) 去重，留最早抓到的那一筆。",
+        "- 讀檔視窗：#{quality.dig('window', 'start')} 起，到 #{quality.dig('window', 'end')} 前",
+        table(%w[feed 讀到 去掉的重複], Array(quality["feeds"]).map { [ it["feed"], count(it["n_read"]), count(it["n_removed"]) ] }, "lrr"),
+        "- 對不到站序的到離站事件：#{count(quality['unknown_stop_events'])} 筆",
+        "附屬路線併回路線一起切趟。每次執行都比對每條附屬路線在 GetPathDetail 依序的站牌，是否等於路線在 GetStop 對應方向依 seqNo 排的站牌，只比順序：",
+        table(%w[附屬路線 pathAttributeId 站序比對 比對的方向 趟數 佔趟次 當天第一趟 當天最後一趟], sub_route_rows(quality), "lrllrrrr"),
+        "當天第一趟與最後一趟：把同一台車在這條路線、起點落在資料日的趟次依起點排序，最早的一趟與最晚的一趟，不分完整性；" \
+        "只有一趟的車兩欄都算。同一台車跑別的路線的趟次不在這張卡讀的資料裡。",
+        "趟次依觀測到的第一站與最後一站是不是該方向的起站與末站分類：complete 兩端都有，missing_start 漏起站，missing_end 漏末站，missing_both 兩端都漏。",
+        table(%w[完整性 趟數], completeness_rows(quality), "lr"),
+        missing_stops(quality.fetch("missing_stop_rate")),
+        "完整趟次的末站在終點後 #{@data.dig('profile', 'reset_record_minutes')} 分鐘內有沒有離站事件；" \
+        "沒有離站事件的趟次，載客剖面一節的末站下客後就量不到：",
+        table(%w[方向 末站 完整趟次 終點後有離站事件], last_stop_departure_rows(quality), "llrr"),
+        "當天趟次裡到離站事件的 DutyStatus：",
+        table(%w[DutyStatus 筆數], Array(quality["duty_status"]).map { [ count(it["duty_status"]), count(it["n_events"]) ] }, "rr"),
+        duty_status_ends(quality.fetch("duty_status_ends"), quality["duty_status_end_code"]) ].join("\n\n")
+    end
+
+    def sub_route_rows(quality)
+      trips_by_path = Array(quality["path_trips"]).to_h { [ it["path_attribute_id"], it ] }
+      Array(quality["sequence_check"]).map do |check|
+        path_trips = trips_by_path.fetch(check["path_attribute_id"], {})
+        directions = Array(check["directions"]).map { direction(it) }
+        [ check["name"], check["path_attribute_id"], check["identical"] ? "一樣" : "不一樣",
+          directions.empty? ? NONE : directions.join("、"), count(path_trips["n_trips"]), percent(path_trips["share"]),
+          count(path_trips["n_first"]), count(path_trips["n_last"]) ]
+      end
+    end
+
+    def last_stop_departure_rows(quality)
+      Array(quality["last_stop_departures"]).map do |row|
+        [ direction(row["go_back"]), row["stop_name"], count(row["complete_trips"]), count(row["with_departure"]) ]
+      end
+    end
+
+    def completeness_rows(quality)
+      counts = quality.fetch("completeness")
+      [ *COMPLETENESS.map { [ it, count(counts[it]) ] }, [ "合計", count(@data.dig("trips", "total")) ] ]
+    end
+
+    def missing_stops(rate)
+      <<~MARKDOWN.chomp
+        - 完整趟次的漏站率：#{ratio(rate['missing_stops'], rate['direction_stops'], rate['rate'], '站')}
+
+        分母是每個完整趟次所在方向的站數加總，分子是其中沒有任何到離站事件的站數。
+      MARKDOWN
+    end
+
+    def duty_status_ends(ends, code)
+      <<~MARKDOWN.chomp
+        - 最後一筆事件是 DutyStatus #{code} 的趟次：#{ratio(ends['trips_ending_duty_2'], ends['n_trips'], ends['trip_share'], '趟')}
+        - DutyStatus #{code} 的事件落在趟末：#{ratio(ends['final_duty_2_events'], ends['duty_2_events'], ends['event_share'], '筆')}
+      MARKDOWN
+    end
+
+    def trips
+      trips = @data.fetch("trips")
+      rows = Array(trips["by_direction_band"]).sort_by { [ it["go_back"], band_index(it["band"]) ] }.map do |group|
+        [ direction(group["go_back"]), band_labels.fetch(group["band"], group["band"]), count(group["n_trips"]), count(group["n_complete"]) ]
+      end
+      total = [ "合計", "", count(trips["total"]), count(@data.dig("quality", "completeness", "complete")) ]
+      endpoints = <<~MARKDOWN.chomp
+        - 起站沒有離站事件、起點改用到站時刻：#{count(trips['start_from_arrival'])} 趟
+        - 末站沒有到站事件、終點改用離站時刻：#{count(trips['end_from_departure'])} 趟
+      MARKDOWN
+      [ "## 趟次",
+        "同一車牌、同一路線的到離站事件依時間排序，方向改變、站序回頭或與前一筆相隔超過 #{trips['split_gap_minutes']} 分鐘，就開新的一趟。起點取第一個觀測站的離站時刻，終點取最後一個觀測站的到站時刻，趟次歸起點所在的台北日。時段依起點的小時分。",
+        table(%w[方向 時段 趟數 完整], [ *rows, total ], "llrr"),
+        endpoints ].join("\n\n")
+    end
+
+    def layovers
+      layovers = @data.fetch("layovers")
+      chains = @data.fetch("chains")
+      distribution = Array(layovers["distribution"])
+      [ "## 折返停留",
+        "同一車牌相鄰兩個完整趟次、同一條路線，下一趟起點減本趟終點，單位分鐘；每台車當天最後一趟沒有折返停留。它包含回場、加油、等發車在內的一切，是駕駛休息的上限。百分位數在順序統計量之間線性內插。",
+        table([ "範圍", "筆數", *Array(layovers["percentile_levels"]).map { "p#{(it * 100).round}" }, "不到 #{layovers['short_layover_minutes']} 分鐘" ],
+              distribution.map { [ layover_scope(it), count(it["n_layovers"]), *percentiles(it["percentiles"], layovers), percent(it["short_share"]) ] }, "lrrrrr"),
+        "分箱的分鐘數含下界、不含上界：",
+        table([ "範圍", *bin_labels(layovers["bin_lower_bounds"]) ], distribution.map { [ layover_scope(it), *Array(it["bin_counts"]).map { count(it) } ] },
+              "l#{'r' * Array(layovers['bin_lower_bounds']).size}"),
+        "- 不算折返停留的相鄰配對：#{exclusions(layovers.fetch('exclusions'))}",
+        chains_text(chains) ].join("\n\n")
+    end
+
+    def layover_scope(row) = LAYOVER_SCOPES.fetch(row["go_back"]) { "#{direction(row['go_back'])}結束" }
+
+    def percentiles(values, layovers) = Array(values || Array.new(Array(layovers["percentile_levels"]).size)).map { decimal(it) }
+
+    def bin_labels(lower_bounds)
+      bounds = Array(lower_bounds)
+      bounds.each_with_index.map { |bound, index| bounds[index + 1] ? "#{bound}–#{bounds[index + 1]}" : "#{bound} 以上" }
+    end
+
+    def exclusions(excluded)
+      "有一趟不完整 #{count(excluded['incomplete'])} 組、下一趟是別的路線 #{count(excluded['other_route'])} 組、差值為負 #{count(excluded['negative'])} 組"
+    end
+
+    def chains_text(chains)
+      summary = chains.fetch("summary")
+      report = Array(chains["report"])
+      text = [ "班次串對照汽車運輸業管理規則第 19 條之 2：任何連續 #{chains['rest_window_minutes']} 分鐘內，每段至少 #{chains['rest_min_minutes']} 分鐘的折返停留累計不到 #{chains['rest_credit_minutes']} 分鐘，就標為不合規；同一車牌重疊的不合規視窗併成一串。只用相鄰完整趟次接成的序列，遇到不完整趟次就切斷。",
+               "- 班次串：#{count(summary['n_chains'])} 串，涉及 #{count(summary['n_vehicles'])} 台車" ]
+      return text.join("\n\n") if report.empty?
+
+      rows = report.each_with_index.map { |chain, index| [ index + 1, chain["start_time"], chain["end_time"], count(chain["n_trips"]) ] }
+      [ *text, table(%w[串 第一趟起點 最後一趟終點 趟數], rows, "rllr") ].join("\n\n")
+    end
+
+    def load_profile
+      profile = @data.fetch("profile")
+      coverage = profile.fetch("coverage")
+      upper = "p#{(profile['upper_level'] * 100).round}"
+      [ "## 載客剖面",
+        "車上人數取 bus_seat_event 的 RemainingNum，接到同一車牌、同一路線與方向、DataTime 落在趟次起訖之間的趟次；每站取離站記錄，沒有離站記錄時取到站記錄。",
+        <<~MARKDOWN.chomp,
+          - 有車上人數的趟次：#{ratio(coverage['trips_with_count'], coverage['n_trips'], coverage['trip_share'], '趟')}
+          - 有車上人數的觀測站：#{ratio(coverage['stops_with_count'], coverage['n_trip_stops'], coverage['stop_share'], '站')}
+        MARKDOWN
+        "歸零檢查看車上本來不該有人的兩個時刻，這兩筆記錄落在趟次起訖之外，不進上面的涵蓋率與下面的剖面：" \
+        "完整趟次起點前 #{profile['reset_record_minutes']} 分鐘內、在起站的最後一筆到站記錄（上客前），" \
+        "以及終點後 #{profile['reset_record_minutes']} 分鐘內、在末站的第一筆離站記錄（下客後）。比例只算有記錄的趟次。",
+        table([ "端點", "方向", "站名", "有記錄", "沒有記錄", "等於 0", "不超過 #{profile['reset_near_zero']} 人", "最大值" ],
+              reset_rows(profile["reset"]), "lllrrrrr"),
+        <<~MARKDOWN.chomp,
+          - 負值：#{count(profile.dig('anomalies', 'negative_counts'))} 筆
+          - 相鄰兩個有人數的站相差超過 #{profile['jump_threshold']} 人：#{count(profile.dig('anomalies', 'jumps'))} 次
+        MARKDOWN
+        "剖面依方向、時段與站序。每格是車上人數的中位數 / #{upper}，括號裡是那一站有人數的趟數；#{NONE} 是那個時段沒有人數。時段依趟次起點的小時。",
+        table([ "方向", "seq", "站名", *BANDS.map { |band, *| band_labels.fetch(band) } ], profile_rows(profile["rows"]), "lrl#{'r' * BANDS.size}") ]
+        .join("\n\n")
+    end
+
+    def reset_rows(reset)
+      Array(reset).sort_by { [ it["go_back"], RESET_ENDS.keys.index(it["terminal"]) ] }.map do |row|
+        [ RESET_ENDS.fetch(row["terminal"]), direction(row["go_back"]), row["stop_name"], count(row["n_trips"]),
+          count(row["n_missing"]), percent(row["share_zero"]), percent(row["share_near_zero"]), count(row["max_count"]) ]
+      end
+    end
+
+    # One row per stop of a direction, one column per band.
+    def profile_rows(rows)
+      Array(rows).group_by { it.values_at("go_back", "seq", "stop_name") }.sort_by { |(go_back, seq, name), _| [ go_back, seq, name.to_s ] }
+                 .map do |(go_back, seq, name), cells|
+        by_band = cells.to_h { [ it["band"], it ] }
+        [ direction(go_back), seq, name, *BANDS.map { |band, *| load_cell(by_band[band]) } ]
+      end
+    end
+
+    def load_cell(cell) = cell ? "#{decimal(cell['median'])} / #{decimal(cell['p90'])}（#{count(cell['n_trips'])}）" : NONE
+
+    def band_labels
+      @band_labels ||= BANDS.to_h do |band, name, first_key, end_key|
+        hours = @data.fetch("band_hours")
+        [ band, first_key ? format("%s %02d:00–%02d:59", name, hours.fetch(first_key), hours.fetch(end_key) - 1) : name ]
+      end
+    end
+
+    def band_index(band) = BANDS.index { |key, *| key == band } || BANDS.size
+
+    def direction(go_back) = DIRECTIONS.fetch(go_back) { go_back.to_s }
+
+    def table(header, rows, align)
+      separator = align.chars.map { it == "r" ? "---:" : "---" }
+      [ header, separator, *rows ].map { |cells| "| #{cells.map { it.to_s.gsub('|', '\|') }.join(' | ')} |" }.join("\n")
+    end
+
+    def count(value) = value.nil? ? NONE : value.to_s
+
+    def decimal(value) = value.nil? ? NONE : format("%.1f", value)
+
+    def percent(share) = share.nil? ? NONE : format("%.1f%%", share * 100)
+
+    def ratio(part, whole, share, unit) = "#{count(part)} / #{count(whole)} #{unit}（#{percent(share)}）"
+  end
+end
+
+exit HealthCard::CLI.new(ARGV, ENV).run

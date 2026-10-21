@@ -1,0 +1,2 @@
+{"ProviderID":9999,"StationID":19001,"BusID":"TEST-0002","CarType":"1","CarID":900000002,"DutyStatus":"1","BusStatus":"0","RouteID":"9001","GoBack":"0","StopID":"91000","CarOnStop":"0","RemainingNum":0,"Level":0,"DataTime":"2026-10-19 23:40:00","_fetched_at":"2026-10-19T15:40:04Z"}
+{"ProviderID":9999,"StationID":19001,"BusID":"TEST-0002","CarType":"1","CarID":900000002,"DutyStatus":"1","BusStatus":"0","RouteID":"9001","GoBack":"0","StopID":"91001","CarOnStop":"0","RemainingNum":5,"Level":0,"DataTime":"2026-10-19 23:52:30","_fetched_at":"2026-10-19T15:52:34Z"}

@@ -1,0 +1,73 @@
+## Purpose
+
+Measure the time a vehicle spends between two consecutive trips (折返停留) and test the sequence of trips against the four-hour rest rule of 汽車運輸業管理規則第 19 條之 2. The measure is an upper bound on driver rest because the data identifies vehicles, not drivers.
+
+## ADDED Requirements
+
+### Requirement: Layover definition
+
+For each vehicle, the system SHALL order its trips by start time and SHALL compute a layover for each pair of consecutive trips as the next trip's start time minus the current trip's end time, only when both trips are classified `complete` and both carry the same route `Id`. Pairs that do not qualify SHALL be counted in one of three exclusion categories: a trip in the pair is not complete; the next trip is on another route; the difference is negative. The last trip of a vehicle on the day SHALL have no layover.
+
+#### Scenario: Qualifying pair
+
+- **WHEN** a complete trip ends at 08:30 and the same vehicle's next complete trip on the same route starts at 08:42
+- **THEN** a layover of 12.0 minutes is recorded
+
+#### Scenario: Pair with an incomplete trip
+
+- **WHEN** a complete trip is followed by a trip classified `missing_start`
+- **THEN** no layover is recorded for the pair and the incomplete-pair count increases by one
+
+#### Scenario: Negative difference
+
+- **WHEN** the next trip's start time is earlier than the current trip's end time
+- **THEN** no layover is recorded and the negative-pair count increases by one
+
+##### Example: Overlapping trips
+
+- **GIVEN** a complete trip ending at 08:30 and the same vehicle's next complete trip starting at 08:28
+- **WHEN** layovers are computed
+- **THEN** the pair yields no layover and the negative-pair count is 1
+
+### Requirement: Layover distribution
+
+The system SHALL report, overall and per direction of the trip that ended: the number of layovers, the 10th, 50th and 90th percentiles in minutes with one decimal using linear interpolation between order statistics, the share of layovers shorter than 15 minutes, and counts in the bins 0 to 5, 5 to 10, 10 to 15, 15 to 30, 30 to 60, and 60 or more minutes, each bin including its lower bound and excluding its upper bound.
+
+#### Scenario: Percentiles with linear interpolation
+
+- **WHEN** the layovers are 4, 8, 12, 20 and 45 minutes
+- **THEN** p10 is 5.6, p50 is 12.0 and p90 is 35.0
+
+##### Example: Bins and short share
+
+- **GIVEN** layovers 4, 8, 12, 20, 45 minutes
+- **WHEN** the distribution is reported
+- **THEN** bins read 1, 1, 1, 1, 1, 0 and the share under 15 minutes is 60%
+
+### Requirement: Rest-rule windows and chains
+
+For each vehicle, the system SHALL use only runs of consecutive complete trips on the same route, cutting the run at any trip that is not complete. For each trip i in a run, the system SHALL find the earliest trip j in the same run such that trip j's end time minus trip i's start time is at least 240 minutes. When such j exists, the rest credit of the window SHALL be the sum of the layovers after trips i through j-1 that are at least 15 minutes long, and the window SHALL be flagged when the credit is below 30 minutes. Flagged windows of the same vehicle whose trip ranges overlap SHALL be merged into one chain.
+
+#### Scenario: Short layovers earn no credit
+
+- **WHEN** trips run 06:00 to 08:30 and 08:40 to 11:10 with a 10-minute layover between them
+- **THEN** the window starting at the first trip spans 310 minutes with a credit of 0 and is flagged
+
+#### Scenario: Two qualifying rests satisfy the rule
+
+- **WHEN** three consecutive trips are separated by layovers of 20 and 20 minutes and the window spans at least 240 minutes
+- **THEN** the credit is 40 minutes and the window is not flagged
+
+#### Scenario: Overlapping windows form one chain
+
+- **WHEN** the windows starting at trip 1 and at trip 2 of the same vehicle are both flagged and share trip 2
+- **THEN** one chain is reported covering trips 1 through the later window's end
+
+### Requirement: Chain report without vehicle identifiers
+
+The system SHALL report the number of chains, the number of distinct vehicles with at least one chain, and for each chain its first trip start time, last trip end time and number of trips. The chain report included in the card SHALL NOT contain any `BusID` value.
+
+#### Scenario: Chain row content
+
+- **WHEN** a chain covers three trips from 06:00 to 11:10 for vehicle `TEST-0001`
+- **THEN** the card lists a chain with start 06:00, end 11:10 and 3 trips, and the string `TEST-0001` does not appear in the card
