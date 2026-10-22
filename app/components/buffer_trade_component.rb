@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
-# The cost of a buffer at every layover, with a slider that reloads only this
-# block. Only numbers: nothing is marked as meeting a rule or a target.
+# The cost of a buffer at every layover at the stopping ends, with a slider
+# that reloads only this block. The layovers at a pass-through end are
+# reported apart, as not counted. Only numbers: nothing is marked as meeting a
+# rule or a target.
 class BufferTradeComponent < ApplicationComponent
   def initialize(buffer_trade:, coverage:)
     @buffer_trade = buffer_trade
@@ -11,6 +13,8 @@ class BufferTradeComponent < ApplicationComponent
   def minutes_range = RoutePage::BufferTrade::MINUTES_RANGE
 
   def layovers? = @buffer_trade.n_layovers.positive?
+
+  def pass_through? = @buffer_trade.ends.pass_through?
 
   def share(value) = format("%.1f%%", value * 100)
 

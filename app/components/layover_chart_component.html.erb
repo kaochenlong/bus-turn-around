@@ -5,10 +5,11 @@
     <% directions.each do |direction| %>
       <figure data-direction="<%= direction.go_back %>" class="min-w-0">
         <figcaption data-stops data-last-stop="<%= direction.last_stop %>" data-next-first-stop="<%= direction.next_first_stop %>"
-                    class="mb-3 font-medium text-slate-800">
+                    data-end-nature="<%= nature(direction) %>" class="mb-3 font-medium text-slate-800">
           <%= t(".stops_html", direction: t(".directions.#{direction.go_back}"),
                                last_stop: tag.span(direction.last_stop, class: "font-semibold text-teal-800"),
-                               next_first_stop: tag.span(direction.next_first_stop, class: "font-semibold text-teal-800")) %>
+                               next_first_stop: tag.span(direction.next_first_stop, class: "font-semibold text-teal-800"),
+                               nature: tag.span(t(".natures.#{nature(direction)}"), class: "whitespace-nowrap")) %>
         </figcaption>
         <% if empty?(direction) %>
           <p data-no-layover class="text-slate-600"><%= t(".no_layover") %></p>

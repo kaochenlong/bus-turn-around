@@ -6,6 +6,7 @@
       <tr>
         <th class="text-left font-normal"><%= t(".direction") %></th>
         <th class="text-left font-normal"><%= t(".last_stop") %></th>
+        <th class="text-left font-normal"><%= t(".nature") %></th>
         <th class="text-right font-normal"><%= t(".count") %></th>
         <th class="text-right font-normal">p10</th>
         <th class="text-right font-normal">p50</th>
@@ -15,9 +16,10 @@
     </thead>
     <tbody>
       <% rows.each do |row| %>
-        <tr data-direction="<%= row.go_back %>">
+        <tr data-direction="<%= row.go_back %>" data-end-nature="<%= nature(row) %>">
           <td><%= t(".directions.#{row.go_back}") %></td>
           <td><%= row.stop_name %></td>
+          <td><%= t(".natures.#{nature(row)}") %></td>
           <td class="text-right"><%= row.n_layovers %></td>
           <% row.percentiles.each do |value| %>
             <td class="text-right"><%= minutes(value) %></td>
@@ -27,4 +29,7 @@
       <% end %>
     </tbody>
   </table>
+  <% if pass_through? %>
+    <p data-pass-through-note class="mt-2 max-w-[46em] text-xs text-slate-500"><%= t(".pass_through_note") %></p>
+  <% end %>
 </section>

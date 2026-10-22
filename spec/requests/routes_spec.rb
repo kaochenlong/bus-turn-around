@@ -1,18 +1,25 @@
 require "rails_helper"
 
 RSpec.describe "Routes", type: :request do
-  def store_days(*days)
+  def store_days(*days, route_id: 9001)
     days.each do |day|
-      RouteDay.create!(route_id: 9001, day: Date.iso8601(day), route_name: "測試幹線", departure: "甲站",
+      RouteDay.create!(route_id:, day: Date.iso8601(day), route_name: "測試幹線", departure: "甲站",
                        destination: "戊站", static_day: Date.iso8601(day), loaded_at: Time.current)
     end
   end
+
+  # The last stop of each direction, so the layover table has a row per direction.
+  def add_last_stops(route_day) = route_day.stops.create!([ { go_back: 0, seq: 4, stop_name: "戊站" }, { go_back: 1, seq: 9, stop_name: "甲站" } ])
 
   def page = response.parsed_body
 
   def buffer_minutes = page.at_css("[data-section=buffer-trade] [data-value=minutes]")&.text
 
   def covered_days = page.css("[data-covered-days] [data-day]").map { it["data-day"] }
+
+  def layover_natures = page.css("[data-section=layovers] tr[data-direction]").map { it["data-end-nature"] }
+
+  def pass_through_layovers = page.css("[data-section=buffer-trade] [data-value=pass-through-layovers]")
 
   it "路線不在路線清單裡回 404" do
     get route_path(9999)
@@ -50,6 +57,32 @@ RSpec.describe "Routes", type: :request do
     get route_path(9001), params: { day: "2026-10-19" }
     expect(page.css("[data-section]").map { it["data-section"] })
       .to eq(%w[summary layover-chart load-chart run-times layovers buffer-trade mrt-overlap load-profile limitations])
+  end
+
+  it "兩端都停車的 9001，折返停留兩列都標停車" do
+    store_days("2026-10-19")
+    add_last_stops(RouteDay.sole)
+    get route_path(9001), params: { day: "2026-10-19" }
+    expect(layover_natures).to eq(%w[stop stop])
+  end
+
+  it "15373 的兩端照設定標示：去程結束那列開過去就走、返程結束那列停車" do
+    store_days("2026-10-21", route_id: 15373)
+    add_last_stops(RouteDay.sole)
+    get route_path(15373), params: { day: "2026-10-21" }
+    expect(layover_natures).to eq(%w[pass_through stop])
+  end
+
+  it "兩端都停車的 9001，試算沒有開過去就走那一端的筆數" do
+    store_days("2026-10-19")
+    get route_path(9001), params: { day: "2026-10-19" }
+    expect(pass_through_layovers.size).to eq(0)
+  end
+
+  it "15373 有開過去就走的一端，試算另外報那一端的筆數" do
+    store_days("2026-10-21", route_id: 15373)
+    get route_path(15373), params: { day: "2026-10-21" }
+    expect(pass_through_layovers.size).to eq(1)
   end
 
   it "站牌還沒有到捷運的距離（之前寫入的資料）時，捷運重疊那一塊提示重算" do

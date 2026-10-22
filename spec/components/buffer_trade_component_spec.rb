@@ -3,15 +3,17 @@
 require "rails_helper"
 
 RSpec.describe BufferTradeComponent, type: :component do
-  # One stored day with trips by vehicles A and B and layovers ending at 08:00
-  # (5 minutes) and 08:20 (20 minutes): at 15 minutes the shortfall is 10.
+  # One stored day with trips by vehicles A and B and layovers as ["HH:MM" end
+  # time, minutes, direction of the ending trip], the direction 0 when left
+  # out. By default they end at 08:00 (5 minutes) and 08:20 (20 minutes): at
+  # 15 minutes the shortfall is 10.
   def route_day(layovers: [ [ "08:00", 5 ], [ "08:20", 20 ] ])
     RouteDay.create!(route_id: 9001, day: Date.new(2026, 10, 19), route_name: "測試幹線", departure: "甲站", destination: "戊站",
                      static_day: Date.new(2026, 10, 19), loaded_at: Time.current).tap do |day|
       %w[A B].each { add_trip(day, it) }
-      layovers.each do |time, minutes|
+      layovers.each do |time, minutes, go_back = 0|
         end_time = Time.zone.parse("2026-10-19 #{time}")
-        day.layovers.create!(bus_id: "A", go_back: 0, end_time:, next_start_time: end_time + minutes.minutes)
+        day.layovers.create!(bus_id: "A", go_back:, end_time:, next_start_time: end_time + minutes.minutes)
       end
     end
   end
@@ -23,9 +25,13 @@ RSpec.describe BufferTradeComponent, type: :component do
                       start_from_arrival: false, end_from_departure: false)
   end
 
-  def render_trade(day, range: "day")
+  # The nature of the end where direction 0 trips end and of the one where
+  # direction 1 trips end.
+  def route_ends(outbound, inbound) = RoutePage::Ends.from_config({ 0 => outbound, 1 => inbound }, route_id: 9001)
+
+  def render_trade(day, range: "day", ends: route_ends("stop", "stop"))
     coverage = RoutePage::Coverage.new(route_id: 9001, day: "2026-10-19", range:)
-    render_inline(described_class.new(buffer_trade: RoutePage::BufferTrade.new(RouteDay.where(id: day.id), minutes: 15), coverage:))
+    render_inline(described_class.new(buffer_trade: RoutePage::BufferTrade.new(RouteDay.where(id: day.id), minutes: 15, ends:), coverage:))
   end
 
   def values(rendered) = rendered.css("[data-value]").to_h { [ it["data-value"], it.text.squish ] }
@@ -35,6 +41,20 @@ RSpec.describe BufferTradeComponent, type: :component do
       "minutes" => "15", "days" => "1", "layovers" => "2", "trips" => "2", "achieved" => "50.0%",
       "vehicle-hours-lower" => "0.2", "vehicle-hours-upper" => "0.5", "vehicles-per-day" => "2.0"
     )
+  end
+
+  it "有開過去就走的一端時，停車端的筆數是試算的基礎，那一端的筆數另外報" do
+    day = route_day(layovers: [ [ "07:00", 2, 0 ], [ "07:30", 2, 0 ], [ "09:00", 2, 0 ], [ "08:00", 5, 1 ], [ "08:20", 20, 1 ] ])
+    expect(values(render_trade(day, ends: route_ends("pass_through", "stop")))).to include("layovers" => "2", "pass-through-layovers" => "3")
+  end
+
+  it "兩端都停車時沒有開過去就走那一端的筆數" do
+    expect(render_trade(route_day).css("[data-value=pass-through-layovers]").size).to eq(0)
+  end
+
+  it "只有開過去就走那一端有折返停留時，說明沒有停車端的折返停留，仍報那一端的筆數" do
+    rendered = render_trade(route_day(layovers: [ [ "08:00", 2, 0 ], [ "08:10", 2, 0 ], [ "08:20", 2, 0 ] ]), ends: route_ends("pass_through", "stop"))
+    expect([ rendered.css("[data-no-layover]").size, values(rendered)["pass-through-layovers"] ]).to eq([ 1, "3" ])
   end
 
   it "最忙小時的車數標出是幾點" do

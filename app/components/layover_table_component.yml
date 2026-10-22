@@ -7,8 +7,13 @@ tw: &tw
     "1": 返程
   direction: 結束那趟
   last_stop: 在這一站結束
+  nature: 折返方式
+  natures:
+    stop: 停車
+    pass_through: 開過去就走
   count: 筆數
   short: 不到 %{minutes} 分鐘
+  pass_through_note: 標「開過去就走」的那一端，車到末站不停，直接開到下一趟的起站，所以這一端的折返停留不是休息機會。
 zh-TW:
   <<: *tw
 en:
@@ -19,5 +24,10 @@ en:
     "1": Inbound
   direction: Ending trip
   last_stop: Ends at
+  nature: Turnaround
+  natures:
+    stop: Stops
+    pass_through: Drives on
   count: Layovers
   short: Under %{minutes} min
+  pass_through_note: At an end marked “Drives on”, buses do not stop at the last stop and drive straight on to the first stop of the next trip, so the layovers there are not rest opportunities.

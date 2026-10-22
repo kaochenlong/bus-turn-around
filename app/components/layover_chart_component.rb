@@ -2,9 +2,10 @@
 
 # The layovers of each direction of the ending trip as a horizontal bar chart
 # in the health card's bins, so the two ends of the route can be compared at a
-# glance. Bars are scaled to the largest bin of their own direction; a divider
-# separates the bins under 15 minutes from the rest, without marking either
-# side as compliant.
+# glance. Each title states whether buses stop at that end or drive on to the
+# next trip. Bars are scaled to the largest bin of their own direction; a
+# divider separates the bins under 15 minutes from the rest, without marking
+# either side as compliant.
 class LayoverChartComponent < ApplicationComponent
   WIDTH = 460
   LABEL_WIDTH = 64
@@ -13,11 +14,14 @@ class LayoverChartComponent < ApplicationComponent
   BAR_HEIGHT = 16
   DIVIDER_MINUTES = RoutePage::LayoverStats::SHORT_MINUTES
 
-  def initialize(layover_distribution:)
+  def initialize(layover_distribution:, ends:)
     @layover_distribution = layover_distribution
+    @ends = ends
   end
 
   def directions = @directions ||= @layover_distribution.directions
+
+  def nature(direction) = @ends.nature(direction.go_back)
 
   def bounds = RoutePage::LayoverDistribution::BIN_LOWER_BOUNDS
 

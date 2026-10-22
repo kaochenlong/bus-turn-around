@@ -16,11 +16,18 @@
       <button type="submit" x-init="$el.hidden = true" class="rounded border border-slate-300 px-3 py-1 text-sm"><%= t(".submit") %></button>
     </form>
 
-    <p class="mb-4 text-slate-600">
-      <%= t(".coverage_html", days: tag.span(@buffer_trade.n_days, "data-value": "days"),
-                              layovers: tag.span(@buffer_trade.n_layovers, "data-value": "layovers"),
-                              trips: tag.span(@buffer_trade.n_trips, "data-value": "trips")) %>
-    </p>
+    <div class="mb-4 max-w-[46em] space-y-1 text-slate-600">
+      <p>
+        <%= t(".coverage_html", days: tag.span(@buffer_trade.n_days, "data-value": "days"),
+                                layovers: tag.span(@buffer_trade.n_layovers, "data-value": "layovers"),
+                                trips: tag.span(@buffer_trade.n_trips, "data-value": "trips")) %>
+      </p>
+      <% if pass_through? %>
+        <p data-pass-through>
+          <%= t(".pass_through_html", layovers: tag.span(@buffer_trade.n_pass_through_layovers, "data-value": "pass-through-layovers")) %>
+        </p>
+      <% end %>
+    </div>
 
     <% if layovers? %>
       <table class="w-full max-w-xl text-sm tabular-nums">

@@ -12,11 +12,11 @@
     <% load_profile = RoutePage::LoadProfile.new(route_days) %>
     <% mrt_overlap = RoutePage::MrtOverlap.new(route_days) %>
     <%= render RouteSummaryComponent.new(summary: RoutePage::Summary.new(route_days)) %>
-    <%= render LayoverChartComponent.new(layover_distribution: RoutePage::LayoverDistribution.new(route_days)) %>
+    <%= render LayoverChartComponent.new(layover_distribution: RoutePage::LayoverDistribution.new(route_days), ends: @ends) %>
     <%= render LoadChartComponent.new(load_profile:, mrt_overlap:) %>
     <%= render RunTimeTableComponent.new(run_times: RoutePage::RunTimes.new(route_days)) %>
-    <%= render LayoverTableComponent.new(layover_stats: RoutePage::LayoverStats.new(route_days)) %>
-    <%= render BufferTradeComponent.new(buffer_trade: RoutePage::BufferTrade.new(route_days, minutes: @buffer_minutes), coverage: @coverage) %>
+    <%= render LayoverTableComponent.new(layover_stats: RoutePage::LayoverStats.new(route_days), ends: @ends) %>
+    <%= render BufferTradeComponent.new(buffer_trade: RoutePage::BufferTrade.new(route_days, minutes: @buffer_minutes, ends: @ends), coverage: @coverage) %>
     <%= render MrtOverlapComponent.new(mrt_overlap:) %>
     <%= render LoadProfileTableComponent.new(load_profile:) %>
     <%= render DataLimitationsComponent.new %>

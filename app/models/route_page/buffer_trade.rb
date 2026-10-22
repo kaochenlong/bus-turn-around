@@ -1,9 +1,11 @@
 module RoutePage
   # The cost of a schedule buffer of a given number of minutes at every
-  # layover, as in the buffer-trade spec. Only measured layovers count; the
-  # cost is a range from topping each layover up to the buffer (lower) to
-  # adding the buffer to every layover (upper), in vehicle-hours per day and in
-  # added vehicles in the busiest Taipei hour of the layovers' end times.
+  # layover, as in the buffer-trade spec. Only measured layovers at the
+  # stopping ends of the route count; those at a pass-through end are not
+  # rest opportunities and are only counted. The cost is a range from topping
+  # each layover up to the buffer (lower) to adding the buffer to every
+  # layover (upper), in vehicle-hours per day and in added vehicles in the
+  # busiest Taipei hour of the layovers' end times.
   class BufferTrade
     DEFAULT_MINUTES = 15
     MINUTES_RANGE = 0..20
@@ -23,16 +25,22 @@ module RoutePage
     Bound = Data.define(:lower, :upper)
     Peak = Data.define(:hour, :vehicles)
 
-    attr_reader :minutes
+    attr_reader :minutes, :ends
 
-    def initialize(route_days, minutes:)
+    def initialize(route_days, minutes:, ends:)
       @ids = route_days.ids
       @minutes = minutes
+      @ends = ends
     end
 
     def n_days = @ids.size
 
+    # The base of the estimate: the layovers at the stopping ends.
     def n_layovers = hours.sum { it["n_layovers"] }
+
+    def n_pass_through_layovers
+      @n_pass_through_layovers ||= Layover.where(route_day_id: @ids, go_back: @ends.pass_through_go_backs).count
+    end
 
     def n_trips = trip_counts["n_trips"]
 
@@ -69,7 +77,9 @@ module RoutePage
     end
 
     def hours
-      @hours ||= RouteDay.connection.select_all(RouteDay.sanitize_sql_array([ HOURS_SQL, { ids: @ids, minutes: } ])).to_a
+      @hours ||= RouteDay.connection.select_all(
+        RouteDay.sanitize_sql_array([ HOURS_SQL, { ids: @ids, stopping: @ends.stopping_go_backs, minutes: } ])
+      ).to_a
     end
 
     def trip_counts
@@ -81,7 +91,7 @@ module RoutePage
           SELECT CAST(extract(hour FROM end_time AT TIME ZONE 'Asia/Taipei') AS integer) AS hour,
                  CAST(extract(epoch FROM next_start_time - end_time) / 60 AS double precision) AS minutes
           FROM layovers
-          WHERE route_day_id IN (:ids)
+          WHERE route_day_id IN (:ids) AND go_back IN (:stopping)
       )
       SELECT hour, count(*) AS n_layovers,
              count(*) FILTER (WHERE minutes >= :minutes) AS n_achieved,
