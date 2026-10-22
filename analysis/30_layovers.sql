@@ -35,9 +35,13 @@ WITH ordered AS (
 )
 SELECT *,
        minutes_between(end_time, next_start_time) AS minutes,
-       -- A pair that fails more than one condition counts in the first one listed.
+       -- A layover needs only the arrival at the last stop that ends this trip
+       -- and the departure from the first stop that starts the next, so the
+       -- other end of either trip may be missing. A pair that fails more than
+       -- one condition counts in the first one listed.
        CASE
-           WHEN completeness <> 'complete' OR next_completeness <> 'complete' THEN 'incomplete'
+           WHEN completeness NOT IN ('complete', 'missing_start') THEN 'no_last_stop'
+           WHEN next_completeness NOT IN ('complete', 'missing_end') THEN 'no_first_stop'
            WHEN next_route_id <> route_id THEN 'other_route'
            WHEN next_start_time < end_time THEN 'negative'
            ELSE 'layover'
@@ -51,7 +55,8 @@ FROM layover_pairs
 WHERE category = 'layover';
 
 CREATE OR REPLACE VIEW layover_exclusions AS
-SELECT count(*) FILTER (WHERE category = 'incomplete') AS incomplete,
+SELECT count(*) FILTER (WHERE category = 'no_last_stop') AS no_last_stop,
+       count(*) FILTER (WHERE category = 'no_first_stop') AS no_first_stop,
        count(*) FILTER (WHERE category = 'other_route') AS other_route,
        count(*) FILTER (WHERE category = 'negative') AS negative
 FROM layover_pairs;

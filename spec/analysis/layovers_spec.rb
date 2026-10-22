@@ -13,11 +13,11 @@ RSpec.describe "analysis/30_layovers.sql" do
   end
 
   describe "fixture 的 2026-10-19" do
-    it "折返停留跟 fixture README 手算的 16 筆一致，每台車依序" do
+    it "折返停留跟 fixture README 手算的 19 筆一致，每台車依序" do
       rows = layover_rows("SELECT bus_id, list(minutes ORDER BY end_time) AS minutes FROM layovers GROUP BY bus_id ORDER BY bus_id")
       expect(rows.to_h { [ it["bus_id"], it["minutes"] ] }).to eq(
         "TEST-0001" => [ 10.0, 12.0, 13.0, 10.0, 56.0, 21.0, 25.0, 85.0 ],
-        "TEST-0002" => [ 12.0, 302.0, 12.0, 282.0 ], "TEST-0003" => [ 15.0, 17.0 ], "TEST-0004" => [ 17.0, 12.0 ]
+        "TEST-0002" => [ 14.0, 12.0, 302.0, 12.0, 282.0 ], "TEST-0003" => [ 15.0, 14.0, 23.0, 17.0 ], "TEST-0004" => [ 17.0, 12.0 ]
       )
     end
 
@@ -26,9 +26,9 @@ RSpec.describe "analysis/30_layovers.sql" do
       expect(rows).to eq([ { "minutes" => 12.0 } ])
     end
 
-    it "有一趟不完整的配對 7 組不算，下一趟是別的路線與差值為負的都是 0" do
-      expect(layover_rows("SELECT incomplete, other_route, negative FROM layover_exclusions")).to eq(
-        [ { "incomplete" => 7, "other_route" => 0, "negative" => 0 } ]
+    it "量不到的配對：本趟沒有到末站 3 組、下一趟不是從起站出發 1 組，別的路線與差值為負都是 0" do
+      expect(layover_rows("SELECT no_last_stop, no_first_stop, other_route, negative FROM layover_exclusions")).to eq(
+        [ { "no_last_stop" => 3, "no_first_stop" => 1, "other_route" => 0, "negative" => 0 } ]
       )
     end
 
@@ -40,15 +40,41 @@ RSpec.describe "analysis/30_layovers.sql" do
       expect(rows).to eq([ { "n" => 0 } ])
     end
 
-    it "按結束那趟的方向分列：去程 9 筆、中位數 13.0，返程 7 筆、中位數 21.0" do
+    it "按結束那趟的方向分列：去程 10 筆、中位數 13.5，返程 9 筆、中位數 21.0" do
       rows = layover_rows(<<~SQL)
         SELECT go_back, n_layovers, percentiles[2] AS p50 FROM layover_distribution WHERE go_back IS NOT NULL ORDER BY go_back
       SQL
-      expect(rows).to eq([ { "go_back" => 0, "n_layovers" => 9, "p50" => 13.0 }, { "go_back" => 1, "n_layovers" => 7, "p50" => 21.0 } ])
+      expect(rows).to eq([ { "go_back" => 0, "n_layovers" => 10, "p50" => 13.5 }, { "go_back" => 1, "n_layovers" => 9, "p50" => 21.0 } ])
     end
   end
 
   describe "灌入的趟次" do
+    # Two consecutive trips of one vehicle, 08:00–08:16 then 08:30–09:00, with
+    # the given completeness; returns the layovers and the exclusion counts.
+    def pair(current, following)
+      trips = [ { bus_id: "TEST-0001", start: "08:00", finish: "08:16", completeness: current },
+                { bus_id: "TEST-0001", start: "08:30", finish: "09:00", go_back: 1, completeness: following } ]
+      from_trips(trips, <<~SQL).first
+        SELECT (SELECT list(minutes) FROM layovers) AS minutes, no_last_stop, no_first_stop FROM layover_exclusions
+      SQL
+    end
+
+    it "漏起站的那趟 08:16 到末站、下一趟漏末站但 08:30 從起站出發，折返停留 14.0 分鐘" do
+      expect(pair("missing_start", "missing_end")).to eq("minutes" => [ 14.0 ], "no_last_stop" => 0, "no_first_stop" => 0)
+    end
+
+    it "本趟漏末站時不算，算在本趟沒有到末站" do
+      expect(pair("missing_end", "complete")).to eq("minutes" => nil, "no_last_stop" => 1, "no_first_stop" => 0)
+    end
+
+    it "下一趟漏起站時不算，算在下一趟不是從起站出發" do
+      expect(pair("complete", "missing_start")).to eq("minutes" => nil, "no_last_stop" => 0, "no_first_stop" => 1)
+    end
+
+    it "兩端都缺時只算在本趟沒有到末站" do
+      expect(pair("missing_end", "missing_start")).to eq("minutes" => nil, "no_last_stop" => 1, "no_first_stop" => 0)
+    end
+
     it "完整趟次 08:30 結束、下一趟 08:28 開始時不算，負值配對 1 組" do
       trips = [ { bus_id: "TEST-0001", start: "08:00", finish: "08:30" }, { bus_id: "TEST-0001", start: "08:28", finish: "09:00", go_back: 1 } ]
       rows = from_trips(trips, "SELECT (SELECT count(*) FROM layovers) AS n_layovers, negative FROM layover_exclusions")

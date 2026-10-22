@@ -88,11 +88,11 @@ RSpec.describe "bin/health-card" do
       expect(trips.map { it["completeness"] }.tally).to eq("complete" => 22, "missing_start" => 2, "missing_end" => 2, "missing_both" => 1)
     end
 
-    it "layovers.csv 的分鐘數跟 fixture README 手算的 16 筆一致" do
+    it "layovers.csv 的分鐘數跟 fixture README 手算的 19 筆一致" do
       layovers, = inspection_rows("layovers")
       expect(layovers.group_by { it["bus_id"] }.transform_values { |rows| rows.map { it["minutes"] } }).to eq(
-        "TEST-0001" => %w[10.0 12.0 13.0 10.0 56.0 21.0 25.0 85.0], "TEST-0002" => %w[12.0 302.0 12.0 282.0],
-        "TEST-0003" => %w[15.0 17.0], "TEST-0004" => %w[17.0 12.0]
+        "TEST-0001" => %w[10.0 12.0 13.0 10.0 56.0 21.0 25.0 85.0], "TEST-0002" => %w[14.0 12.0 302.0 12.0 282.0],
+        "TEST-0003" => %w[15.0 14.0 23.0 17.0], "TEST-0004" => %w[17.0 12.0]
       )
     end
 

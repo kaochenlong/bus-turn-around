@@ -306,7 +306,7 @@ module HealthCard
       chains = @data.fetch("chains")
       distribution = Array(layovers["distribution"])
       [ "## 折返停留",
-        "同一車牌相鄰兩個完整趟次、同一條路線，下一趟起點減本趟終點，單位分鐘；每台車當天最後一趟沒有折返停留。它包含回場、加油、等發車在內的一切，是駕駛休息的上限。百分位數在順序統計量之間線性內插。",
+        "同一車牌相鄰兩趟、同一條路線，本趟有到末站、下一趟從起站出發，下一趟起點減本趟終點，單位分鐘；另一端漏站不影響，每台車當天最後一趟沒有折返停留。它包含回場、加油、等發車在內的一切，是駕駛休息的上限。百分位數在順序統計量之間線性內插。",
         table([ "範圍", "筆數", *Array(layovers["percentile_levels"]).map { "p#{(it * 100).round}" }, "不到 #{layovers['short_layover_minutes']} 分鐘" ],
               distribution.map { [ layover_scope(it), count(it["n_layovers"]), *percentiles(it["percentiles"], layovers), percent(it["short_share"]) ] }, "lrrrrr"),
         "分箱的分鐘數含下界、不含上界：",
@@ -326,7 +326,8 @@ module HealthCard
     end
 
     def exclusions(excluded)
-      "有一趟不完整 #{count(excluded['incomplete'])} 組、下一趟是別的路線 #{count(excluded['other_route'])} 組、差值為負 #{count(excluded['negative'])} 組"
+      "本趟沒有到末站 #{count(excluded['no_last_stop'])} 組、下一趟不是從起站出發 #{count(excluded['no_first_stop'])} 組、" \
+        "下一趟是別的路線 #{count(excluded['other_route'])} 組、差值為負 #{count(excluded['negative'])} 組"
     end
 
     def chains_text(chains)

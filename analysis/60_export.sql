@@ -123,7 +123,8 @@ SELECT to_json({
                          'short_share': short_share, 'bin_counts': bin_counts} ORDER BY go_back NULLS FIRST)
             FROM layover_distribution
         ),
-        'exclusions': (SELECT {'incomplete': incomplete, 'other_route': other_route, 'negative': negative} FROM layover_exclusions),
+        'exclusions': (SELECT {'no_last_stop': no_last_stop, 'no_first_stop': no_first_stop, 'other_route': other_route, 'negative': negative}
+                       FROM layover_exclusions),
         'bin_lower_bounds': getvariable('layover_bin_lower_bounds'),
         'percentile_levels': getvariable('percentile_levels'),
         'short_layover_minutes': getvariable('short_layover_minutes')

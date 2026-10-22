@@ -57,6 +57,8 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 | `50_quality.sql` | `load_counts`、`unknown_stop_events`、`sequence_check`、`routes`、`stops`、`trips`、`trip_events`、`path_trip_counts` | `completeness_counts`、`path_trip_shares`、`vehicle_day_ends`、`last_stop_departures`、`missing_stop_rate`、`duty_status_counts`、`duty_status_trip_ends`、`quality` |
 | `60_export.sql` | 前面各階段的名字、變數 `inspect_dir` | 檢查目錄的五個 CSV；最後印出一列 `card`，是卡上所有數字的 JSON，也是整段唯一會印東西的敘述 |
 
+`layover_pairs` 把每台車相鄰兩趟配成一組。本趟有到末站（`complete` 或 `missing_start`）、下一趟從起站出發（`complete` 或 `missing_end`）、同一路線、差值不為負，才進 `layovers`；另一端漏站不影響，因為折返停留只用本趟的末站到站與下一趟的起站離站。不成立的配對在 `layover_exclusions` 分四類計數，一組只算在第一個符合的類別：`no_last_stop`（本趟沒有到末站）、`no_first_stop`（下一趟不是從起站出發）、`other_route`、`negative`。量不到的配對只計數，它們的時間差是拿中途某一站代替端點量的，不代表停留。班次串的 `rest_runs` 仍只用相鄰完整趟次。
+
 歸零檢查不用剖面的人數。`reset_counts` 對每個完整趟次取兩筆落在趟次起訖之外的記錄：起點前 `reset_record_minutes` 分鐘內、在起站的最後一筆到站記錄（上客前），以及終點後同樣分鐘內、在末站的第一筆離站記錄（下客後）。`reset_check` 每個方向（`go_back`）的每一端一列，帶那一端的站名 `stop_name`，給有記錄的趟數 `n_trips`、該方向完整趟次中沒有記錄的趟數 `n_missing`、等於 0 與不超過 `reset_near_zero` 的比例、最大值，比例只算有記錄的趟次。路線兩端的性質可能不同，所以不合併。
 
 `vehicle_day_ends` 給每條附屬路線有幾趟是那台車當天在這條路線的第一趟（`n_first`）與最後一趟（`n_last`），寫進 `quality.csv` 的 metric 是 `first_trips` 與 `last_trips`，subject 是 `pathAttributeId`。

@@ -1,7 +1,7 @@
 ---
 tw: &tw
   title: 折返停留
-  note: 同一台車本趟末站到站到下一趟起站離站的分鐘數，只算相鄰兩趟都完整的配對，依結束那趟的方向分列。它包含回場、加油、等發車在內的一切，是駕駛休息的上限。
+  note: 同一台車本趟末站到站到下一趟起站離站的分鐘數，只算本趟有到末站、下一趟從起站出發的配對（另一端漏站不影響），依結束那趟的方向分列。它包含回場、加油、等發車在內的一切，是駕駛休息的上限。
   directions:
     "0": 去程
     "1": 返程
@@ -13,7 +13,7 @@ zh-TW:
   <<: *tw
 en:
   title: Layovers
-  note: Minutes from a trip's arrival at its last stop to the same vehicle leaving the first stop of its next trip, for pairs of complete trips, by the direction of the ending trip. It includes returning to the depot, refuelling and waiting, so it is an upper bound on rest.
+  note: Minutes from a trip's arrival at its last stop to the same vehicle leaving the first stop of its next trip, for pairs where the trip reached its last stop and the next one left its first stop (a missed stop at the other end does not matter), by the direction of the ending trip. It includes returning to the depot, refuelling and waiting, so it is an upper bound on rest.
   directions:
     "0": Outbound
     "1": Inbound

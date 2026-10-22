@@ -31,7 +31,7 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
 
   it "寫入一天：印出那一天的趟次、折返停留與趟次站筆數，結束碼 0" do
     status, out = run_command("DAY" => "2026-10-19")
-    expect([ status, out.lines.first.chomp ]).to eq([ 0, "2026-10-19 寫入：趟次 27、折返停留 16、趟次站 96" ])
+    expect([ status, out.lines.first.chomp ]).to eq([ 0, "2026-10-19 寫入：趟次 27、折返停留 19、趟次站 96" ])
   end
 
   it "讀檔視窗還沒結束的日子失敗，說明缺哪個小時檔，那一天不寫" do
