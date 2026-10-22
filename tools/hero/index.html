@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>首頁插圖</title>
+    <style>
+      body { margin: 0; padding: 24px; font: 15px/1.5 system-ui, sans-serif; color: #1e293b; background: #fff; }
+      .actions { display: flex; gap: 8px; margin-bottom: 16px; }
+      button { font: inherit; padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f1f5f9; cursor: pointer; }
+      canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 80vh; outline: 1px dashed #cbd5e1; }
+    </style>
+  </head>
+  <body>
+    <div class="actions">
+      <button type="button" data-shot="wide">匯出全景</button>
+      <button type="button" data-shot="tall">匯出直式</button>
+    </div>
+    <canvas></canvas>
+    <script type="module">
+      import { buildScene, createRenderer, pose, renderFrame, tallCamera, wideCamera } from "../../app/frontend/hero/scene.js"
+      import { SHOTS, exportWebp } from "./export.js"
+
+      const renderer = createRenderer(document.querySelector("canvas"), { preserveDrawingBuffer: true })
+      const { scene, parts } = buildScene()
+      const shots = { wide: { camera: wideCamera(), ...SHOTS.wide }, tall: { camera: tallCamera(), ...SHOTS.tall } }
+      const params = new URLSearchParams(location.search)
+
+      // The canvas shows the last frame rendered, at its export size. ?shot=tall
+      // opens on the tall framing and ?t= poses the animation at that fraction of
+      // its length (0 to 1); exports are always the last frame.
+      const first = shots[params.get("shot")] ?? shots.wide
+      const t = Number.parseFloat(params.get("t"))
+      pose(parts, Number.isFinite(t) ? t : 1)
+      renderFrame(renderer, scene, first.camera, first.width, first.height)
+
+      for (const button of document.querySelectorAll("[data-shot]")) {
+        button.addEventListener("click", () => {
+          const shot = shots[button.dataset.shot]
+          pose(parts, 1)
+          exportWebp(renderer, scene, shot.camera, shot.width, shot.height, shot.filename).catch((error) => {
+            alert(error.message)
+            throw error
+          })
+        })
+      }
+    </script>
+  </body>
+</html>

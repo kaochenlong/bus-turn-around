@@ -1,0 +1,11 @@
+<section data-section="hero" x-data="homeHero" data-hero="pending">
+  <p class="text-sm font-semibold tracking-wide text-teal-700"><%= t("site.name") %></p>
+  <h1 class="mt-2 text-[32px] leading-tight font-bold tracking-[0.01em] text-slate-900"><%= t(".heading") %></h1>
+  <p class="mt-3 max-w-2xl text-slate-600"><%= t(".summary") %></p>
+  <div data-hero-stage class="relative mt-6">
+    <picture class="block">
+      <source media="(max-width: 639px)" srcset="<%= image_path("home-hero-tall.webp") %>" width="390" height="390">
+      <%= image_tag "home-hero-wide.webp", alt: t(".alt"), width: 1024, height: 576, fetchpriority: "high", class: "h-auto w-full" %>
+    </picture>
+  </div>
+</section>

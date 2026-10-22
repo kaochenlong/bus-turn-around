@@ -13,10 +13,11 @@ plugins:
 AllCops:
   NewCops: enable
 
-# spec/analysis 測的是 SQL 檔、fixture 與 bin/health-card，沒有 Ruby 類別可以 describe
+# spec/analysis 測的是 SQL 檔、fixture 與 bin/health-card，spec/assets 測的是圖檔，都沒有 Ruby 類別可以 describe
 RSpec/DescribeClass:
   inherit_mode:
     merge:
       - Exclude
   Exclude:
     - "spec/analysis/**/*"
+    - "spec/assets/**/*"

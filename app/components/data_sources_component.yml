@@ -1,0 +1,17 @@
+---
+tw: &tw
+  title: 資料從哪裡來
+  body: 臺北市公共運輸處的公車即時開放資料，三支 feed：到離站、車上人數、GPS，每 10 秒抓一次，全路網都收。
+  datasets:
+    bus_data: 定時車機資訊
+    bus_seat_event: 公車車上擁擠度
+    mrt_exits: 捷運車站出入口座標
+zh-TW:
+  <<: *tw
+en:
+  title: Where the data comes from
+  body: "The Taipei City Public Transportation Office's real-time open bus data, three feeds: arrival and departure events, on-board counts and GPS, polled every 10 seconds across the whole network."
+  datasets:
+    bus_data: Taipei bus GPS
+    bus_seat_event: Taipei bus on-board crowding
+    mrt_exits: MRT station entrance coordinates

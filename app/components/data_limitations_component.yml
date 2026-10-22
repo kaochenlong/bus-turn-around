@@ -9,6 +9,12 @@ tw: &tw
     - 站牌靠近捷運出入口，不等於這一段可以被捷運取代：公車橫越捷運線時，路口附近的站也會算進去。距離是直線距離，不是步行距離；捷運出入口資料不定期更新。
     - 換休息試算算的是車時，不是駕駛工時；只用停車端量到的折返停留，沒量到的趟次不推算。多幾台車是按小時平均的估計，不是排班結果。
     - 哪一端停車是逐路線查證後寫進設定的，不是從資料算的；業者改折返方式時，這個設定就會過期。開過去就走那一端的折返停留不是休息機會，試算不補它。
+  home_title: 這些數字能信到哪
+  home_items:
+    - 車不等於人：資料認的是車牌，不是駕駛，折返停留是駕駛休息的上限。
+    - 車上人數是票證推出來的值，不是點人頭，準確度看下車刷卡率。
+    - 每 10 秒抓一次，一定會漏站。
+    - 跨小時檔的事件可能重複，分析前會再去重一次。
 zh-TW:
   <<: *tw
 en:
@@ -21,3 +27,9 @@ en:
     - A stop near an MRT entrance does not mean the bus segment can be replaced by the MRT: stops near a crossing count too. Distances are straight-line, not walking distances, and the entrance data is updated irregularly.
     - The rest trade-off counts vehicle-hours, not driver hours, and uses only layovers measured at the ends where buses stop, without extrapolating to other trips. Added vehicles are an hourly average, not a schedule.
     - Which end buses stop at is verified route by route and written into the configuration, not computed from the data; it goes stale when the operator changes how the route turns around. Layovers at an end where buses drive on are not rest opportunities, and the rest trade-off does not count them.
+  home_title: What these numbers can and cannot tell
+  home_items:
+    - "A vehicle is not a driver: the data identifies plates, not drivers, and a layover is an upper bound on rest."
+    - On-board counts are derived from fare-card taps, not head counts, and depend on how many riders tap off.
+    - Polling every 10 seconds always misses stops.
+    - Events can repeat across hourly files and are de-duplicated again before analysis.

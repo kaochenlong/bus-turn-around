@@ -1,0 +1,11 @@
+---
+tw: &tw
+  heading: 折返點實際能休幾分鐘？
+  summary: 台北公車逐路線量兩個數字：折返點實際能休幾分鐘、與捷運重疊的路段實際載多少人。給駕駛、站長、公運處，和任何要引用的人。
+  alt: 公車停在末站，司機站在車旁休息；一側是調度站裡看排班板的站長，另一側是站牌前等車的民眾。
+zh-TW:
+  <<: *tw
+en:
+  heading: How long can drivers actually rest at the turnaround?
+  summary: "Two numbers for Taipei buses, route by route: how long the rest at the turnaround actually is, and how many people actually ride the stretches that overlap the MRT. For drivers, station masters, the transit office and anyone who cites them."
+  alt: A bus waits at the terminal with its driver resting beside it; on one side the station master at the duty board in the dispatch office, on the other riders waiting at the stop.
