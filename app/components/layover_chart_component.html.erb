@@ -1,0 +1,32 @@
+<section data-section="layover-chart" class="mb-10">
+  <h2 class="mb-1 text-[24px] leading-snug font-bold text-slate-900"><%= t(".title") %></h2>
+  <p class="mb-5 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <div class="grid gap-8 md:grid-cols-2">
+    <% directions.each do |direction| %>
+      <figure data-direction="<%= direction.go_back %>" class="min-w-0">
+        <figcaption data-stops data-last-stop="<%= direction.last_stop %>" data-next-first-stop="<%= direction.next_first_stop %>"
+                    class="mb-3 font-medium text-slate-800">
+          <%= t(".stops_html", direction: t(".directions.#{direction.go_back}"),
+                               last_stop: tag.span(direction.last_stop, class: "font-semibold text-teal-800"),
+                               next_first_stop: tag.span(direction.next_first_stop, class: "font-semibold text-teal-800")) %>
+        </figcaption>
+        <% if empty?(direction) %>
+          <p data-no-layover class="text-slate-600"><%= t(".no_layover") %></p>
+        <% else %>
+          <svg viewBox="0 0 <%= WIDTH %> <%= height %>" class="h-auto w-full max-w-[460px]" role="img" aria-label="<%= aria_label(direction) %>">
+            <% direction.counts.each_with_index do |count, index| %>
+              <text x="<%= LABEL_WIDTH %>" y="<%= row_y(index) + 12 %>" text-anchor="end" class="fill-slate-500 text-[12px]"><%= bin_label(index) %></text>
+              <rect data-bin="<%= bounds[index] %>" data-count="<%= count %>" x="<%= bar_x %>" y="<%= row_y(index) %>"
+                    width="<%= bar_width(direction, count) %>" height="<%= BAR_HEIGHT %>" rx="2" class="fill-teal-700" />
+              <text x="<%= bar_x + bar_width(direction, count) + 6 %>" y="<%= row_y(index) + 12 %>" class="fill-slate-800 text-[12px] font-medium"><%= count %></text>
+            <% end %>
+            <line data-divider="<%= DIVIDER_MINUTES %>" x1="0" x2="<%= WIDTH %>" y1="<%= divider_y %>" y2="<%= divider_y %>"
+                  stroke-dasharray="4 3" class="stroke-slate-400" />
+            <text x="<%= WIDTH %>" y="<%= divider_y - 4 %>" text-anchor="end" class="fill-slate-500 text-[11px]"><%= t(".divider", minutes: DIVIDER_MINUTES) %></text>
+          </svg>
+          <p class="mt-1 text-xs text-slate-500"><%= t(".minutes") %></p>
+        <% end %>
+      </figure>
+    <% end %>
+  </div>
+</section>

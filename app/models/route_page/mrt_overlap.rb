@@ -32,12 +32,20 @@ module RoutePage
     end
 
     def stretches
-      stops.group_by(&:go_back).flat_map do |go_back, direction_stops|
-        runs(direction_stops).map do |run|
+      runs_by_direction.flat_map do |go_back, runs|
+        runs.map do |run|
           Stretch.new(go_back:, first_seq: run.first.seq, last_seq: run.last.seq, first_stop: run.first.stop_name,
                       last_stop: run.last.stop_name, n_stops: run.size, loads: loads(go_back, run.first.seq, run.last.seq))
         end
       end
+    end
+
+    # The stretches' sequence ranges per direction, without their on-board
+    # counts; none when the days need to be loaded again.
+    def stretch_ranges
+      return {} if needs_reload?
+
+      runs_by_direction.transform_values { |runs| runs.map { it.first.seq..it.last.seq } }.reject { |_, ranges| ranges.empty? }
     end
 
     private
@@ -47,6 +55,8 @@ module RoutePage
     end
 
     def near?(stop, meters) = stop.nearest_exit_meters && stop.nearest_exit_meters <= meters
+
+    def runs_by_direction = stops.group_by(&:go_back).transform_values { runs(it) }
 
     # Runs of at least two stops with adjacent sequence numbers, all near.
     def runs(direction_stops)

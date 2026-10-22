@@ -7,10 +7,17 @@ module RoutePage
     UPPER_LEVEL = 0.9
 
     Row = Data.define(:go_back, :band, :seq, :stop_name, :n_trips, :median, :p90)
+    Stop = Data.define(:go_back, :seq, :stop_name)
 
     def initialize(route_days)
       @ids = route_days.ids
       @latest_id = route_days.order(day: :desc).pick(:id)
+    end
+
+    # The stops of the latest of the days, in direction and sequence order.
+    def stops
+      RouteDayStop.where(route_day_id: @latest_id).order(:go_back, :seq).pluck(:go_back, :seq, :stop_name)
+                  .map { |go_back, seq, stop_name| Stop.new(go_back:, seq:, stop_name:) }
     end
 
     def rows

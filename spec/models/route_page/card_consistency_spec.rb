@@ -26,6 +26,13 @@ RSpec.describe "路線頁的數字與健檢卡一致", :duckdb, type: :model do
     expect(actual).to eq(expected)
   end
 
+  it "折返停留分組的下界，以及各方向每組的筆數" do
+    layovers = card.fetch("layovers")
+    expected = [ layovers["bin_lower_bounds"], layovers["distribution"].reject { it["go_back"].nil? }.map { it.values_at("go_back", "bin_counts") } ]
+    actual = [ RoutePage::LayoverDistribution::BIN_LOWER_BOUNDS, RoutePage::LayoverDistribution.new(route_days).directions.map { [ it.go_back, it.counts ] } ]
+    expect(actual).to eq(expected)
+  end
+
   it "載客剖面每格的趟數、中位數與 p90，含站名" do
     expected = card.dig("profile", "rows").map { it.values_at("go_back", "band", "seq", "stop_name", "n_trips", "median", "p90") }
     actual = RoutePage::LoadProfile.new(route_days).rows.map { [ it.go_back, it.band, it.seq, it.stop_name, it.n_trips, it.median, it.p90 ] }

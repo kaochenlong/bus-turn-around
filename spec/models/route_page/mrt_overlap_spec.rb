@@ -44,6 +44,14 @@ RSpec.describe RoutePage::MrtOverlap, type: :model do
     expect(overlap(day).stretches.sole.loads).to eq([ { band: "morning_peak", n_trips: 2, median: 20.0, p90: 28.0 } ])
   end
 
+  it "重疊路段的站序範圍：第 2 到 4 站" do
+    expect(overlap(route_day([ 900, 900, 400, 250, 450 ])).stretch_ranges).to eq(0 => [ 2..4 ])
+  end
+
+  it "站牌沒有距離時沒有重疊路段的站序範圍" do
+    expect(overlap(route_day([ nil, nil ])).stretch_ranges).to eq({})
+  end
+
   it "站牌沒有距離（之前寫入的資料）時標成需要重算" do
     expect(overlap(route_day([ nil, nil ])).needs_reload?).to be(true)
   end
