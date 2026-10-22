@@ -7,6 +7,7 @@ tw: &tw
     - 10 秒輪詢一定會漏站；漏了起站或末站的趟次不算行駛時間。
     - 涵蓋的日子沒有分平日與假日。
     - 站牌靠近捷運出入口，不等於這一段可以被捷運取代：公車橫越捷運線時，路口附近的站也會算進去。距離是直線距離，不是步行距離；捷運出入口資料不定期更新。
+    - 換休息試算算的是車時，不是駕駛工時；只用量到的折返停留，沒量到的趟次不推算。多幾台車是按小時平均的估計，不是排班結果。
 zh-TW:
   <<: *tw
 en:
@@ -17,3 +18,4 @@ en:
     - Polling every 10 seconds misses stops; trips missing their first or last stop are left out of run times.
     - The covered days do not separate weekdays and holidays.
     - A stop near an MRT entrance does not mean the bus segment can be replaced by the MRT: stops near a crossing count too. Distances are straight-line, not walking distances, and the entrance data is updated irregularly.
+    - The rest trade-off counts vehicle-hours, not driver hours, and uses only measured layovers without extrapolating to other trips. Added vehicles are an hourly average, not a schedule.

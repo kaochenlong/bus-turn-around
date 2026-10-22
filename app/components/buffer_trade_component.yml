@@ -1,0 +1,31 @@
+---
+tw: &tw
+  title: 換休息試算：每趟加緩衝
+  note: 假設班表在每次折返都留一段緩衝，算要多花多少車時、多幾台車。只用量到的折返停留，算的是車，不是駕駛。
+  buffer_html: 每次折返留 %{minutes} 分鐘
+  submit: 重算
+  coverage_html: "%{days} 天裡量到 %{layovers} 次折返停留，同期共 %{trips} 趟。"
+  lower: 只補不足的部分
+  upper: 每次都加滿
+  vehicle_hours: 每天多幾車時
+  peak_vehicles: 最忙的那個小時多幾台車
+  bounds_note: 折返停留包含回場、加油、等發車，是休息的上限，所以真正的成本落在兩欄之間。車數是那個小時的平均，不是排班結果。
+  achieved: 目前停留不少於 %{minutes} 分鐘的比例
+  vehicles_per_day: 目前每天平均用到幾台車
+  no_layover: 這幾天沒有量到折返停留，無法試算。
+zh-TW:
+  <<: *tw
+en:
+  title: "Rest trade-off: a buffer at every layover"
+  note: Assume the schedule leaves a buffer at every layover, and estimate the added vehicle-hours and vehicles. Only measured layovers count, and the figures are for vehicles, not drivers.
+  buffer_html: Leave %{minutes} minutes at every layover
+  submit: Recalculate
+  coverage_html: "%{layovers} layovers measured over %{days} days, out of %{trips} trips."
+  lower: Top up the shortfall
+  upper: Add to every layover
+  vehicle_hours: Added vehicle-hours per day
+  peak_vehicles: Added vehicles in the busiest hour
+  bounds_note: A layover includes returning to the depot, refuelling and waiting, so it is an upper bound on rest and the real cost lies between the two columns. Vehicles are an hourly average, not a schedule.
+  achieved: Layovers of at least %{minutes} minutes now
+  vehicles_per_day: Vehicles in use per day now
+  no_layover: No layover was measured on these days, so there is nothing to estimate.
