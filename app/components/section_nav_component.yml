@@ -4,6 +4,7 @@ tw: &tw
   sections:
     layovers: 折返停留
     cycles: 來回與週期
+    facilities: 折返點設施
     buffer: 換休息試算
     runtimes: 行駛時間
     load: 載客剖面
@@ -16,6 +17,7 @@ en:
   sections:
     layovers: Layovers
     cycles: Round trips & cycles
+    facilities: Turnaround facilities
     buffer: Rest trade-off
     runtimes: Run time
     load: Load profile

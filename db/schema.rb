@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_22_231802) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_23_190654) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -21,6 +21,44 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_231802) do
     t.timestamptz "end_time", null: false
     t.timestamptz "next_start_time", null: false
     t.index ["route_day_id"], name: "index_layovers_on_route_day_id"
+  end
+
+  create_table "route_day_end_cells", force: :cascade do |t|
+    t.bigint "route_day_end_id", null: false
+    t.float "cell_latitude", null: false
+    t.float "cell_longitude", null: false
+    t.integer "n_records", null: false
+    t.integer "n_buses", null: false
+    t.integer "n_layovers", null: false
+    t.index ["route_day_end_id", "cell_latitude", "cell_longitude"], name: "idx_on_route_day_end_id_cell_latitude_cell_longitud_cd42233ab5", unique: true
+  end
+
+  create_table "route_day_end_toilets", force: :cascade do |t|
+    t.bigint "route_day_end_id", null: false
+    t.string "name", null: false
+    t.string "category"
+    t.string "address"
+    t.float "latitude", null: false
+    t.float "longitude", null: false
+    t.float "meters", null: false
+    t.index ["route_day_end_id"], name: "index_route_day_end_toilets_on_route_day_end_id"
+  end
+
+  create_table "route_day_ends", force: :cascade do |t|
+    t.bigint "route_day_id", null: false
+    t.integer "go_back", null: false
+    t.integer "end_seq", null: false
+    t.string "end_stop_name", null: false
+    t.float "end_latitude"
+    t.float "end_longitude"
+    t.string "location_source"
+    t.float "latitude"
+    t.float "longitude"
+    t.integer "n_layovers", null: false
+    t.integer "n_located_layovers"
+    t.integer "n_standstill_records", null: false
+    t.float "end_stop_meters"
+    t.index ["route_day_id", "go_back"], name: "index_route_day_ends_on_route_day_id_and_go_back", unique: true
   end
 
   create_table "route_day_stops", force: :cascade do |t|
@@ -47,6 +85,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_231802) do
     t.string "day_type", null: false
     t.string "day_note"
     t.date "office_calendar_day", null: false
+    t.date "public_toilets_day"
     t.index ["route_id", "day"], name: "index_route_days_on_route_id_and_day", unique: true
   end
 
@@ -76,6 +115,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_231802) do
   end
 
   add_foreign_key "layovers", "route_days", on_delete: :cascade
+  add_foreign_key "route_day_end_cells", "route_day_ends", on_delete: :cascade
+  add_foreign_key "route_day_end_toilets", "route_day_ends", on_delete: :cascade
+  add_foreign_key "route_day_ends", "route_days", on_delete: :cascade
   add_foreign_key "route_day_stops", "route_days", on_delete: :cascade
   add_foreign_key "trip_stop_counts", "trips", on_delete: :cascade
   add_foreign_key "trips", "route_days", on_delete: :cascade

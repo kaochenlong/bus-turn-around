@@ -67,7 +67,7 @@ RSpec.describe "bin/health-card" do
       end
     end
 
-    it "在這個 bundle 底下也跑得完：只用預設 gem，Gemfile 沒有的 csv 用不到" do
+    it "在這個 bundle 底下也跑得完：只用預設 gem" do
       Dir.mktmpdir("health-card-cli") do |dir|
         _stdout, _stderr, status = run_health_card(*fixture_args, "--day", "2026-10-19", "--out", File.join(dir, "card.md"), "--inspect-dir", dir, bundled: true)
         expect([ status.exitstatus, File.exist?(File.join(dir, "trips.csv")) ]).to eq([ 0, true ])

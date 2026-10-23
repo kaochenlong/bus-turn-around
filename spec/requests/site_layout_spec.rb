@@ -44,6 +44,11 @@ RSpec.describe "Site layout", type: :request do
     expect(footers.size).to eq(1)
   end
 
+  it "頁尾有一行是設定的底圖顯名：測試環境是測試用空白底圖" do
+    get root_path
+    expect(page.css("footer[data-attribution] p").map { it.text.strip }).to include("測試用空白底圖")
+  end
+
   it "9001 還沒有任何資料時，路線頁回 200，恰好一個顯名聲明 footer，footer 本身與裡面都沒有 data-section" do
     get route_path(9001)
     expect([ response.status, footers.size, sections_in_footer.size ]).to eq([ 200, 1, 0 ])

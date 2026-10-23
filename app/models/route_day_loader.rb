@@ -2,11 +2,13 @@ require "tmpdir"
 
 # Writes one route on one Taipei day into the derived tables. DuckDB runs the
 # stages of analysis/, analysis/mrt_overlap.sql with the newest MRT entrance
-# snapshot, and analysis/derived_export.sql into CSV files; then, in
-# one transaction, the stored day is deleted and the files are copied in,
-# together with the day type of the newest office calendar snapshot of the
-# day's year. A failure anywhere leaves the stored day as it was, and loading
-# the same input again leaves the same rows.
+# snapshot, analysis/turnaround_facilities.sql with the newest public toilet
+# snapshot and the configured nature of the route's ends, and
+# analysis/derived_export.sql into CSV files; then, in one transaction, the
+# stored day is deleted and the files are copied in, together with the day
+# type of the newest office calendar snapshot of the day's year. A failure
+# anywhere leaves the stored day as it was, and loading the same input again
+# leaves the same rows.
 class RouteDayLoader
   # The day could not be written; the message says why.
   class Error < StandardError; end
@@ -14,66 +16,101 @@ class RouteDayLoader
   # Staging table columns, in the column order of each CSV file.
   STAGING = {
     "route_day" => "route_id integer, day date, route_name text, departure text, destination text, static_day date, " \
-                   "mrt_exits_day date",
+                   "mrt_exits_day date, public_toilets_day date",
     "stops" => "go_back integer, seq integer, stop_name text, latitude double precision, longitude double precision, " \
                "nearest_exit_name text, nearest_exit_meters double precision",
     "trips" => "bus_id text, path_attribute_id integer, go_back integer, band text, start_time timestamptz, " \
                "end_time timestamptz, first_seq integer, last_seq integer, n_events integer, n_stops_observed integer, " \
                "completeness text, start_from_arrival boolean, end_from_departure boolean",
     "layovers" => "bus_id text, go_back integer, end_time timestamptz, next_start_time timestamptz",
-    "trip_stop_counts" => "bus_id text, start_time timestamptz, seq integer, on_board integer"
+    "trip_stop_counts" => "bus_id text, start_time timestamptz, seq integer, on_board integer",
+    "ends" => "go_back integer, end_seq integer, end_stop_name text, end_latitude double precision, " \
+              "end_longitude double precision, location_source text, latitude double precision, longitude double precision, " \
+              "n_layovers integer, n_located_layovers integer, n_standstill_records integer, end_stop_meters double precision",
+    "end_toilets" => "go_back integer, name text, category text, address text, latitude double precision, " \
+                     "longitude double precision, meters double precision",
+    "end_cells" => "go_back integer, cell_latitude double precision, cell_longitude double precision, n_records integer, " \
+                   "n_buses integer, n_layovers integer"
   }.freeze
 
   # The staging table of each file, written out so that no table name is
   # ever built at run time.
   STAGING_TABLES = {
     "route_day" => "staging_route_day", "stops" => "staging_stops", "trips" => "staging_trips",
-    "layovers" => "staging_layovers", "trip_stop_counts" => "staging_trip_stop_counts"
+    "layovers" => "staging_layovers", "trip_stop_counts" => "staging_trip_stop_counts", "ends" => "staging_ends",
+    "end_toilets" => "staging_end_toilets", "end_cells" => "staging_end_cells"
   }.freeze
 
-  def initialize(route_id:, day:, data_root:, duckdb:)
+  # An external snapshot used for the day: the file and the date in its name.
+  Snapshot = Data.define(:path, :day)
+
+  def initialize(route_id:, day:, data_root:, duckdb:, out: $stdout)
     @route_id = route_id
     @day = day
     @data_root = data_root
     @duckdb = duckdb
+    @out = out
   end
 
-  # Returns the numbers of trips, layovers and trip stop counts written.
+  # Returns the numbers of trips, layovers, trip stop counts, ends, end
+  # toilets and end cells written.
   def call
-    mrt_exits = newest_mrt_exits
+    mrt_exits = newest_snapshot(MrtExitsSnapshot::DIRECTORY, "捷運出入口", "bin/rails external:mrt_exits")
+    public_toilets = newest_snapshot(PublicToiletsSnapshot::DIRECTORY, "公廁", "bin/rails external:public_toilets")
     calendar = office_calendar_entry
+    natures = end_natures
     Dir.mktmpdir("route-day") do |dir|
-      export(dir, *mrt_exits)
+      export(dir, mrt_exits:, public_toilets:, natures:)
       RouteDay.transaction(requires_new: true) { replace(dir, calendar) }
     end
   end
 
   private
 
-  def export(dir, mrt_exits_path, mrt_exits_day)
-    variables = { data_root: @data_root, route_id: @route_id, day: @day, static_day: @day,
-                  inspect_dir: dir, derived_dir: dir, mrt_exits_path:, mrt_exits_day: }
-    AnalysisRun.run(@duckdb, variables, extra_files: %w[mrt_overlap.sql derived_export.sql])
+  def export(dir, mrt_exits:, public_toilets:, natures:)
+    variables = { data_root: @data_root, route_id: @route_id, day: @day, static_day: @day, inspect_dir: dir, derived_dir: dir,
+                  mrt_exits_path: mrt_exits.path, mrt_exits_day: mrt_exits.day,
+                  public_toilets_path: public_toilets.path, public_toilets_day: public_toilets.day,
+                  end_nature_0: natures.fetch(0), end_nature_1: natures.fetch(1) }
+    AnalysisRun.run(@duckdb, variables, extra_files: %w[mrt_overlap.sql turnaround_facilities.sql derived_export.sql])
   rescue AnalysisRun::Error => e
     raise Error, e.message
   end
 
-  # The snapshot with the latest date in its file name, and that date. Which
-  # one was used is stored with the route day.
-  def newest_mrt_exits
-    directory = File.join(@data_root, MrtExitsSnapshot::DIRECTORY)
+  # The snapshot in `directory` with the latest date in its file name; which
+  # one was used is stored with the route day. The entrance snapshot is looked
+  # up before the toilet snapshot, so a data root missing both is told about
+  # the entrance snapshot.
+  def newest_snapshot(directory, label, task)
+    directory = File.join(@data_root, directory)
     name = Dir.glob("*.csv", base: directory).grep(/\A\d{4}-\d{2}-\d{2}\.csv\z/).max
-    raise Error, "沒有捷運出入口快照：先跑 bin/rails external:mrt_exits" unless name
+    raise Error, "沒有#{label}快照：先跑 #{task}" unless name
 
-    [ File.join(directory, name), Date.iso8601(File.basename(name, ".csv")) ]
+    Snapshot.new(path: File.join(directory, name), day: Date.iso8601(File.basename(name, ".csv")))
   end
 
   # The day as the newest office calendar snapshot of its year has it. It is
-  # looked up after the entrance snapshot, so a data root missing both is told
-  # about the entrance snapshot first.
+  # looked up after the entrance and toilet snapshots, so a data root missing
+  # several is told about those first.
   def office_calendar_entry
     OfficeCalendarSnapshot.entry(data_root: @data_root, day: @day)
   rescue OfficeCalendarSnapshot::Error => e
+    raise Error, e.message
+  end
+
+  # The nature of each end as SQL reads it, keyed by direction. A route that
+  # is not in config/route_page.yml yet is unknown at both ends and gets no
+  # end rows; one that is there with an incomplete or unknown end fails the
+  # day, because the nature is a verified fact, never assumed.
+  def end_natures
+    unless RoutePage.route_ids.include?(@route_id)
+      @out.puts("#{@day.iso8601}：路線 #{@route_id} 在 config/route_page.yml 還沒有設定兩端，所以沒有設施的列")
+      return RoutePage::Ends::DIRECTIONS.index_with("unknown")
+    end
+
+    ends = RoutePage.ends(@route_id)
+    RoutePage::Ends::DIRECTIONS.index_with { ends.nature(it).to_s }
+  rescue RoutePage::Ends::InvalidConfiguration => e
     raise Error, e.message
   end
 
@@ -82,8 +119,10 @@ class RouteDayLoader
     STAGING.each_key { stage(it, File.join(dir, "#{it}.csv")) }
     route_day_id = insert_route_day(calendar)
     insert_stops(route_day_id)
+    # The ends go in before their toilets and cells, which find their end by direction.
     { trips: insert_trips(route_day_id), layovers: insert_layovers(route_day_id),
-      trip_stop_counts: insert_trip_stop_counts(route_day_id) }
+      trip_stop_counts: insert_trip_stop_counts(route_day_id), ends: insert_ends(route_day_id),
+      end_toilets: insert_end_toilets(route_day_id), end_cells: insert_end_cells(route_day_id) }
   end
 
   # A temporary table per file, emptied for each load because the
@@ -99,10 +138,10 @@ class RouteDayLoader
 
   def insert_route_day(calendar)
     connection.select_value(RouteDay.sanitize_sql_array([ <<~SQL, calendar.to_h ]))
-      INSERT INTO route_days (route_id, day, route_name, departure, destination, static_day, mrt_exits_day, day_type,
-                              day_note, office_calendar_day, loaded_at)
-      SELECT route_id, day, route_name, departure, destination, static_day, mrt_exits_day, :day_type, :note,
-             CAST(:snapshot_day AS date), now()
+      INSERT INTO route_days (route_id, day, route_name, departure, destination, static_day, mrt_exits_day,
+                              public_toilets_day, day_type, day_note, office_calendar_day, loaded_at)
+      SELECT route_id, day, route_name, departure, destination, static_day, mrt_exits_day, public_toilets_day,
+             :day_type, :note, CAST(:snapshot_day AS date), now()
       FROM staging_route_day
       RETURNING id
     SQL
@@ -144,8 +183,39 @@ class RouteDayLoader
     SQL
   end
 
+  def insert_ends(route_day_id)
+    insert("route_day_ends", "ends", route_day_id, <<~SQL)
+      INSERT INTO route_day_ends (route_day_id, go_back, end_seq, end_stop_name, end_latitude, end_longitude,
+                                  location_source, latitude, longitude, n_layovers, n_located_layovers,
+                                  n_standstill_records, end_stop_meters)
+      SELECT :route_day_id, go_back, end_seq, end_stop_name, end_latitude, end_longitude, location_source, latitude,
+             longitude, n_layovers, n_located_layovers, n_standstill_records, end_stop_meters
+      FROM staging_ends
+    SQL
+  end
+
+  # A toilet finds its end by direction.
+  def insert_end_toilets(route_day_id)
+    insert("route_day_end_toilets", "end_toilets", route_day_id, <<~SQL)
+      INSERT INTO route_day_end_toilets (route_day_end_id, name, category, address, latitude, longitude, meters)
+      SELECT e.id, s.name, s.category, s.address, s.latitude, s.longitude, s.meters
+      FROM staging_end_toilets s
+      JOIN route_day_ends e ON e.route_day_id = :route_day_id AND e.go_back = s.go_back
+    SQL
+  end
+
+  # A cell finds its end by direction.
+  def insert_end_cells(route_day_id)
+    insert("route_day_end_cells", "end_cells", route_day_id, <<~SQL)
+      INSERT INTO route_day_end_cells (route_day_end_id, cell_latitude, cell_longitude, n_records, n_buses, n_layovers)
+      SELECT e.id, s.cell_latitude, s.cell_longitude, s.n_records, s.n_buses, s.n_layovers
+      FROM staging_end_cells s
+      JOIN route_day_ends e ON e.route_day_id = :route_day_id AND e.go_back = s.go_back
+    SQL
+  end
+
   # Inserts and checks that every staged row arrived; a row that finds no
-  # trip would otherwise vanish without a trace.
+  # trip or end would otherwise vanish without a trace.
   def insert(table, name, route_day_id, sql)
     written = connection.exec_update(RouteDay.sanitize_sql_array([ sql, { route_day_id: } ]))
     staged = connection.select_value("SELECT count(*) FROM #{STAGING_TABLES.fetch(name)}")

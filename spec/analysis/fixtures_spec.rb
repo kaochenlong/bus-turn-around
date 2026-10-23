@@ -102,6 +102,30 @@ RSpec.describe "spec/fixtures/analysis" do
     end
   end
 
+  describe "external/public-toilets" do
+    let(:path) { File.join(DuckdbHelpers::FIXTURE_DATA, "external/public-toilets/2026-10-19.csv") }
+    let(:rows) { read_csv_rows(path) }
+
+    it "2026-10-19 的快照表頭是全國公廁建檔資料的 14 欄，有六列" do
+      header = "county,areacode,village,number,name,address,administration,latitude,longitude,grade,type2,type,exec,diaper"
+      expect([ File.open(path) { it.readline(chomp: true) }, rows.size ]).to eq([ header, 6 ])
+    end
+
+    it "county 都是 63000，number 照字典序遞增" do
+      numbers = rows.map { it["number"] }
+      expect([ rows.map { it["county"] }.uniq, numbers == numbers.sort, numbers.uniq.size ]).to eq([ %w[63000], true, 6 ])
+    end
+
+    it "只有戊站加油站的地址帶逗號" do
+      expect(rows.select { it["address"].include?(",") }.map { it.values_at("name", "address") }).to eq([ [ "戊站加油站-混合廁所", "臺北市測試區戊路1號, 2樓" ] ])
+    end
+
+    it "戊站公園的兩間同一地址，其餘四間地址各不相同" do
+      groups = rows.group_by { it["address"] }.values.map { |same| same.map { it["name"] } }
+      expect([ groups.map(&:size).sort, groups.max_by(&:size) ]).to eq([ [ 1, 1, 1, 1, 2 ], %w[戊站公園-男廁 戊站公園-女廁] ])
+    end
+  end
+
   describe "bus_event" do
     let(:records) { feed_records("bus_event") }
 
@@ -276,6 +300,54 @@ RSpec.describe "spec/fixtures/analysis" do
     it "跨小時檔的重複有兩組：TEST-0001 07:59:58 與 TEST-0002 06:59:30" do
       dups = [ %w[TEST-0001 07:59:58], %w[TEST-0002 06:59:30] ].map { |bus, at| slice(bus, at, at).map { it["file"] } }
       expect(dups).to eq([ %w[2026-10-19/07.jsonl 2026-10-19/08.jsonl], %w[2026-10-19/06.jsonl 2026-10-19/07.jsonl] ])
+    end
+  end
+
+  describe "bus_data" do
+    let(:records) { feed_records("bus_data") }
+
+    # The coordinate points of the README section on vehicle GPS.
+    def point(record)
+      { %w[25.060400 121.500300] => "A", %w[25.060580 121.500300] => "B", %w[25.065800 121.500300] => "C",
+        %w[25.060490 121.500300] => "D", %w[25.049700 121.500600] => "E" }.fetch(record.values_at("Latitude", "Longitude"))
+    end
+
+    def points_and_speeds(bus, from, to) = slice(bus, from, to).uniq { it["DataTime"] }.map { [ point(it), it["Speed"] ] }.tally
+
+    it "小時檔是 2026-10-19 的 06、07、08、11、12 五個" do
+      expect(feed_files("bus_data")).to eq(%w[06 07 08 11 12].map { "2026-10-19/#{it}.jsonl" })
+    end
+
+    it "經緯度與速度跟真資料一樣是字串" do
+      expect(records.flat_map { it.values_at("Longitude", "Latitude", "Speed") }.map(&:class).uniq).to eq([ String ])
+    end
+
+    it "TEST-0001 06:50 到 07:00 的時間窗：去重後 A 12 筆、B 3 筆速度 0，D 6 筆速度 15" do
+      expect(points_and_speeds("TEST-0001", "06:50:00", "07:00:00")).to eq([ "A", "0" ] => 12, [ "B", "0" ] => 3, [ "D", "15" ] => 6)
+    end
+
+    it "A 的第一筆與最後一筆正好在時間窗的兩端 06:50:00 與 07:00:00" do
+      times = slice("TEST-0001", "06:50:00", "07:00:00").select { point(it) == "A" }.map { it["DataTime"][11, 8] }
+      expect(times.values_at(0, -1)).to eq(%w[06:50:00 07:00:00])
+    end
+
+    it "時間窗裡有一筆 A 的 RouteID 是 0：06:50:50" do
+      expect(records.select { it["RouteID"] == "0" }.map { [ point(it), it["DataTime"] ] }).to eq([ [ "A", "2026-10-19 06:50:50" ] ])
+    end
+
+    it "跨小時檔的重複：TEST-0001 06:59:58 同時在 06.jsonl 與 07.jsonl" do
+      expect(slice("TEST-0001", "06:59:58", "06:59:58").map { it["file"] }).to eq(%w[2026-10-19/06.jsonl 2026-10-19/07.jsonl])
+    end
+
+    it "其他四個時間窗：TEST-0003 與 TEST-0004 各 5 筆在 A，TEST-0001 返程後 8 筆在 E、11:30 之後 4 筆在 C，速度都是 0" do
+      windows = [ %w[TEST-0003 07:53:00 08:08:00], %w[TEST-0004 08:03:00 08:15:00], %w[TEST-0001 08:30:00 08:42:00], %w[TEST-0001 11:30:00 12:26:00] ]
+      expect(windows.map { |bus, from, to| points_and_speeds(bus, from, to) }).to eq(
+        [ { [ "A", "0" ] => 5 }, { [ "A", "0" ] => 5 }, { [ "E", "0" ] => 8 }, { [ "C", "0" ] => 4 } ]
+      )
+    end
+
+    it "時間窗外的靜止回報：TEST-0001 06:30 在 A、速度 0，是 06:00 到 06:50 那趟的途中" do
+      expect(points_and_speeds("TEST-0001", "06:00:01", "06:49:59")).to eq([ "A", "0" ] => 1)
     end
   end
 end

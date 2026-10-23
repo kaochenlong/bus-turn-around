@@ -9,8 +9,7 @@ require "tmpdir"
 # the duckdb executable is not on PATH.
 #
 # Results come back through DuckDB's JSON output, and CSV files are read back
-# through DuckDB's read_csv: the csv library is a bundled gem since Ruby 3.4
-# and this change does not touch the Gemfile.
+# through DuckDB's read_csv.
 module DuckdbHelpers
   ROOT = File.expand_path("../..", __dir__)
   ANALYSIS_DIR = File.join(ROOT, "analysis")
@@ -115,9 +114,8 @@ module DuckdbHelpers
 
   # Runs bin/health-card with the current Ruby, so a test can narrow PATH
   # without losing the interpreter. It runs outside the bundle, the way an
-  # operator runs it; `bundled: true` keeps the bundle of this process, whose
-  # Gemfile has no csv. A nil value in `env` unsets that variable. Returns
-  # stdout, stderr and the status.
+  # operator runs it; `bundled: true` keeps the bundle of this process. A nil
+  # value in `env` unsets that variable. Returns stdout, stderr and the status.
   def run_health_card(*args, env: {}, bundled: false)
     base = bundled || !defined?(Bundler) ? ENV.to_h : Bundler.unbundled_env
     Open3.capture3(base.merge(env).compact, RbConfig.ruby, File.join(ROOT, "bin/health-card"), *args,

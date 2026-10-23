@@ -9,7 +9,7 @@ require_relative "../lib/analysis_run"
 # n-gear files: a Markdown card on standard output or in --out, and the
 # inspection CSVs in --inspect-dir. The SQL of analysis/ runs in a DuckDB CLI
 # subprocess through lib/analysis_run.rb. Rails is never loaded and only default gems are required, so the
-# script also runs under bundler, whose Gemfile has no csv.
+# script runs the same with or without bundler.
 module HealthCard
   ROOT = File.expand_path("..", __dir__)
   STATIC_FILES = %w[GetRoute.gz GetStop.gz GetPathDetail.gz].freeze

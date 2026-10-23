@@ -114,3 +114,44 @@
   [data-hero="pending"] [data-hero-stage] > picture { visibility: hidden; animation: hero-reveal 0s 3s forwards; }
 }
 @keyframes hero-reveal { to { visibility: visible; } }
+
+/* 折返點設施的地圖：endMap 元件把狀態寫在 data-map（pending、loading、ready、static）。畫好（ready）之前，
+   容器裡那一句蓋在畫布上；畫布的盒子一直保留高度，載入時不跳版。那一句的顯示與否只由這裡決定，元素本身不放 display 的 class */
+[data-map-note] { display: flex; }
+[data-map="ready"] [data-map-note] { display: none; }
+
+/* Leaflet 的圖層與控制項 z-index 到 1000，關在容器自己的堆疊裡，捲動時才不會蓋過頂端黏住的區塊導覽 */
+[data-end-map] { isolation: isolate; }
+[data-map-canvas] > .end-map { position: absolute; inset: 0; }
+
+/* Leaflet 的 CSS 跟著地圖的 chunk 晚載入，同樣權重會蓋過這裡（例如它把標記設成 display: block），
+   所以跟它的選擇器撞到的規則多帶一層容器 */
+[data-end-map] .leaflet-container { font-family: var(--font-route); font-size: var(--text-label-sm); }
+
+/* 靜止格四級深淺：同一個色相由淺到深（violet 500、700、900、950），在 OSM 底圖的地面、建物與白色道路上，
+   最淺一級都還分得出來（dataviz 的驗證腳本量過 85% 不透明度疊上去的顏色）。白色細框讓相鄰的格子分得開 */
+.end-map-cell-1, .end-map-legend-1 { --end-map-shade: var(--color-violet-500); }
+.end-map-cell-2, .end-map-legend-2 { --end-map-shade: var(--color-violet-700); }
+.end-map-cell-3, .end-map-legend-3 { --end-map-shade: var(--color-violet-900); }
+.end-map-cell-4, .end-map-legend-4 { --end-map-shade: var(--color-violet-950); }
+.end-map-cell { fill: var(--end-map-shade); fill-opacity: 0.85; stroke: white; stroke-width: 1; }
+
+[data-end-map] .end-map-legend {
+  display: flex;
+  align-items: center;
+  gap: --spacing(1);
+  border-radius: var(--radius-md);
+  background: white;
+  padding: --spacing(1) --spacing(2);
+  color: var(--color-slate-600);
+}
+.end-map-legend-swatch { width: 14px; height: 14px; border-radius: 2px; background: var(--end-map-shade); opacity: 0.85; }
+
+/* 標記：盒子 24px 是滑鼠與手指要點到的範圍，形狀畫在盒子正中間。末站實心、下一趟起站空心、
+   位置是品牌色的靶心、公廁是品牌色的小方塊；都帶白邊，疊在深色格子上也看得見 */
+[data-end-map] .end-map-pin { display: grid; place-items: center; }
+.end-map-pin::before { content: ""; box-sizing: border-box; box-shadow: 0 0 0 2px white; }
+.end-map-stop-last::before { width: 14px; height: 14px; border-radius: 9999px; background: var(--color-slate-900); }
+.end-map-stop-next::before { width: 14px; height: 14px; border-radius: 9999px; border: 3px solid var(--color-slate-900); background: white; }
+.end-map-location::before { width: 20px; height: 20px; border-radius: 9999px; background: radial-gradient(circle, white 0 3px, var(--color-teal-700) 3.5px); }
+.end-map-toilet::before { width: 12px; height: 12px; border-radius: 3px; background: var(--color-teal-700); }

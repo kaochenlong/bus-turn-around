@@ -1,0 +1,55 @@
+---
+tw: &tw
+  eyebrow: 折返點設施
+  title: 車在哪裡折返？附近有幾處公廁？
+  note: 停車那一端的位置，是那一天折返停留期間車速為 0 的 GPS 回報最密集的地方；開過去就走的那一端車不停，位置以末站計。公廁來自環境部的全國建檔資料，同一個地址的廁所算一處，一處的距離是最近那一間的直線距離。
+  needs_reload: 這幾天的資料還沒有折返點的位置與公廁，重新執行 bin/rails derived:load 後就會出現。
+  directions:
+    "0": 去程
+    "1": 返程
+  end_title: "%{direction}在%{stop}結束"
+  natures:
+    stop: 停車
+    pass_through: 開過去就走
+  standstill_html: 位置是折返停留期間車輛靜止最密集的地方，離末站 %{meters} 公尺；%{layovers} 筆折返停留裡，%{located} 筆有靜止回報落在這個位置 %{radius} 公尺內。
+  end_stop: 車在這一端不停，位置以末站計。
+  within_html: "%{meters} 公尺內 %{count} 處"
+  nearest_html: 最近一處是%{name}（%{category}），%{meters} 公尺，這一處有 %{rooms} 間。
+  no_places: "%{meters} 公尺內的建檔資料裡沒有公廁。"
+  list: "%{meters} 公尺內每一處（%{count} 處）"
+  name: 名稱（最近那一間）
+  category: 類別
+  address: 地址
+  meters: 公尺
+  rooms: 間數
+  days_html: 用的是 %{located_day} 的位置，公廁資料是那一天用的 %{snapshot_day} 快照。
+  days_without_location_html: 涵蓋的日子裡有 %{count} 天量不到這一端的位置。
+  no_location_html: 量不到位置：這幾天的折返停留期間都沒有車輛靜止的 GPS 回報，所以不列公廁。最近一天有 %{layovers} 筆折返停留。
+zh-TW:
+  <<: *tw
+en:
+  eyebrow: Turnaround facilities
+  title: Where do buses turn around, and how many toilet places are near?
+  note: At an end where buses stop, the location is where vehicles reported speed 0 most densely during that day's layovers; at an end where buses drive on, they do not stop and the location is the last stop. Toilets come from the national registry of the Ministry of Environment; toilets at one address count as one place, as far away as its nearest toilet in a straight line.
+  needs_reload: These days have no turnaround locations or toilets yet; run bin/rails derived:load again to add them.
+  directions:
+    "0": Outbound
+    "1": Inbound
+  end_title: "%{direction} ends at %{stop}"
+  natures:
+    stop: Stops
+    pass_through: Drives on
+  standstill_html: The location is where vehicles stood still most densely during the layovers, %{meters} m from the last stop; %{located} of %{layovers} layovers had a standstill report within %{radius} m of it.
+  end_stop: Buses do not stop at this end; the location is the last stop.
+  within_html: "%{count} places within %{meters} m"
+  nearest_html: "Nearest place: %{name} (%{category}), %{meters} m, %{rooms} toilets there."
+  no_places: The registry has no toilet within %{meters} m.
+  list: "Every place within %{meters} m (%{count})"
+  name: Name (nearest toilet)
+  category: Category
+  address: Address
+  meters: Metres
+  rooms: Toilets
+  days_html: Location of %{located_day}; toilet data from the snapshot of %{snapshot_day} used that day.
+  days_without_location_html: "%{count} of the covered days have no location for this end."
+  no_location_html: "No location: no vehicle reported standing still during the layovers of these days, so no toilets are listed. The latest day had %{layovers} layovers."

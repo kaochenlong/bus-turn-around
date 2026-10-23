@@ -66,6 +66,8 @@ gem "rails-i18n"
 # 解密 session cookie 時丟出 ArgumentError，帶 cookie 的請求一律回 500。
 # Rails 發布支援 json 3 的版本後拿掉這行；拿掉前先確認帶 session cookie 的請求回 200
 gem "json", "< 3"
+# csv 從 Ruby 3.4 起是 bundled gem，bundler 底下沒列在這裡就載不到；公廁快照用它檢查與寫出 CSV
+gem "csv"
 
 group :development, :test do
   gem "rspec-rails"

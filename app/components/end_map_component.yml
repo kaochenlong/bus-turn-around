@@ -1,0 +1,27 @@
+---
+tw: &tw
+  note: 地圖要等網頁的腳本載入才會出現，載不到時就只有這一句；這一端的數字都在上面。
+  coverage_html: 畫出來的格子涵蓋這幾天 %{share} 的靜止回報。
+  beyond_extent_html: 另有 %{count} 格在 %{km} 公里外，沒有畫出來。
+  no_reports: 這幾天沒有靜止回報。
+  labels:
+    last_stop: 末站
+    next_first_stop: 下一趟起站
+    location: 折返點位置
+    toilet: "{meters} 公尺，{count} 間"
+    few: 少
+    many: 多
+zh-TW:
+  <<: *tw
+en:
+  note: The map appears once the page's scripts load; if they cannot load, only this sentence stays. Every number of this end is above.
+  coverage_html: The cells drawn cover %{share} of the standstill reports of these days.
+  beyond_extent_html: Another %{count} cells lie more than %{km} km away and are not drawn.
+  no_reports: These days have no standstill reports.
+  labels:
+    last_stop: Last stop
+    next_first_stop: First stop of the next trip
+    location: Turnaround location
+    toilet: "{meters} m, toilets: {count}"
+    few: Few
+    many: Many

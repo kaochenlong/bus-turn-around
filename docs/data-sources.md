@@ -52,15 +52,25 @@
 |---|---|---|---|
 | 上面的靜態 feed | 把事件串成趟要知道起訖站序，算脫班要班表，推調度站位置要車輛對應 | 同一個 blob | 待做每日快照 |
 | 辦公日曆（平日、假日、補班） | 分平假日、對應班表日型別 | [data.gov.tw/dataset/14718](https://data.gov.tw/dataset/14718)，行政院人事行政總處，同一授權 | 已抓，一年一個 CSV，原檔是 UTF-8 帶 BOM、CRLF 換行，每年的檔案網址都不同。`bin/rails external:office_calendar YEAR=<年>` 檢查整年的日期、星期與「是否放假」之後，去掉 BOM、換成 LF，存到資料根目錄的 `external/office-calendar/<年>/<台北日>.csv`。日曆會在年中改版，改版的檔案有自己的網址，要先把 `OfficeCalendarSnapshot::DOWNLOAD_URLS` 裡那一年換成新網址，再下載、重跑受影響的日子 |
+| 底圖圖磚 | 路線頁每一端地圖的底圖 | [OpenStreetMap](https://www.openstreetmap.org/copyright) 標準圖磚 `https://tile.openstreetmap.org/{z}/{x}/{y}.png`，地圖資料是 ODbL，顯名「© OpenStreetMap contributors」，照 [OSMF 圖磚使用政策](https://operations.osmfoundation.org/policies/tiles/)使用 | 不抓、不存：只在瀏覽器裡、地圖捲進畫面時才載看得到的圖磚，網址、顯名與最大縮放寫在 `config/map.yml`，頁尾與地圖右下角顯示同一段顯名。2026-10-24 查證：國土測繪中心臺灣通用電子地圖的開放資料版（圖層 EMAP6，[data.gov.tw/dataset/25108](https://data.gov.tw/dataset/25108)，政府資料開放授權條款第 1 版）只到圖磚第 15 等級，16 級以上適用國土測繪圖資服務雲的[使用條款](https://maps.nlsc.gov.tw/pro/use_clause.jsp)（附上來源之外，還有不可移轉、只能用在宣傳或表示使用該系統的服務、可隨時限量或改收費），不是只要求顯名，所以改用 OpenStreetMap |
 | 捷運車站出入口座標 | 站牌到出口距離 | [data.gov.tw/dataset/128428](https://data.gov.tw/dataset/128428)，北捷，同一授權 | 已抓，原檔是 Big5 編碼的 CSV，`bin/rails external:mrt_exits` 轉成 UTF-8 存到資料根目錄的 `external/taipei-mrt-exits/<台北日>.csv`，資料不定期更新 |
+| 全國公廁建檔資料（一列一間廁所，含經緯度與類別） | 折返點設施：每一端位置 500 公尺內的公廁 | [data.gov.tw/dataset/30794](https://data.gov.tw/dataset/30794)，環境部，同一授權 | 已抓。沒有整份檔案，只有環境部資料開放平臺的 API `https://data.moenv.gov.tw/api/v2/fac_p_07`，`api_key` 跟著資料集頁的下載連結公開，不是祕密。一頁最多 1,000 列，`bin/rails external:public_toilets` 照 `number` 排序翻頁、逐頁檢查，整份收齊、`number` 嚴格遞增才寫一次，存到資料根目錄的 `external/public-toilets/<台北日>.csv`（UTF-8、無 BOM、LF）。每月更新。一列是一間廁所（男廁、女廁、無障礙廁所分開），路線頁把同一地址的併成一處。沒有開放時段，也看不出駕駛能不能借用 |
 | 捷運站間行駛時間、班距 | 門到門競爭力 | TDX（免費帳號，有審核）。北捷另有「相鄰兩站間之行駛時間、停靠站時間」資料集，正式頁面還待確認。另有[轉乘步行時間](https://data.gov.tw/dataset/128417) | 要申請帳號 |
 | 捷運分時 OD 月檔 | 重疊走廊的捷運實際流量 | [data.gov.tw/dataset/128506](https://data.gov.tw/dataset/128506) | 每月 CSV |
+
+公廁原本用臺北市的公廁點位（data.gov.tw/dataset/138798），2026-10-24 換成全國檔，因為有路線頁的停車端有兩個在新北市。下表是那天用各方向末站的座標（2026-10-23 的靜態快照）對兩份檔量到的直線距離，「處」是不同地址，「間」是全國檔的一列。正式的數字以 `derived:load` 從折返點位置算出來的為準，位置可能離末站一百多公尺：
+
+| 端點 | 300 公尺內，全國檔 | 500 公尺內，全國檔 | 300 公尺內，臺北市檔 | 500 公尺內，臺北市檔 |
+|---|---|---|---|---|
+| 職能發展學院二（中山幹線停車端，士林） | 2 處 33 間 | 2 處 33 間 | 1 處 | 1 處 |
+| 福安居一（251 與 251區 停車端，深坑） | 1 處 2 間，正洋加油站 200 公尺 | 9 處 28 間 | 0 處，最近 2,549 公尺 | 0 處 |
+| 臺北客運板橋前站(藝文)（307 一端，板橋） | 4 處 13 間 | 9 處 22 間 | 0 處 | 0 處 |
+| 莊敬里（307 另一端，松山） | 0 處 | 4 處 9 間 | 0 處 | 3 處 |
 
 ### 第二階段
 
 | 資料 | 用途 | 來源 |
 |---|---|---|
-| 公廁點位（含經緯度、座數、等級） | 折返點設施盤點 | [data.gov.tw/dataset/138798](https://data.gov.tw/dataset/138798)，環保局 |
 | 公有停車場 | 大車暫停空間 | 停管處 |
 | 最小統計區人口 | 覆蓋率 | 內政部社會經濟資料服務平台 |
 | OSM 公車調度站、停靠灣 | 補市府沒有的場站幾何 | Overpass API |
@@ -72,3 +82,4 @@
 
 - 既有 app 的轉乘查詢，一次只回答一趟、只回答現在，而且不當成資料開放出來，Google Directions API 的條款也禁止大量存下來分析。我們用捷運站間時間、班距、出口座標，自己算一個全面但粗略的門到門模型。
 - 台北捷運 Go 每個出口的「可轉乘公車」對照表，用出口座標和站牌座標算距離就能得到一樣的東西。
+- 臺北市公廁點位資訊（[data.gov.tw/dataset/138798](https://data.gov.tw/dataset/138798)，環保局）。它只收到臺北市界，福安居一（深坑）與臺北客運板橋前站（板橋）這兩個端點 300 與 500 公尺內都是 0 處，不是沒有廁所，是檔案沒收。全國公廁建檔資料已經涵蓋臺北市，不再拿它來補。

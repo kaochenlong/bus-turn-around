@@ -1,0 +1,18 @@
+# The basemap tiles of the route page maps (turnaround-map), read by MapTiles.
+# url is a tile address template with {z}, {x} and {y}; attribution is the
+# text the map's attribution control and every page footer show; max_zoom is
+# the largest zoom a map may reach. The source was chosen by its terms on
+# 2026-10-24 (docs/data-sources.md): the OpenStreetMap standard tiles, under
+# the OSMF tile usage policy, because the open data version of the Taiwan e-Map
+# (data.gov.tw dataset 25108) stops at zoom 15. The test environment uses an
+# embedded 1x1 transparent PNG, so tests never use the network.
+shared:
+  tiles:
+    url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    attribution: © OpenStreetMap contributors
+    max_zoom: 18
+
+test:
+  tiles:
+    url: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=
+    attribution: 測試用空白底圖
