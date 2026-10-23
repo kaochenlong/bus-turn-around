@@ -5,7 +5,7 @@ require "spec_helper"
 RSpec.describe "app/assets/images/home-hero-*.webp" do
   def image_size(name) = File.size?(File.expand_path("../../app/assets/images/#{name}", __dir__))
 
-  { "home-hero-wide.webp" => 200_000, "home-hero-tall.webp" => 120_000 }.each do |name, budget|
+  { "home-hero-wide.webp" => 200_000, "home-hero-narrow.webp" => 120_000 }.each do |name, budget|
     it "#{name} 存在，不超過 #{budget / 1000} KB" do
       expect(image_size(name)).to be_a(Integer).and be <= budget
     end
