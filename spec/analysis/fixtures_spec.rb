@@ -95,6 +95,13 @@ RSpec.describe "spec/fixtures/analysis" do
     end
   end
 
+  describe "external/office-calendar" do
+    it "2026 的快照有表頭與 365 天，其中假日 120 天" do
+      lines = File.readlines(File.join(DuckdbHelpers::FIXTURE_DATA, "external/office-calendar/2026/2026-10-19.csv"), chomp: true)
+      expect([ lines.first, lines.size - 1, lines.count { it.split(",")[2] == "2" } ]).to eq([ "西元日期,星期,是否放假,備註", 365, 120 ])
+    end
+  end
+
   describe "bus_event" do
     let(:records) { feed_records("bus_event") }
 

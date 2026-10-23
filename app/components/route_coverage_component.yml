@@ -3,8 +3,10 @@ tw: &tw
   ranges:
     day: 當天
     7d: 最近 7 天
-  covered: 涵蓋的日子
-  no_day_type: 沒有分平日與假日。
+  covered: "涵蓋的日子（%{day_type}）"
+  other_type:
+    day: "看%{day_type} → %{day}"
+    7d: "看%{day_type} → %{day} 為止的最近 7 天"
   no_data: "%{day} 還沒有資料。"
   no_days: 這條路線還沒有任何資料。
   stored: 已有資料的日子
@@ -14,8 +16,10 @@ en:
   ranges:
     day: The day
     7d: Last 7 days
-  covered: Days covered
-  no_day_type: Weekdays and holidays are not separated.
+  covered: "Days covered (%{day_type})"
+  other_type:
+    day: "See %{day_type}s → %{day}"
+    7d: "See %{day_type}s → the last 7 days up to %{day}"
   no_data: "No data for %{day} yet."
   no_days: This route has no data yet.
   stored: Days with data

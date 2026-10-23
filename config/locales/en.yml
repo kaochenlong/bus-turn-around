@@ -30,3 +30,6 @@
 en:
   site:
     name: "TurnAround"
+  day_types:
+    weekday: weekday
+    holiday: holiday

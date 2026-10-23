@@ -1,5 +1,3 @@
-require "net/http"
-
 # bin/rails external:mrt_exits: saves one snapshot of the Taipei MRT entrance
 # coordinates (data.gov.tw dataset 128428) under the data root, as
 # external/taipei-mrt-exits/<Taipei day>.csv. The published file is Big5; the
@@ -10,23 +8,12 @@ class MrtExitsSnapshot
                  "307a7f61-e302-4108-a817-877ccbfca7c1/download".freeze
   HEADER = "項次,出入口名稱,出入口編號,經度,緯度,是否為無障礙用".freeze
   DIRECTORY = "external/taipei-mrt-exits".freeze
-  MAX_REDIRECTS = 3
 
   # The download or the file is not usable; the message says why.
   class Error < StandardError; end
 
-  # Fetches a URL and returns [HTTP status, body bytes], following redirects.
-  HTTP_FETCHER = lambda do |url, redirects_left = MAX_REDIRECTS|
-    response = Net::HTTP.get_response(URI(url))
-    if response.is_a?(Net::HTTPRedirection) && redirects_left.positive?
-      HTTP_FETCHER.call(response["location"], redirects_left - 1)
-    else
-      [ response.code.to_i, response.body.to_s ]
-    end
-  end
-
   # The rake task: returns the exit status.
-  def self.run(env, out: $stdout, fetcher: HTTP_FETCHER, day: Date.current)
+  def self.run(env, out: $stdout, fetcher: HttpFetcher, day: Date.current)
     data_root = env["TURNAROUND_DATA"].presence
     unless data_root
       out.puts("用法：TURNAROUND_DATA=<原始檔的資料根目錄> bin/rails external:mrt_exits")
@@ -41,7 +28,7 @@ class MrtExitsSnapshot
     1
   end
 
-  def initialize(data_root:, day:, fetcher: HTTP_FETCHER)
+  def initialize(data_root:, day:, fetcher: HttpFetcher)
     @data_root = data_root
     @day = day
     @fetcher = fetcher

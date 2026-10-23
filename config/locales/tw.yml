@@ -1,3 +1,6 @@
 tw:
   site:
     name: "折返點 TurnAround"
+  day_types:
+    weekday: 平日
+    holiday: 假日

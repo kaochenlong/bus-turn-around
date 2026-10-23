@@ -69,8 +69,7 @@ RSpec.describe "Home hero animation", :js, type: :system do
   end
 
   def store_route_day
-    RouteDay.create!(route_id: 9001, day: Date.new(2026, 10, 20), route_name: "測試幹線", departure: "甲站",
-                     destination: "戊站", static_day: Date.new(2026, 10, 20), loaded_at: Time.current)
+    create(:route_day, day: Date.new(2026, 10, 20))
   end
 
   # Waits for the animation to finish, keeps a handle on its canvas in the

@@ -3,10 +3,11 @@ require "rails_helper"
 RSpec.describe "Routes", type: :request do
   def store_days(*days, route_id: 9001)
     days.each do |day|
-      RouteDay.create!(route_id:, day: Date.iso8601(day), route_name: "測試幹線", departure: "甲站",
-                       destination: "戊站", static_day: Date.iso8601(day), loaded_at: Time.current)
+      create(:route_day, route_id:, day: Date.iso8601(day))
     end
   end
+
+  def store_holiday(day, note: nil) = create(:route_day, day: Date.iso8601(day), day_type: "holiday", day_note: note)
 
   # The last stop of each direction, so the layover table has a row per direction.
   def add_last_stops(route_day) = route_day.stops.create!([ { go_back: 0, seq: 4, stop_name: "戊站" }, { go_back: 1, seq: 9, stop_name: "甲站" } ])
@@ -16,6 +17,13 @@ RSpec.describe "Routes", type: :request do
   def buffer_minutes = page.at_css("[data-section=buffer-trade] [data-value=minutes]")&.text
 
   def covered_days = page.css("[data-covered-days] [data-day]").map { it["data-day"] }
+
+  def covered_labels = page.css("[data-covered-days] [data-day]").map { it.text.squish }
+
+  def covered_day_type = page.at_css("header [data-day-type]")&.[]("data-day-type")
+
+  # The link to the other day type: which type it names, where it goes, and whether it names the day.
+  def other_type_link(day_label) = page.at_css("a[data-other-day-type]")&.then { [ it["data-other-day-type"], it["href"], it.text.include?(day_label) ] }
 
   def layover_natures = page.css("[data-section=layovers] tr[data-direction]").map { it["data-end-nature"] }
 
@@ -46,10 +54,38 @@ RSpec.describe "Routes", type: :request do
     end
   end
 
-  it "最近 7 天只涵蓋已寫入的日子，列出日期與星期" do
+  it "最近 7 天只涵蓋已寫入的日子，列出日期與星期，標成平日" do
     store_days("2026-10-15", "2026-10-19", "2026-10-20", "2026-10-22")
     get route_path(9001), params: { day: "2026-10-22", range: "7d" }
-    expect(page.css("[data-covered-days] [data-day]").map(&:text).map(&:squish)).to eq([ "2026-10-19（一）", "2026-10-20（二）", "2026-10-22（四）" ])
+    expect([ covered_day_type, covered_labels ]).to eq([ "weekday", [ "2026-10-19（一）", "2026-10-20（二）", "2026-10-22（四）" ] ])
+  end
+
+  describe "10-19 到 10-23 是平日、10-24 到 10-26 是假日、10-26 是補假時" do
+    before do
+      store_days("2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23")
+      %w[2026-10-24 2026-10-25].each { store_holiday(it) }
+      store_holiday("2026-10-26", note: "補假")
+    end
+
+    it "選 10-26、最近 7 天：標成假日，只涵蓋 10-24 到 10-26，10-26 帶著補假，連到 10-23 為止的平日" do
+      get route_path(9001), params: { day: "2026-10-26", range: "7d" }
+      expect([ covered_day_type, covered_labels, other_type_link("2026-10-23（五）") ]).to eq(
+        [ "holiday", [ "2026-10-24（六）", "2026-10-25（日）", "2026-10-26（一）補假" ], [ "weekday", "/routes/9001?day=2026-10-23&range=7d", true ] ]
+      )
+    end
+
+    it "選 10-23、最近 7 天：標成平日，涵蓋 10-19 到 10-23，10-23 以前沒有假日所以沒有連結" do
+      get route_path(9001), params: { day: "2026-10-23", range: "7d" }
+      expect([ covered_day_type, covered_days, other_type_link("") ]).to eq([ "weekday", %w[2026-10-19 2026-10-20 2026-10-21 2026-10-22 2026-10-23], nil ])
+    end
+  end
+
+  it "沒帶參數時是最新的 10-26：標成假日、帶著補假，連到 10-23 那一天" do
+    store_days("2026-10-23").then { store_holiday("2026-10-26", note: "補假") }
+    get route_path(9001)
+    expect([ covered_day_type, covered_labels, other_type_link("2026-10-23（五）") ]).to eq(
+      [ "holiday", [ "2026-10-26（一）補假" ], [ "weekday", "/routes/9001?day=2026-10-23&range=day", true ] ]
+    )
   end
 
   it "有資料的那一天，頁面依序是摘要、折返停留分佈圖、沿線人數圖、行駛時間、折返停留、試算、捷運重疊、載客剖面、資料限制" do

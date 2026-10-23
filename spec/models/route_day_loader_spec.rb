@@ -52,11 +52,12 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
   end
 
   describe "出入口快照有兩份（2026-10-20 與 2026-10-22）時" do
-    # A data root whose raw files are the fixture's and whose snapshot folder
-    # holds the fixture snapshot under two later dates.
+    # A data root whose raw files and office calendar are the fixture's and
+    # whose snapshot folder holds the fixture snapshot under two later dates.
     def data_root_with_snapshots(dir)
       %w[bus_event bus_seat_event static].each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, it), File.join(dir, it)) }
       FileUtils.mkdir_p(File.join(dir, "external/taipei-mrt-exits"))
+      File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, "external/office-calendar"), File.join(dir, "external/office-calendar"))
       fixture = File.join(DuckdbHelpers::FIXTURE_DATA, "external/taipei-mrt-exits/2026-10-19.csv")
       %w[2026-10-20 2026-10-22].each { FileUtils.cp(fixture, File.join(dir, "external/taipei-mrt-exits/#{it}.csv")) }
       dir
@@ -65,6 +66,40 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     it "用檔名日期最新的那一份，並記在路線日上" do
       Dir.mktmpdir { described_class.new(route_id: 9001, day:, data_root: data_root_with_snapshots(it), duckdb: "duckdb").call }
       expect(RouteDay.sole.mrt_exits_day).to eq(Date.new(2026, 10, 22))
+    end
+  end
+
+  it "fixture 的 2026 日曆裡 10-19 是平日：路線日是 weekday、沒有備註、日曆快照日 2026-10-19" do
+    load_day
+    expect(RouteDay.sole.attributes.values_at("day_type", "day_note", "office_calendar_day")).to eq([ "weekday", nil, Date.new(2026, 10, 19) ])
+  end
+
+  describe "日曆把 2026-10-19 標成「補假」的假日時" do
+    # A data root whose raw files and entrance snapshot are the fixture's and
+    # whose 2026 calendar marks 2026-10-19 as the holiday 補假.
+    def data_root_with_holiday(dir)
+      %w[bus_event bus_seat_event static].each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, it), File.join(dir, it)) }
+      FileUtils.mkdir_p(File.join(dir, "external/office-calendar/2026"))
+      File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, "external/taipei-mrt-exits"), File.join(dir, "external/taipei-mrt-exits"))
+      calendar = File.read(File.join(DuckdbHelpers::FIXTURE_DATA, "external/office-calendar/2026/2026-10-19.csv"))
+      File.write(File.join(dir, "external/office-calendar/2026/2026-10-19.csv"), calendar.sub("20261019,一,0,", "20261019,一,2,補假"))
+      dir
+    end
+
+    let(:holiday_root) { data_root_with_holiday(Dir.mktmpdir("holiday")) }
+
+    after { FileUtils.remove_entry(holiday_root) }
+
+    def load_holiday = described_class.new(route_id: 9001, day:, data_root: holiday_root, duckdb: "duckdb").call
+
+    it "路線日是 holiday、備註是補假" do
+      load_holiday
+      expect(RouteDay.sole.attributes.values_at("day_type", "day_note")).to eq([ "holiday", "補假" ])
+    end
+
+    it "TEST-0002 23:40 發車、隔天 00:50 到站的那一趟，存在日型別是假日的 10-19 路線日底下" do
+      load_holiday
+      expect(Trip.find_by!(bus_id: "TEST-0002", start_time: Time.zone.parse("2026-10-19 23:40")).route_day.attributes.values_at("day", "day_type")).to eq([ day, "holiday" ])
     end
   end
 

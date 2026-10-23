@@ -89,7 +89,7 @@ tests:
 ---
 ### Requirement: Day eligibility
 
-A day D SHALL be loaded only when `bus_event/<D>/` contains at least one hour file, `static/<D>/` contains `GetRoute.gz`, `GetStop.gz` and `GetPathDetail.gz`, the read window of D has ended, shown by an hour file `bus_event/<D+1>/01.jsonl` or `bus_event/<D+1>/01.jsonl.gz`, and `external/taipei-mrt-exits/` contains at least one MRT entrance snapshot. A day that fails these checks SHALL fail with a message naming the missing file or directory; a missing snapshot SHALL name `bin/rails external:mrt_exits`.
+A day D SHALL be loaded only when `bus_event/<D>/` contains at least one hour file, `static/<D>/` contains `GetRoute.gz`, `GetStop.gz` and `GetPathDetail.gz`, the read window of D has ended, shown by an hour file `bus_event/<D+1>/01.jsonl` or `bus_event/<D+1>/01.jsonl.gz`, `external/taipei-mrt-exits/` contains at least one MRT entrance snapshot, and `external/office-calendar/<year of D>/` contains at least one office calendar snapshot as defined by `day-types` whose newest file has a row for D. A day that fails these checks SHALL fail with a message naming the missing file or directory; a missing entrance snapshot SHALL name `bin/rails external:mrt_exits`, and a missing calendar snapshot SHALL name `bin/rails external:office_calendar YEAR=<year of D>`. When both snapshots are missing, the message SHALL name the entrance snapshot.
 
 #### Scenario: Read window not over
 
@@ -101,44 +101,70 @@ A day D SHALL be loaded only when `bus_event/<D>/` contains at least one hour fi
 - **WHEN** the data root has no file under `external/taipei-mrt-exits/`
 - **THEN** the day fails with a message naming `bin/rails external:mrt_exits` and nothing is written for it
 
+#### Scenario: No calendar snapshot
+
+- **WHEN** the data root has an entrance snapshot but no file under `external/office-calendar/2026/`, and day 2026-10-19 is loaded
+- **THEN** the day fails with a message naming `bin/rails external:office_calendar YEAR=2026` and nothing is written for it
+
 
 <!-- @trace
-source: zhongshan-mrt-overlap
-updated: 2026-10-22
+source: day-types
+updated: 2026-10-23
 code:
   - lib/tasks/external.rake
-  - analysis/mrt_overlap.sql
+  - app/models/office_calendar_snapshot.rb
   - docs/data-sources.md
-  - app/components/mrt_overlap_component.yml
-  - db/migrate/20261021193708_add_mrt_overlap_to_derived_tables.rb
-  - app/components/data_limitations_component.yml
-  - analysis/10_load.sql
-  - app/models/route_page/mrt_overlap.rb
-  - app/models/route_day.rb
-  - analysis/derived_export.sql
-  - spec/fixtures/analysis/README.md
+  - config/locales/tw.yml
   - app/models/route_day_loader.rb
+  - app/components/data_limitations_component.yml
+  - app/components/route_coverage_component.rb
+  - app/components/route_coverage_component.yml
   - app/models/mrt_exits_snapshot.rb
-  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
-  - app/components/mrt_overlap_component.rb
-  - app/models/route_day_stop.rb
+  - app/components/route_coverage_component.html.erb
   - db/schema.rb
-  - app/components/mrt_overlap_component.html.erb
-  - analysis/README.md
-  - app/views/routes/show.html.erb
-  - spec/fixtures/analysis/external/taipei-mrt-exits/2026-10-19.csv
+  - app/components/route_list_component.html.erb
+  - db/migrate/20261022230942_add_day_type_to_route_days.rb
+  - spec/factories/route_days.rb
+  - app/components/attribution_component.html.erb
+  - app/components/attribution_component.yml
+  - config/locales/en.yml
+  - spec/fixtures/analysis/README.md
+  - app/models/route_page/coverage.rb
+  - app/components/application_component.rb
+  - app/components/route_list_component.yml
+  - app/models/http_fetcher.rb
+  - spec/fixtures/analysis/external/office-calendar/2026/2026-10-19.csv
+  - app/models/route_day.rb
+  - db/migrate/20261022231802_require_day_type_on_route_days.rb
 tests:
-  - spec/analysis/fixtures_spec.rb
-  - spec/models/route_page/mrt_overlap_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/analysis/mrt_overlap_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/requests/route_page_fixture_spec.rb
   - spec/components/mrt_overlap_component_spec.rb
-  - spec/models/mrt_exits_snapshot_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/components/route_summary_component_spec.rb
+  - spec/models/route_page/buffer_trade_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/components/load_profile_table_component_spec.rb
+  - spec/components/run_time_table_component_spec.rb
+  - spec/system/home_hero_spec.rb
+  - spec/models/http_fetcher_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/components/buffer_trade_component_spec.rb
+  - spec/components/layover_chart_component_spec.rb
+  - spec/components/load_chart_component_spec.rb
+  - spec/components/application_component_spec.rb
+  - spec/models/route_page/layover_stats_spec.rb
+  - spec/models/route_page/coverage_spec.rb
+  - spec/components/layover_table_component_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/models/home_page/route_list_spec.rb
   - spec/models/route_day_loader_spec.rb
-  - spec/analysis/derived_export_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/office_calendar_snapshot_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/models/route_page/layover_distribution_spec.rb
+  - spec/models/route_page/run_times_spec.rb
+  - spec/components/route_coverage_component_spec.rb
 -->
 
 ---
@@ -426,4 +452,84 @@ tests:
   - spec/analysis/analysis_run_spec.rb
   - spec/components/load_profile_table_component_spec.rb
   - spec/components/route_summary_component_spec.rb
+-->
+
+---
+### Requirement: Route day carries its day type
+
+Every stored route day SHALL carry its day type, `weekday` or `holiday`, and its note as defined by `day-types`, together with the file name date of the calendar snapshot they came from. The day type and the snapshot day SHALL NOT be empty; the note is empty when the calendar row has none. They SHALL be written in the same transaction as the rest of the route day, so loading a day again after a newer snapshot replaces them.
+
+#### Scenario: Fixture day is a weekday
+
+- **WHEN** the fixture day 2026-10-19 of route 9001 is loaded with the fixture calendar snapshot `external/office-calendar/2026/2026-10-19.csv`
+- **THEN** the stored route day has the day type weekday, no note and the calendar snapshot day 2026-10-19
+
+#### Scenario: Holiday from the calendar
+
+- **WHEN** the fixture day 2026-10-19 is loaded with a calendar snapshot whose row for that day is `20261019,一,2,補假`
+- **THEN** the stored route day has the day type holiday and the note 補假
+
+#### Scenario: Day type required
+
+- **WHEN** a route day without a day type is inserted
+- **THEN** the database rejects the row
+
+<!-- @trace
+source: day-types
+updated: 2026-10-23
+code:
+  - lib/tasks/external.rake
+  - app/models/office_calendar_snapshot.rb
+  - docs/data-sources.md
+  - config/locales/tw.yml
+  - app/models/route_day_loader.rb
+  - app/components/data_limitations_component.yml
+  - app/components/route_coverage_component.rb
+  - app/components/route_coverage_component.yml
+  - app/models/mrt_exits_snapshot.rb
+  - app/components/route_coverage_component.html.erb
+  - db/schema.rb
+  - app/components/route_list_component.html.erb
+  - db/migrate/20261022230942_add_day_type_to_route_days.rb
+  - spec/factories/route_days.rb
+  - app/components/attribution_component.html.erb
+  - app/components/attribution_component.yml
+  - config/locales/en.yml
+  - spec/fixtures/analysis/README.md
+  - app/models/route_page/coverage.rb
+  - app/components/application_component.rb
+  - app/components/route_list_component.yml
+  - app/models/http_fetcher.rb
+  - spec/fixtures/analysis/external/office-calendar/2026/2026-10-19.csv
+  - app/models/route_day.rb
+  - db/migrate/20261022231802_require_day_type_on_route_days.rb
+tests:
+  - spec/components/mrt_overlap_component_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/components/route_summary_component_spec.rb
+  - spec/models/route_page/buffer_trade_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/components/load_profile_table_component_spec.rb
+  - spec/components/run_time_table_component_spec.rb
+  - spec/system/home_hero_spec.rb
+  - spec/models/http_fetcher_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/components/buffer_trade_component_spec.rb
+  - spec/components/layover_chart_component_spec.rb
+  - spec/components/load_chart_component_spec.rb
+  - spec/components/application_component_spec.rb
+  - spec/models/route_page/layover_stats_spec.rb
+  - spec/models/route_page/coverage_spec.rb
+  - spec/components/layover_table_component_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/models/home_page/route_list_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/office_calendar_snapshot_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/models/route_page/layover_distribution_spec.rb
+  - spec/models/route_page/run_times_spec.rb
+  - spec/components/route_coverage_component_spec.rb
 -->

@@ -12,15 +12,18 @@
   </nav>
 
   <% if @coverage.data? %>
-    <div class="text-sm text-slate-600">
-      <span><%= t(".covered") %>：</span>
+    <div data-day-type="<%= @coverage.day_type %>" class="text-sm text-slate-600">
+      <span><%= t(".covered", day_type: day_type_label(@coverage.day_type)) %>：</span>
       <ul data-covered-days class="inline-flex flex-wrap gap-2">
-        <% covered_days.each do |day| %>
-          <li data-day="<%= day.iso8601 %>"><%= day_label(day) %></li>
+        <% covered.each do |covered_day| %>
+          <li data-day="<%= covered_day.day.iso8601 %>"><%= day_label(covered_day.day) %><%= covered_day.day_note %></li>
         <% end %>
       </ul>
-      <% if @coverage.range == "7d" %>
-        <span data-no-day-type><%= t(".no_day_type") %></span>
+      <% if (other_day = other_type_day) %>
+        <p class="mt-2">
+          <%= link_to t(".other_type.#{@coverage.range}", day_type: day_type_label(other_day_type), day: day_label(other_day)),
+                      day_path(other_day), data: { other_day_type: }, class: "underline" %>
+        </p>
       <% end %>
     </div>
   <% else %>

@@ -4,8 +4,7 @@ RSpec.describe RoutePage::MrtOverlap, type: :model do
   # A stored day whose direction 0 stops, at sequence 0 onward, have the given
   # nearest-entrance distances.
   def route_day(distances)
-    RouteDay.create!(route_id: 9001, day: Date.new(2026, 10, 19), route_name: "測試幹線", departure: "甲站", destination: "戊站",
-                     static_day: Date.new(2026, 10, 19), mrt_exits_day: Date.new(2026, 10, 19), loaded_at: Time.current).tap do |route_day|
+    create(:route_day, mrt_exits_day: Date.new(2026, 10, 19)).tap do |route_day|
       distances.each_with_index do |meters, seq|
         route_day.stops.create!(go_back: 0, seq:, stop_name: "站#{seq}", nearest_exit_name: "出口", nearest_exit_meters: meters)
       end

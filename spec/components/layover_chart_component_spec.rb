@@ -10,8 +10,7 @@ RSpec.describe LayoverChartComponent, type: :component do
   # A stored day whose direction 0 runs 甲站 to 戊站 and direction 1 己站 to
   # 甲站, with layovers of the given minutes ending in direction 0.
   def render_chart(layover_minutes, ends: route_ends("stop", "stop"))
-    route_day = RouteDay.create!(route_id: 9001, day: Date.new(2026, 10, 19), route_name: "測試幹線", departure: "甲站",
-                                 destination: "戊站", static_day: Date.new(2026, 10, 19), loaded_at: Time.current)
+    route_day = create(:route_day)
     route_day.stops.create!([ { go_back: 0, seq: 0, stop_name: "甲站" }, { go_back: 0, seq: 4, stop_name: "戊站" },
                               { go_back: 1, seq: 5, stop_name: "己站" }, { go_back: 1, seq: 9, stop_name: "甲站" } ])
     end_time = Time.zone.parse("2026-10-19 08:00")

@@ -2,8 +2,7 @@ require "rails_helper"
 
 RSpec.describe RoutePage::RunTimes, type: :model do
   let(:route_day) do
-    RouteDay.create!(route_id: 9001, day: Date.new(2026, 10, 19), route_name: "測試幹線", departure: "甲站",
-                     destination: "戊站", static_day: Date.new(2026, 10, 19), loaded_at: Time.current)
+    create(:route_day)
   end
 
   # A trip starting at `start` (Taipei time on 2026-10-19 unless a date is
