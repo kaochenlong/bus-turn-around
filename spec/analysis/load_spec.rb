@@ -56,6 +56,25 @@ RSpec.describe "analysis/10_load.sql" do
     end
   end
 
+  describe "別條路線的記錄" do
+    it "other_route_events 是對照路線 9100 的 26 筆：TEST-0001 3 筆、TEST-0002 3 筆、TEST-0004 20 筆" do
+      rows = load_rows("SELECT bus_id, path_attribute_id, count(*) AS n FROM other_route_events GROUP BY ALL ORDER BY bus_id")
+      expect(rows.map(&:values)).to eq([ [ "TEST-0001", 9100, 3 ], [ "TEST-0002", 9100, 3 ], [ "TEST-0004", 9100, 20 ] ])
+    end
+
+    it "RouteID 0 的記錄不讀：TEST-0004 15:00 那筆不在裡面" do
+      rows = load_rows(<<~SQL)
+        SELECT count(*) AS n FROM other_route_events WHERE bus_id = 'TEST-0004' AND data_time = TIMESTAMP '2026-10-19 15:00:00'
+      SQL
+      expect(rows).to eq([ { "n" => 0 } ])
+    end
+
+    it "這條路線自己的附屬路線 9001、9002、9003 都不在裡面" do
+      rows = load_rows("SELECT count(*) AS n FROM other_route_events WHERE path_attribute_id IN (9001, 9002, 9003)")
+      expect(rows).to eq([ { "n" => 0 } ])
+    end
+  end
+
   describe "附屬路線對回路線與方向" do
     it "附屬路線 9002 的事件對回路線 9001" do
       expect(load_rows("SELECT DISTINCT route_id FROM stop_events WHERE path_attribute_id = 9002")).to eq([ { "route_id" => 9001 } ])

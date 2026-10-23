@@ -6,6 +6,8 @@
 --   routes               the GetRoute.gz rows of the requested route
 --   bus_events           bus_event records of the route's sub-routes, deduplicated
 --   seat_events          bus_seat_event records of the route's sub-routes, deduplicated
+--   other_route_events   bus_event records of the route's vehicles on other routes,
+--                        RouteID 0 left out, deduplicated
 --   load_counts          records read and removed per feed, after the route filter
 --   stops                the route's GetStop.gz stop list, both directions, with coordinates
 --   path_stops           the GetPathDetail.gz stops of the route's sub-routes
@@ -136,6 +138,40 @@ FROM (
         ORDER BY fetched_at, source_file, stop_id, car_on_stop, path_attribute_id
     ) AS rank_in_key
     FROM raw_seat_events
+)
+WHERE rank_in_key = 1;
+
+-- Records of the route's vehicles on other routes, from the same hourly files:
+-- stage 30 reads them to tell whether a vehicle ran another route between two
+-- trips. RouteID 0 marks non-revenue states, such as the end of duty at a
+-- terminal, and is no other route; a RouteID or StopID that is not an integer
+-- is not read. NOT EXISTS, because NOT IN would drop every record if a
+-- sub-route Id were NULL. One record per (BusID, DataTime), as in bus_events.
+CREATE OR REPLACE TABLE other_route_events AS
+SELECT bus_id, path_attribute_id, stop_id, data_time
+FROM (
+    SELECT *, row_number() OVER (
+        PARTITION BY bus_id, data_time
+        ORDER BY fetched_at, source_file, stop_id, path_attribute_id
+    ) AS rank_in_key
+    FROM (
+        SELECT BusID AS bus_id,
+               TRY_CAST(RouteID AS BIGINT) AS path_attribute_id,
+               TRY_CAST(StopID AS BIGINT) AS stop_id,
+               CAST(DataTime AS TIMESTAMP) AS data_time,
+               CAST(_fetched_at AS TIMESTAMPTZ) AS fetched_at,
+               filename AS source_file
+        FROM read_json(
+            getvariable('bus_event_files'),
+            format = 'newline_delimited',
+            filename = true,
+            columns = { BusID: 'VARCHAR', RouteID: 'VARCHAR', StopID: 'VARCHAR', DataTime: 'VARCHAR', _fetched_at: 'VARCHAR' }
+        )
+        WHERE BusID IN (SELECT bus_id FROM bus_events)
+          AND TRY_CAST(RouteID AS BIGINT) <> 0
+          AND TRY_CAST(StopID AS BIGINT) IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM routes r WHERE r.path_attribute_id = TRY_CAST(RouteID AS BIGINT))
+    )
 )
 WHERE rank_in_key = 1;
 

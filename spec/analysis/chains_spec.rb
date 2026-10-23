@@ -4,10 +4,11 @@ require_relative "../support/duckdb"
 RSpec.describe "analysis/30_layovers.sql 的班次串" do
   def chain_rows(query) = run_sql_stages(through: "30_layovers", query:)
 
-  def from_trips(spans, query, **overrides)
+  # Injected trips come with injected records on other routes, none by default.
+  def from_trips(spans, query, records: [], **overrides)
     trips = spans.each_with_index.map { |(start, finish), index| { bus_id: "TEST-0001", start:, finish:, go_back: index % 2 } }
     overrides.each { |index, values| trips[index] = trips[index].merge(values) }
-    chain_rows("#{replace_trips_sql(trips)}\n#{query}")
+    chain_rows([ replace_trips_sql(trips), replace_other_route_events_sql(records), query ].join("\n"))
   end
 
   let(:report_query) { "SELECT strftime(start_time, '%H:%M') AS start, strftime(end_time, '%H:%M') AS finish, n_trips FROM chain_report" }
@@ -70,6 +71,31 @@ RSpec.describe "analysis/30_layovers.sql 的班次串" do
     it "單趟就超過 240 分鐘時，視窗只有這一趟、額度 0，被標" do
       rows = from_trips([ %w[06:00 10:30] ], report_query)
       expect(rows).to eq([ { "start" => "06:00", "finish" => "10:30", "n_trips" => 1 } ])
+    end
+  end
+
+  describe "兩趟之間跑了別的路線" do
+    let(:spans) { [ %w[10:20 11:08], %w[11:20 12:08], %w[17:10 17:58] ] }
+    # Each run as the start times of its trips, each window with its flag, and the number of chains.
+    let(:runs_query) do
+      <<~SQL
+        SELECT (SELECT list(starts ORDER BY first_start) FROM (
+                  SELECT list(strftime(start_time, '%H:%M') ORDER BY start_time) AS starts, min(start_time) AS first_start
+                  FROM rest_runs GROUP BY bus_id, run_no)) AS runs,
+               (SELECT list({'start': strftime(start_time, '%H:%M'), 'flagged': flagged} ORDER BY start_time) FROM rest_windows) AS windows,
+               (SELECT count(*) FROM chain_report) AS n_chains
+      SQL
+    end
+
+    it "12:08 結束之後在 14:10 到 14:30 經過別條路線 3 個站：17:10 那趟開始新的序列，沒有視窗，也沒有班次串" do
+      records = %w[14:10 14:20 14:30].each_with_index.map { |at, index| [ "TEST-0001", at, 92000 + index ] }
+      expect(from_trips(spans, runs_query, records:).first).to eq("runs" => [ %w[10:20 11:20], %w[17:10] ], "windows" => nil, "n_chains" => 0)
+    end
+
+    it "對照：同樣三趟不灌記錄時在同一個序列，10:20 與 11:20 起的視窗有 302 分鐘的額度，都不被標" do
+      expect(from_trips(spans, runs_query).first).to eq(
+        "runs" => [ %w[10:20 11:20 17:10] ], "windows" => [ { "start" => "10:20", "flagged" => false }, { "start" => "11:20", "flagged" => false } ], "n_chains" => 0
+      )
     end
   end
 end

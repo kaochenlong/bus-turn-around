@@ -21,6 +21,14 @@ SET VARIABLE short_layover_minutes = 15;
 SET VARIABLE layover_bin_lower_bounds = [0, 5, 10, 15, 30, 60];
 SET VARIABLE percentile_levels = [0.1, 0.5, 0.9];
 
+-- A vehicle ran another route between two trips when its records on other
+-- routes in between cover at least this many distinct stops. RouteID 0 never
+-- counts: it marks non-revenue states such as the end of duty at a terminal.
+-- One or two stops is a route code set at a terminal, not a run. Of the 248
+-- pairs with such records on routes 15373, 16111, 11764 and 10712 from
+-- 2026-10-19 to 10-22, 8 covered 1 stop and 240 at least 57.
+SET VARIABLE other_route_min_stops = 3;
+
 -- Rest rule of 汽車運輸業管理規則第 19 條之 2: within any 240 minutes, rests
 -- of at least 15 minutes each must add up to 30 minutes.
 SET VARIABLE rest_window_minutes = 240;

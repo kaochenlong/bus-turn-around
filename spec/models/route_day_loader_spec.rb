@@ -18,13 +18,13 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     end
   end
 
-  it "fixture 2026-10-19 寫入兩次，趟次 27、折返停留 19、趟次站 96、站序 10、路線日 1，第二次後不變" do
+  it "fixture 2026-10-19 寫入兩次，趟次 27、折返停留 18、趟次站 96、站序 10、路線日 1，第二次後不變" do
     load_day
-    expect { load_day }.not_to(change { stored_counts }.from([ 27, 19, 96, 10, 1 ]))
+    expect { load_day }.not_to(change { stored_counts }.from([ 27, 18, 96, 10, 1 ]))
   end
 
   it "回傳寫入的趟次、折返停留與趟次站筆數" do
-    expect(load_day).to eq(trips: 27, layovers: 19, trip_stop_counts: 96)
+    expect(load_day).to eq(trips: 27, layovers: 18, trip_stop_counts: 96)
   end
 
   # Runs the load and swallows the loader's own failure.
