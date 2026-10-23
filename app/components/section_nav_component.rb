@@ -6,5 +6,5 @@
 class SectionNavComponent < ApplicationComponent
   # The id of the element that holds each block, in page order; it is also
   # the link's translation key.
-  SECTIONS = %w[layovers buffer runtimes load mrt limits].freeze
+  SECTIONS = %w[layovers cycles buffer runtimes load mrt limits].freeze
 end

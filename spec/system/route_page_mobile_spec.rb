@@ -36,6 +36,12 @@ RSpec.describe "路線頁的手機版", :duckdb, :js, type: :system do
       .map((node) => [node.dataset.direction, node.getClientRects().length > 0]))
   JS
 
+  # Whether each table of the round trip and cycle block is displayed, by measure.
+  def measures_shown = page.evaluate_script(<<~JS)
+    Object.fromEntries([...document.querySelectorAll("[data-section=cycles] [data-measure]")]
+      .map((node) => [node.dataset.measure, node.getClientRects().length > 0]))
+  JS
+
   # Alpine has started once the time band picker, cloaked until then, shows.
   def wait_for_alpine = find("[data-section=load-chart] [data-band-switch]")
 
@@ -82,6 +88,18 @@ RSpec.describe "路線頁的手機版", :duckdb, :js, type: :system do
     end
   end
 
+  # On a phone, which tables of the round trip and cycle block are shown
+  # before and after switching to cycles, each with the page address.
+  def switch_to_cycles
+    on_phone do
+      cycle = find("[data-section=cycles] [data-measure-switch] button[value=cycle]")
+      before = [ measures_shown, page.current_url ]
+      cycle.click
+      find("[data-section=cycles] [data-measure=cycle] table")
+      [ *before, measures_shown, page.current_url ]
+    end
+  end
+
   before do
     RouteDayLoader.new(route_id: 9001, day: Date.new(2026, 10, 19), data_root: DuckdbHelpers::FIXTURE_DATA, duckdb: "duckdb").call
   end
@@ -102,6 +120,19 @@ RSpec.describe "路線頁的手機版", :duckdb, :js, type: :system do
       [ directions_shown("run-times"), displays("[data-section=run-times] [data-direction-switch]") ]
     end
     expect(shown).to eq([ { "0" => true, "1" => true }, [ "none" ] ])
+  end
+
+  it "手機上來回與週期預設只顯示來回一趟，按週期之後只顯示週期，網址不變" do
+    round_trip_first, url_before, after_switch, url_after = switch_to_cycles
+    expect([ round_trip_first, after_switch, url_after ]).to eq([ { "round_trip" => true, "cycle" => false }, { "round_trip" => false, "cycle" => true }, url_before ])
+  end
+
+  it "1400 寬時來回與週期兩張表都顯示，沒有切換" do
+    shown = on_wide_screen do
+      wait_for_alpine
+      [ measures_shown, displays("[data-section=cycles] [data-measure-switch]") ]
+    end
+    expect(shown).to eq([ { "round_trip" => true, "cycle" => true }, [ "none" ] ])
   end
 
   # The rows carry x-show, whose inline display Alpine sets and clears;

@@ -117,11 +117,11 @@ RSpec.describe "Routes", type: :request do
     )
   end
 
-  it "有資料的那一天，頁面依序是摘要、折返停留分佈圖、折返停留、試算、行駛時間、沿線人數圖、捷運重疊、載客剖面、資料限制" do
+  it "有資料的那一天，頁面依序是摘要、折返停留分佈圖、折返停留、來回與週期、試算、行駛時間、沿線人數圖、捷運重疊、載客剖面、資料限制" do
     store_days("2026-10-19")
     get route_path(9001), params: { day: "2026-10-19" }
     expect(page.css("[data-section]").map { it["data-section"] })
-      .to eq(%w[summary layover-chart layovers buffer-trade run-times load-chart mrt-overlap load-profile limitations])
+      .to eq(%w[summary layover-chart layovers cycles buffer-trade run-times load-chart mrt-overlap load-profile limitations])
   end
 
   it "重點數字連到的區塊：兩個折返停留的數字連到折返停留那張卡，捷運重疊連到捷運重疊那一區" do
@@ -130,11 +130,12 @@ RSpec.describe "Routes", type: :request do
     expect(key_number_targets).to eq("layover-p50" => %w[layover-chart layovers], "short-share" => %w[layover-chart layovers], "mrt-share" => %w[mrt-overlap])
   end
 
-  it "摘要後面的區塊導覽依頁面順序連到六個區塊，每個 fragment 都對得到包住那一區的元素" do
+  it "摘要後面的區塊導覽依頁面順序連到七個區塊，每個 fragment 都對得到包住那一區的元素" do
     store_days("2026-10-19")
     get route_path(9001), params: { day: "2026-10-19" }
-    expect(section_links).to eq([ [ "#layovers", %w[layover-chart layovers] ], [ "#buffer", %w[buffer-trade] ], [ "#runtimes", %w[run-times] ],
-                                  [ "#load", %w[load-chart mrt-overlap load-profile] ], [ "#mrt", %w[mrt-overlap] ], [ "#limits", %w[limitations] ] ])
+    expect(section_links).to eq([ [ "#layovers", %w[layover-chart layovers] ], [ "#cycles", %w[cycles] ], [ "#buffer", %w[buffer-trade] ],
+                                  [ "#runtimes", %w[run-times] ], [ "#load", %w[load-chart mrt-overlap load-profile] ], [ "#mrt", %w[mrt-overlap] ],
+                                  [ "#limits", %w[limitations] ] ])
   end
 
   it "逐站的載客剖面表收在預設關閉的 details 裡，每一站有人數的列都在回應裡" do
