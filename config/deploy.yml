@@ -7,7 +7,7 @@ image: website
 # Deploy to these servers.
 servers:
   web:
-    - 192.168.0.1
+    - 167.99.28.51
   # job:
   #   hosts:
   #     - 192.168.0.1
@@ -20,9 +20,9 @@ servers:
 #
 # Don't use this when deploying to multiple web servers (then you have to terminate SSL at your load balancer).
 #
-# proxy:
-#   ssl: true
-#   host: app.example.com
+proxy:
+  ssl: true
+  host: bus.5xcamp.us
 
 # Where you keep your container images.
 registry:
@@ -40,6 +40,7 @@ registry:
 env:
   secret:
     - RAILS_MASTER_KEY
+    - WEBSITE_DATABASE_PASSWORD
   clear:
     # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
     # When you start using multiple servers, you should split out job processing to a dedicated machine.
@@ -53,7 +54,7 @@ env:
 
     # Match this to any external database server to configure Active Record correctly
     # Use website-db for a db accessory server on same machine via local kamal docker network.
-    # DB_HOST: 192.168.0.2
+    DB_HOST: website-db
 
     # Log everything from Rails
     # RAILS_LOG_LEVEL: debug
@@ -95,25 +96,19 @@ builder:
 #   user: app
 
 # Use accessory services (secrets come from .kamal/secrets).
-# accessories:
-#   db:
-#     image: mysql:8.0
-#     host: 192.168.0.2
-#     # Change to 3306 to expose port to the world instead of just local network.
-#     port: "127.0.0.1:3306:3306"
-#     env:
-#       clear:
-#         MYSQL_ROOT_HOST: '%'
-#       secret:
-#         - MYSQL_ROOT_PASSWORD
-#     files:
-#       - config/mysql/production.cnf:/etc/mysql/my.cnf
-#       - db/production.sql:/docker-entrypoint-initdb.d/setup.sql
-#     directories:
-#       - data:/var/lib/mysql
-#   redis:
-#     image: valkey/valkey:8
-#     host: 192.168.0.2
-#     port: 6379
-#     directories:
-#       - data:/data
+# Postgres 跟 web 同一台，web 容器透過 kamal 的 docker network 以 website-db 連它；
+# 5432 只開給主機的 127.0.0.1，從筆電要連先用 ssh -L 轉送。
+# 版本跟開發用的 Postgres 16 對齊，開發資料庫 pg_dump 出來的檔才灌得進去。
+accessories:
+  db:
+    image: postgres:16
+    host: 167.99.28.51
+    port: "127.0.0.1:5432:5432"
+    env:
+      clear:
+        POSTGRES_USER: website
+      secret:
+        # 容器讀 POSTGRES_PASSWORD，值來自 WEBSITE_DATABASE_PASSWORD 這個 secret
+        - POSTGRES_PASSWORD:WEBSITE_DATABASE_PASSWORD
+    directories:
+      - data:/var/lib/postgresql/data

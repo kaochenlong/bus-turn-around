@@ -1,13 +1,13 @@
-// Exports the last frame of the hero illustration as the WebP files the home
-// page falls back to. Only tools/hero/index.html uses it.
-import { TALL, WIDE, renderFrame } from "../../app/frontend/hero/scene.js"
+// Exports the still of the hero illustration as the WebP files the home page
+// falls back to. Only tools/hero/index.html uses it.
+import { NARROW, WIDE, renderFrame } from "../../app/frontend/hero/scene.js"
 
 // The files and the WebP quality. When a file is over its budget (wide 200 KB,
-// tall 120 KB), lower the quality to 0.75 first, then the sizes in scene.js to
-// 1600×900 and 900×900; the budget itself does not change.
+// narrow 120 KB), lower the quality to 0.75 first, then the sizes in scene.js
+// to 1600×762 and 900×600; the budget itself does not change.
 export const SHOTS = {
   wide: { ...WIDE, filename: "home-hero-wide.webp" },
-  tall: { ...TALL, filename: "home-hero-tall.webp" },
+  narrow: { ...NARROW, filename: "home-hero-narrow.webp" },
 }
 export const WEBP_QUALITY = 0.85
 

@@ -14,30 +14,34 @@
   <body>
     <div class="actions">
       <button type="button" data-shot="wide">匯出全景</button>
-      <button type="button" data-shot="tall">匯出直式</button>
+      <button type="button" data-shot="narrow">匯出窄螢幕</button>
     </div>
     <canvas></canvas>
     <script type="module">
-      import { buildScene, createRenderer, pose, renderFrame, tallCamera, wideCamera } from "../../app/frontend/hero/scene.js"
+      import { STILL, aimNarrowCamera, buildScene, createRenderer, narrowCamera, pose, renderFrame, wideCamera } from "../../app/frontend/hero/scene.js"
       import { SHOTS, exportWebp } from "./export.js"
 
       const renderer = createRenderer(document.querySelector("canvas"), { preserveDrawingBuffer: true })
       const { scene, parts } = buildScene()
-      const shots = { wide: { camera: wideCamera(), ...SHOTS.wide }, tall: { camera: tallCamera(), ...SHOTS.tall } }
+      const shots = { wide: { camera: wideCamera(), ...SHOTS.wide }, narrow: { camera: narrowCamera(), ...SHOTS.narrow } }
       const params = new URLSearchParams(location.search)
 
-      // The canvas shows the last frame rendered, at its export size. ?shot=tall
-      // opens on the tall framing and ?t= poses the animation at that fraction of
-      // its length (0 to 1); exports are always the last frame.
+      // The canvas shows the last frame rendered, at its export size.
+      // ?shot=narrow opens on the narrow framing and ?s= poses the animation,
+      // and aims the narrow camera, at that many seconds into its loop; exports
+      // are always the still.
       const first = shots[params.get("shot")] ?? shots.wide
-      const t = Number.parseFloat(params.get("t"))
-      pose(parts, Number.isFinite(t) ? t : 1)
+      const seconds = Number.parseFloat(params.get("s"))
+      const at = Number.isFinite(seconds) ? seconds : STILL
+      pose(parts, at)
+      aimNarrowCamera(shots.narrow.camera, at)
       renderFrame(renderer, scene, first.camera, first.width, first.height)
 
       for (const button of document.querySelectorAll("[data-shot]")) {
         button.addEventListener("click", () => {
           const shot = shots[button.dataset.shot]
-          pose(parts, 1)
+          pose(parts, STILL)
+          aimNarrowCamera(shots.narrow.camera, STILL)
           exportWebp(renderer, scene, shot.camera, shot.width, shot.height, shot.filename).catch((error) => {
             alert(error.message)
             throw error

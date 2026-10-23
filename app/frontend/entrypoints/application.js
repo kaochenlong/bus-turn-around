@@ -31,6 +31,12 @@ Alpine.data("homeHero", () => ({
     }
   },
 
+  // The pause button's: pauses the animation, or plays it on from the frame
+  // it stopped on.
+  toggle() {
+    this.animation?.toggle()
+  },
+
   destroy() {
     document.removeEventListener("turbo:before-cache", this.restoreBeforeCache)
     this.animation?.dispose()

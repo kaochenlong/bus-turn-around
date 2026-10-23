@@ -1,39 +1,54 @@
 // The hero illustration of the home page: a three.js scene shared by the home
-// page, which plays its animation once, and by the export page in tools/hero,
-// which saves the last frame as the WebP files the home page falls back to
-// (app/assets/images/home-hero-wide.webp and home-hero-tall.webp).
+// page, which plays its animation on a loop, and by the export page in
+// tools/hero, which saves the still as the WebP files the home page falls
+// back to (app/assets/images/home-hero-wide.webp and home-hero-narrow.webp).
 //
-// A bus drives into the terminal and stops, the front door opens and the
-// driver steps out to rest beside it; on the left the dispatch office's
-// window, on the right the stop with riders waiting. Orthographic cameras at
-// a fixed angle from above, one directional light and a hemisphere light,
+// One turnaround after another: a bus drives into the terminal and stops,
+// the front door opens and the driver steps out to rest beside it, then gets
+// back in; the bus pulls up to the stop on the right, where the waiting
+// riders board, and drives off; new riders walk to the stop and the next bus
+// comes in. On the left the dispatch office's window. Orthographic cameras
+// at a fixed angle from above, one directional light and a hemisphere light,
 // flat Lambert materials and a transparent background.
 import * as THREE from "three"
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js"
 
-// The route page's palette (Tailwind v4, approximate hex), and nothing else.
+// The route page's palette (Tailwind v4, approximate hex), and nothing else
+// but SKIN and GREEN_600, two colours the route page has no use for: the
+// people's skin and the plants. (The poster in the office is a picture with
+// colours of its own.)
 const SLATE_100 = 0xf1f5f9 // the ground, the bus body, the office walls and other light parts
-const SLATE_300 = 0xcbd5e1 // the road, heads, lamps, the roof unit and the board's cells
+const SLATE_300 = 0xcbd5e1 // the road, lamps, the roof unit and the board's cells
 const SLATE_600 = 0x475569 // clothes
-const SLATE_800 = 0x1e293b // windows and dark parts
+const SLATE_800 = 0x1e293b // windows, hair, eyes and dark parts
 const TEAL_500 = 0x14b8a6 // clothes
 const TEAL_700 = 0x0f766e // the band on the bus and the office door
 const AMBER_400 = 0xfbbf24 // the one accent: the stop sign and a few cells of the board
+const SKIN = 0xf1d6c2 // everyone's head and face, the same for all
+const GREEN_600 = 0x16a34a // the crowns of the street trees and the shrubs, and nothing else
 
-// The two framings' sizes in pixels. The static images are exported at these
-// sizes (tools/hero/export.js) and the cameras take their aspect from them;
-// over budget, the export drops to 1600×900 and 900×900, the same aspects.
-export const WIDE = { width: 2048, height: 1152 }
-export const TALL = { width: 1170, height: 1170 }
+// The two framings' sizes in pixels: the wide one, and the narrow one for
+// narrow screens. The static images are exported at these sizes
+// (tools/hero/export.js) and the cameras take their aspect from them; over
+// budget, the export drops to 1600×762 and 900×600, about the same aspects.
+// Neither leaves a band of empty space above and below: the wide one is about
+// as wide as the block it frames, about 2.1:1, and the narrow one, which
+// frames the terminal or the stop, is 3:2.
+export const WIDE = { width: 2048, height: 976 }
+export const NARROW = { width: 1170, height: 780 }
 
-// Everything beyond the left edge of the block is cut away, so the bus drives
-// in out of the cut rather than over the transparent background.
-const BLOCK_EDGE = new THREE.Plane(new THREE.Vector3(1, 0, 0), 15)
+// Everything beyond the left and right edges of the block is cut away, so the
+// bus and the riders come and go through the cut rather than over the
+// transparent background.
+const BLOCK_EDGES = [new THREE.Plane(new THREE.Vector3(1, 0, 0), 15), new THREE.Plane(new THREE.Vector3(-1, 0, 0), 15)]
+
+// Where the stop stands, on the pavement beside the road.
+const STOP_AT = { x: 11.4, z: 1.3 }
 
 // Returns the scene, its three groups, left to right (the dispatch office
 // window, the terminal with the bus and its driver, and the stop), and the
-// parts the animation moves, posed at the end of the animation. The export
-// renders shadows from a 4096 map; the home page asks for a smaller one.
+// parts the animation moves, posed at the still. The export renders shadows
+// from a 4096 map; the home page asks for a smaller one.
 export function buildScene({ shadowMapSize = 4096 } = {}) {
   const scene = new THREE.Scene()
   addLights(scene, shadowMapSize)
@@ -45,50 +60,98 @@ export function buildScene({ shadowMapSize = 4096 } = {}) {
 
   const { group: busGroup, frontLeaf, rearLeaf } = bus()
   clipToBlock(busGroup)
-  const driver = person(TEAL_500)
+  const { figure: driver, arms: driverArms } = person(TEAL_500)
   const terminal = new THREE.Group()
   terminal.add(busGroup, driver)
   terminal.position.set(0, 0, -1.55)
 
+  const waiting = riders()
   const stop = new THREE.Group()
-  stop.add(stopSign(), ...riders())
-  stop.position.set(11.4, 0, 1.3)
+  stop.add(stopSign(), ...waiting.map(({ figure }) => figure))
+  stop.position.set(STOP_AT.x, 0, STOP_AT.z)
 
-  scene.add(dispatch, terminal, stop)
-  const parts = { bus: busGroup, frontLeaf, rearLeaf, driver }
-  pose(parts, 1)
+  scene.add(dispatch, terminal, stop, greenery())
+  const parts = { bus: busGroup, frontLeaf, rearLeaf, driver, driverArms, riders: waiting }
+  pose(parts, STILL)
   return { scene, dispatch, terminal, stop, parts }
 }
 
 // The animation, in seconds: the bus drives in from beyond the left edge of
 // the block and stops, the front door opens, the driver steps out of it,
-// walks to the side of the bus and leans back against it.
-export const DURATION = 5.5
-const TIMELINE = { drive: [0, 3.0], door: [3.0, 3.8], stepOut: [3.8, 4.6], walk: [4.6, 5.2], lean: [5.2, 5.4] }
+// walks to the side of the bus and leans back against it, stretches once,
+// then turns, walks back in and the door closes. The bus pulls up to the
+// stop, where the riders board in turn (RIDERS), and drives out beyond the
+// right edge, while new riders walk in to wait for the next bus. It loops
+// every CYCLE seconds; STILL, the driver resting beside the bus, is the frame
+// the site serves as images.
+export const CYCLE = 21
+export const STILL = 5.5
+const TIMELINE = {
+  drive: [0, 3.0],
+  door: [3.0, 3.8],
+  stepOut: [3.8, 4.6],
+  walk: [4.6, 5.2],
+  lean: [5.2, 5.4],
+  raiseArms: [6.3, 7.0],
+  lowerArms: [7.2, 7.9],
+  straighten: [8.4, 8.6],
+  turnAlong: [8.6, 8.8],
+  walkBack: [8.8, 9.4],
+  turnIn: [9.4, 9.6],
+  stepIn: [9.6, 10.2],
+  doorClose: [10.2, 11.0],
+  pullUp: [11.0, 12.6],
+  doorAtStop: [12.6, 13.4],
+  doorCloseAtStop: [16.2, 17.0],
+  depart: [17.0, 19.4],
+}
 const BUS_START_X = -22 // the whole bus beyond the left edge of the block
+const BUS_END_X = 22 // the whole bus beyond the right edge of the block
 const FRONT_LEAF_DEGREES = 62 // swung out
 const REAR_LEAF_DEGREES = 90 // folded into the bus, then out of sight
 const DOORWAY = { x: 4.9, z: 0.9 } // inside the bus, hidden by its body
 const RESTING = { x: 4.15, z: 1.63, lean: -0.12 } // between the front wheel and the open door
+const STRETCH_DEGREES = -175 // both arms straight up over the head
 
-// Puts the moving parts where they are `t` (0 to 1) of the way through the
-// animation; pose(parts, 1) is the still the site serves as images.
-export function pose({ bus, frontLeaf, rearLeaf, driver }, t) {
-  const seconds = THREE.MathUtils.clamp(t, 0, 1) * DURATION
-  bus.position.x = THREE.MathUtils.lerp(BUS_START_X, 0, easeOut(progress(seconds, TIMELINE.drive)))
+// Where riders board, in the stop's coordinates: off the kerb in front of the
+// front door, then inside the bus, hidden by its body. At the stop, the bus
+// stands with its doorway there, just past the sign, which from the camera's
+// angle would hide a doorway right behind it.
+const KERBSIDE = [0.5, -1.2]
+const ABOARD = [0.5, -1.95]
+const AT_STOP_X = STOP_AT.x + KERBSIDE[0] - DOORWAY.x
 
-  const door = easeInOut(progress(seconds, TIMELINE.door))
+// Puts the moving parts where they are `seconds` into the animation, counted
+// round the loop; pose(parts, STILL) is the still. Each move back undoes the
+// one out, so the driver walks back the way they came: along the bus, then
+// in through the door.
+export function pose({ bus, frontLeaf, rearLeaf, driver, driverArms, riders }, seconds) {
+  const at = THREE.MathUtils.euclideanModulo(seconds, CYCLE)
+  const phase = (span) => easeInOut(progress(at, span))
+  bus.position.x =
+    THREE.MathUtils.lerp(BUS_START_X, 0, easeOut(progress(at, TIMELINE.drive))) +
+    AT_STOP_X * phase(TIMELINE.pullUp) +
+    (BUS_END_X - AT_STOP_X) * easeIn(progress(at, TIMELINE.depart))
+
+  const door = phase(TIMELINE.door) - phase(TIMELINE.doorClose) + phase(TIMELINE.doorAtStop) - phase(TIMELINE.doorCloseAtStop)
   frontLeaf.rotation.y = THREE.MathUtils.degToRad(FRONT_LEAF_DEGREES * door)
   rearLeaf.rotation.y = THREE.MathUtils.degToRad(REAR_LEAF_DEGREES * door)
   rearLeaf.visible = door < 1
 
-  driver.visible = seconds >= TIMELINE.stepOut[0]
+  // Inside the bus the driver is hidden, so that the bus can drive off
+  // without leaving them standing on the road.
+  driver.visible = at >= TIMELINE.stepOut[0] && at < TIMELINE.stepIn[1]
   driver.position.set(
-    THREE.MathUtils.lerp(DOORWAY.x, RESTING.x, easeInOut(progress(seconds, TIMELINE.walk))),
+    THREE.MathUtils.lerp(DOORWAY.x, RESTING.x, phase(TIMELINE.walk) - phase(TIMELINE.walkBack)),
     0,
-    THREE.MathUtils.lerp(DOORWAY.z, RESTING.z, easeInOut(progress(seconds, TIMELINE.stepOut))),
+    THREE.MathUtils.lerp(DOORWAY.z, RESTING.z, phase(TIMELINE.stepOut) - phase(TIMELINE.stepIn)),
   )
-  driver.rotation.x = RESTING.lean * easeInOut(progress(seconds, TIMELINE.lean))
+  driver.rotation.x = RESTING.lean * (phase(TIMELINE.lean) - phase(TIMELINE.straighten))
+  driver.rotation.y = (Math.PI / 2) * (phase(TIMELINE.turnAlong) + phase(TIMELINE.turnIn))
+  const stretch = THREE.MathUtils.degToRad(STRETCH_DEGREES) * (phase(TIMELINE.raiseArms) - phase(TIMELINE.lowerArms))
+  for (const shoulder of driverArms) shoulder.rotation.x = stretch
+
+  for (const rider of riders) poseRider(rider, at)
 }
 
 // How far `seconds` is through the span [from, to], from 0 to 1.
@@ -96,20 +159,68 @@ function progress(seconds, [from, to]) {
   return THREE.MathUtils.clamp((seconds - from) / (to - from), 0, 1)
 }
 
+// Puts a rider where their keyframes have them `at` seconds into the loop:
+// walking or turning evenly from one keyframe to the next, standing still
+// before the first and after the last, and hidden while aboard.
+function poseRider({ figure, keys, aboard: [from, to] }, at) {
+  figure.visible = at < from || at >= to
+  const next = keys.findIndex(([seconds]) => seconds > at)
+  if (next <= 0) {
+    const [, x, z, degrees] = next === 0 ? keys[0] : keys.at(-1)
+    stand(figure, x, z, degrees)
+    return
+  }
+  const [t0, x0, z0, d0] = keys[next - 1]
+  const [t1, x1, z1, d1] = keys[next]
+  const p = (at - t0) / (t1 - t0)
+  stand(figure, THREE.MathUtils.lerp(x0, x1, p), THREE.MathUtils.lerp(z0, z1, p), THREE.MathUtils.lerp(d0, d1, p))
+}
+
+function stand(figure, x, z, degrees) {
+  figure.position.set(x, 0, z)
+  figure.rotation.y = THREE.MathUtils.degToRad(degrees)
+}
+
+const easeIn = (p) => p ** 2
 const easeOut = (p) => 1 - (1 - p) ** 2
 const easeInOut = (p) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2)
 
 // Both shots look from the same angle; each frames a box in world units.
 const VIEW = { azimuth: 28, elevation: 30 }
 
-// The whole block, all three groups.
+// The whole block, all three groups: the block itself, and the top of the bus
+// where it comes in at the left edge, the highest point anything reaches in
+// the shot. (A box up to the height of the bus would frame its empty corner
+// above the far left of the block.)
 export function wideCamera() {
-  return orthographic({ aspect: WIDE.width / WIDE.height, frame: [[-15, -1, -6.5], [15, 3.8, 6.5]], margin: 0.8, ...VIEW })
+  return orthographic({ aspect: WIDE.width / WIDE.height, frame: [[-15, -1, -6.5], [15, 0, 6.5]], also: [[-15, 3.1, -2.8]], margin: 0.8, ...VIEW })
 }
 
-// The terminal alone: the bus and its driver on the pavement beside it.
-export function tallCamera() {
-  return orthographic({ aspect: TALL.width / TALL.height, frame: [[-6.1, 0, -2.85], [6.2, 3.45, 1.4]], margin: 0.6, ...VIEW })
+// The terminal alone: the bus and its driver on the pavement beside it. It
+// keeps where it stands, for aimNarrowCamera() to move it from.
+export function narrowCamera() {
+  const camera = orthographic({ aspect: NARROW.width / NARROW.height, frame: [[-6.1, 0, -2.85], [6.2, 3.45, 1.4]], margin: 0.6, ...VIEW })
+  camera.userData.terminal = camera.position.clone()
+  return camera
+}
+
+// The narrow framing is too close for the terminal and the stop at once, so
+// its camera moves along TO_THE_STOP, at the same angle and scale, which also
+// frames more of the pavement in front, where the riders wait. It goes with
+// the bus as it pulls up to the stop, in step with it, as a camera running
+// ahead would push the bus up against the top edge, and comes back over
+// BACK_TO_TERMINAL at the start of the next lap, as the next bus comes in.
+const TO_THE_STOP = new THREE.Vector3(9.1, 0, 1.2)
+const BACK_TO_TERMINAL = [0, 1.2]
+
+// Moves the narrow camera to where it looks `seconds` into the animation,
+// counted round the loop: on the terminal at STILL, and on the stop from the
+// time the bus has pulled up there until the next lap begins.
+export function aimNarrowCamera(camera, seconds) {
+  const at = THREE.MathUtils.euclideanModulo(seconds, CYCLE)
+  const phase = (span) => easeInOut(progress(at, span))
+  camera.position.copy(camera.userData.terminal).addScaledVector(TO_THE_STOP, 1 - phase(BACK_TO_TERMINAL) + phase(TIMELINE.pullUp))
+  camera.updateMatrixWorld()
 }
 
 // The export keeps the drawing buffer to read it back as a file; the home
@@ -133,9 +244,9 @@ export function renderFrame(renderer, scene, camera, width, height) {
 
 // An orthographic camera looking from `azimuth` degrees round from the front
 // (+z) towards +x and `elevation` degrees above the ground. It frames the
-// world box `frame` [min, max] with `margin` world units to spare, widening
-// the other side to keep `aspect`.
-function orthographic({ aspect, frame: [min, max], margin, azimuth, elevation }) {
+// world box `frame` [min, max] and the points `also` with `margin` world
+// units to spare, widening the other side to keep `aspect`.
+function orthographic({ aspect, frame: [min, max], also = [], margin, azimuth, elevation }) {
   const middle = new THREE.Vector3(...min).add(new THREE.Vector3(...max)).multiplyScalar(0.5)
   const direction = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - elevation), THREE.MathUtils.degToRad(azimuth))
   const camera = new THREE.OrthographicCamera()
@@ -144,7 +255,8 @@ function orthographic({ aspect, frame: [min, max], margin, azimuth, elevation })
   camera.updateMatrixWorld()
 
   const corners = [min[0], max[0]].flatMap((x) => [min[1], max[1]].flatMap((y) => [min[2], max[2]].map((z) => new THREE.Vector3(x, y, z))))
-  const seen = new THREE.Box3().setFromPoints(corners.map((corner) => corner.applyMatrix4(camera.matrixWorldInverse)))
+  const points = [...corners, ...also.map((point) => new THREE.Vector3(...point))]
+  const seen = new THREE.Box3().setFromPoints(points.map((point) => point.applyMatrix4(camera.matrixWorldInverse)))
   const center = seen.getCenter(new THREE.Vector3())
   let halfWidth = (seen.max.x - seen.min.x) / 2 + margin
   let halfHeight = (seen.max.y - seen.min.y) / 2 + margin
@@ -182,6 +294,36 @@ function ground() {
   return group
 }
 
+// The plants on the kerb side of the pavement, which stay put: three street
+// trees and, in front of the bus, two planters lower than its windows. Seen
+// from the camera's angle a thing on the pavement covers whatever lies behind
+// it at about the same 0.883x − 0.469z, so the trees keep clear of the driver
+// and the front door at the terminal (x 3.4 to 5.6), of the stop, its riders
+// and their way to the bus (x 9.3 to 13.8) and of the office.
+function greenery() {
+  const group = new THREE.Group()
+  for (const x of [-7.2, 7.5, 14.0]) group.add(tree([x, 0.9]))
+  for (const x of [-3.0, 1.8]) {
+    group.add(box([1.5, 0.32, 0.62], [x, 0, 0.75], SLATE_300, { radius: 0.06 }))
+    for (const dx of [-0.45, 0, 0.45]) group.add(ball(0.3, [x + dx, 0.18, 0.75], GREEN_600))
+  }
+  return group
+}
+
+// A street tree standing in a pit at `at` [x, z]: a slate trunk and a crown
+// of two balls, the second smaller and off to one side so that it reads as
+// leaves rather than a lollipop.
+function tree([x, z]) {
+  const trunk = 1.0
+  const crown = 0.75
+  const group = new THREE.Group()
+  group.add(box([0.9, 0.04, 0.9], [x, 0, z], SLATE_300))
+  group.add(cylinder(0.11, trunk, [x, 0, z], SLATE_600))
+  group.add(ball(crown, [x, trunk - crown * 0.35, z], GREEN_600))
+  group.add(ball(crown * 0.62, [x + crown * 0.55, trunk - crown * 0.45, z + crown * 0.3], GREEN_600))
+  return group
+}
+
 // The dispatch office on the pavement, cut open at the top like the block
 // itself so that the room shows: a wide window in the wall facing the street,
 // a door towards the bus, a desk with a screen under the duty board on the
@@ -216,8 +358,9 @@ function dispatchOffice() {
 
   group.add(desk([0.2, -1.45]))
   group.add(dutyBoard([0.2, 1.2, -1.8]))
+  group.add(poster([-1.95, 1.65, -1.79]))
 
-  const master = person(SLATE_600, { cap: true, pointing: true })
+  const { figure: master } = person(SLATE_600, { cap: true, pointing: true })
   master.position.set(0.5, 0, -0.5)
   master.rotation.y = Math.PI
   group.add(master)
@@ -251,30 +394,81 @@ function dutyBoard([x, y, z]) {
   return group
 }
 
-// A person built from blocks, facing +z with their feet at the origin and no
-// face: dark trousers, `clothes` on the body and arms, a slate head with dark
-// hair over its top and back, and, for the station master, a cap and a right
-// arm raised to point ahead.
-function person(clothes, { cap = false, pointing = false } = {}) {
-  const group = new THREE.Group()
-  for (const x of [-0.11, 0.11]) group.add(box([0.18, 0.84, 0.24], [x, 0, 0], SLATE_800))
-  group.add(box([0.52, 0.62, 0.3], [0, 0.82, 0], clothes, { radius: 0.06 }))
-  group.add(arm(0.33, clothes, 0))
-  group.add(arm(-0.33, clothes, pointing ? -130 : 0))
-  group.add(box([0.3, 0.32, 0.3], [0, 1.46, 0], SLATE_300, { radius: 0.08 }))
-  group.add(box([0.32, 0.1, 0.32], [0, 1.72, 0], SLATE_800, { radius: 0.04 }))
-  group.add(box([0.32, 0.26, 0.08], [0, 1.5, -0.13], SLATE_800, { radius: 0.03 }))
-  if (cap) group.add(box([0.34, 0.06, 0.5], [0, 1.8, 0.07], SLATE_800, { radius: 0.02 }))
-  return group
+// A poster on the far wall beside the duty board, centred at `at`: a rough
+// likeness of the 洋流 poster, orange with a white band down the middle and
+// the two characters in black, drawn on a canvas when the scene is built. The
+// characters come from whatever font the browser has, so their shapes differ
+// a little from device to device; the static images are exported with the
+// development machine's. Its colours are the poster's own, not the palette's.
+function poster([x, y, z]) {
+  const canvas = document.createElement("canvas")
+  canvas.width = 300
+  canvas.height = 400
+  const context = canvas.getContext("2d")
+  context.fillStyle = "#ef5a2b"
+  context.fillRect(0, 0, 300, 400)
+  context.fillStyle = "#ffffff"
+  context.fillRect(95, 0, 110, 400)
+  context.fillStyle = "#111111"
+  context.font = "900 175px 'PingFang TC', 'Heiti TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif"
+  context.textAlign = "center"
+  context.textBaseline = "middle"
+  context.fillText("洋", 150, 110)
+  context.fillText("流", 150, 290)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  const sheet = new THREE.Mesh(new THREE.PlaneGeometry(0.75, 1.0), new THREE.MeshLambertMaterial({ map: texture }))
+  sheet.position.set(x, y, z)
+  sheet.receiveShadow = true
+  return sheet
 }
 
-// An arm hanging from the shoulder at `x`, turned forward by `degrees`.
+// The head of every person: its radius and the height of its centre.
+const HEAD = { radius: 0.21, y: 1.41 }
+
+// A person facing +z with their feet at the origin, rounded rather than
+// boxy: dark trousers on two short legs, `clothes` on a soft body and on
+// capsule arms, a round head about a quarter of their height with dark hair
+// over its top and back and two dot eyes, and, for the station master, a cap
+// and a right arm raised to point ahead. No blush and one hairstyle for all.
+// Returns the figure with its two arms, which pose() raises for the driver's
+// stretch.
+function person(clothes, { cap = false, pointing = false } = {}) {
+  const group = new THREE.Group()
+  for (const x of [-0.1, 0.1]) group.add(box([0.17, 0.62, 0.22], [x, 0, 0], SLATE_800, { radius: 0.08 }))
+  group.add(box([0.54, 0.62, 0.36], [0, 0.56, 0], clothes, { radius: 0.17 }))
+  const arms = [arm(0.32, clothes, 0), arm(-0.32, clothes, pointing ? -130 : 0)]
+  group.add(...arms)
+  group.add(ball(HEAD.radius, [0, HEAD.y - HEAD.radius, 0], SKIN))
+  group.add(hair())
+  for (const x of [-0.075, 0.075]) group.add(ball(0.03, [x, HEAD.y - 0.02, HEAD.radius * 0.93], SLATE_800))
+  if (cap) {
+    const brim = HEAD.y + HEAD.radius * 0.72
+    group.add(cylinder(0.215, 0.08, [0, brim, 0], SLATE_800))
+    group.add(box([0.3, 0.03, 0.16], [0, brim, HEAD.radius * 0.8], SLATE_800))
+  }
+  return { figure: group, arms }
+}
+
+// An arm hanging from the shoulder at `x`, turned forward by `degrees`: a
+// capsule long enough for a stretch to lift the hands over the head.
 function arm(x, clothes, degrees) {
   const shoulder = new THREE.Group()
-  shoulder.position.set(x, 1.42, 0)
+  shoulder.position.set(x, 1.12, 0)
   shoulder.rotation.x = THREE.MathUtils.degToRad(degrees)
-  shoulder.add(box([0.13, 0.58, 0.17], [0, -0.58, 0], clothes, { radius: 0.05 }))
+  shoulder.add(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.42, 4, 12), material(clothes)), [0, -0.56, 0], 0.56))
   return shoulder
+}
+
+// The hair: a half shell a little larger than the head over its top, tipped
+// back so that it covers the back of the head and leaves the face.
+function hair() {
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(HEAD.radius * 1.07, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), material(SLATE_800))
+  shell.position.set(0, HEAD.y, 0)
+  shell.rotation.x = -0.45
+  shell.castShadow = true
+  shell.receiveShadow = true
+  return shell
 }
 
 // A generic low-floor city bus heading +x with its door side towards +z: a
@@ -348,18 +542,62 @@ function doorLeaf(hinge, bottom, side, towards) {
 
 // Riders waiting at the stop for the bus's next trip, turned more or less
 // towards it, their clothes alternating with the station master's and the
-// driver's.
+// driver's. Once the bus has pulled up, each sets off for the front door at
+// `boards` seconds, nearest first, by way of `via` round the pole of the
+// stop, and gets on after the one before. When the bus has gone, a new rider
+// walks in at `arrives` seconds from beyond the right edge to the same place
+// and turns the same way, so that the next lap starts as this one did.
+// Places are in the stop's coordinates.
+const RIDERS = [
+  { at: [-0.9, 1.0], degrees: -100, clothes: SLATE_600, boards: 14.2, via: [[-0.45, -0.55]], arrives: 18.4 },
+  { at: [0.2, 1.5], degrees: -60, clothes: TEAL_500, boards: 13.7, via: [[0.65, 0.3]], arrives: 18.6 },
+  { at: [1.3, 0.9], degrees: -35, clothes: SLATE_600, boards: 13.4, via: [], arrives: 18.8 },
+]
+const ENTER_X = 4.2 // a rider beyond the right edge of the block, in the stop's coordinates
+const WALKING_SPEED = 2.5 // world units a second
+const TURN_SECONDS = 0.15
+
+// The riders, each with their keyframes and the span they spend aboard, cut
+// at the edges of the block like the bus. They are posed by pose().
 function riders() {
-  return [
-    { at: [-0.9, 1.0], degrees: -100, clothes: SLATE_600 },
-    { at: [0.2, 1.5], degrees: -60, clothes: TEAL_500 },
-    { at: [1.3, 0.9], degrees: -35, clothes: SLATE_600 },
-  ].map(({ at: [x, z], degrees, clothes }) => {
-    const figure = person(clothes)
-    figure.position.set(x, 0, z)
-    figure.rotation.y = THREE.MathUtils.degToRad(degrees)
-    return figure
+  return RIDERS.map(({ at, degrees, clothes, boards, via, arrives }) => {
+    const { figure } = person(clothes)
+    clipToBlock(figure)
+    const boarding = walk(boards, degrees, [at, ...via, KERBSIDE, ABOARD])
+    const aboard = boarding.at(-1)[0]
+    if (aboard > TIMELINE.doorCloseAtStop[0]) throw new Error(`a rider gets on at ${aboard} s, after the door starts closing at ${TIMELINE.doorCloseAtStop[0]} s`)
+    const arriving = walk(arrives, -90, [[ENTER_X, at[1]], at], degrees)
+    if (arriving.at(-1)[0] > CYCLE) throw new Error(`a rider reaches the stop at ${arriving.at(-1)[0]} s, after the lap ends at ${CYCLE} s`)
+    return { figure, keys: [...boarding, ...arriving], aboard: [aboard, arrives] }
   })
+}
+
+// The keyframes [seconds, x, z, degrees] of a figure standing at the first of
+// `points`, facing `degrees`, until `from` seconds, then walking through the
+// rest at WALKING_SPEED, turning on the spot towards each leg first and, when
+// `face` is given, to face that way at the end.
+function walk(from, degrees, points, face) {
+  let [x, z] = points[0]
+  let seconds = from
+  let heading = degrees
+  const keys = [[seconds, x, z, heading]]
+  for (const [toX, toZ] of points.slice(1)) {
+    heading = nearestTurn(heading, THREE.MathUtils.radToDeg(Math.atan2(toX - x, toZ - z)))
+    seconds += TURN_SECONDS
+    keys.push([seconds, x, z, heading])
+    seconds += Math.hypot(toX - x, toZ - z) / WALKING_SPEED
+    x = toX
+    z = toZ
+    keys.push([seconds, x, z, heading])
+  }
+  if (face !== undefined) keys.push([seconds + TURN_SECONDS, x, z, nearestTurn(heading, face)])
+  return keys
+}
+
+// `degrees` give or take whole turns, whichever is nearest `from`, so that a
+// figure turns the short way round.
+function nearestTurn(from, degrees) {
+  return degrees + 360 * Math.round((from - degrees) / 360)
 }
 
 // The stop: a pole with its sign facing the street and the camera, no text.
@@ -384,6 +622,11 @@ function cylinder(radius, height, at, color) {
   return place(new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 28), material(color)), at, height)
 }
 
+// A ball whose bottom sits at `at`.
+function ball(radius, at, color) {
+  return place(new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 16), material(color)), at, radius * 2)
+}
+
 function place(mesh, [x, y, z], height) {
   mesh.position.set(x, y + height / 2, z)
   mesh.castShadow = true
@@ -399,7 +642,7 @@ function material(color) {
 }
 
 // Gives every mesh of `object` a copy of its material that is cut, shadow
-// included, beyond the left edge of the block.
+// included, beyond the left and right edges of the block.
 function clipToBlock(object) {
   object.traverse((child) => {
     if (child.isMesh) child.material = clippedMaterial(child.material)
@@ -410,7 +653,7 @@ const clippedMaterials = new Map()
 
 function clippedMaterial(source) {
   if (!clippedMaterials.has(source)) {
-    clippedMaterials.set(source, Object.assign(source.clone(), { clippingPlanes: [BLOCK_EDGE], clipShadows: true }))
+    clippedMaterials.set(source, Object.assign(source.clone(), { clippingPlanes: BLOCK_EDGES, clipShadows: true }))
   }
   return clippedMaterials.get(source)
 }

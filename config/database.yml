@@ -99,6 +99,10 @@ production:
     database: website_production
     username: website
     password: <%= ENV["WEBSITE_DATABASE_PASSWORD"] %>
+    # 容器內由 Kamal 的 env 把 DB_HOST 指到同機的 postgres accessory（website-db）；
+    # 從筆電用 ssh -L 轉送連正式資料庫時，給 localhost 與轉送的 port
+    host: <%= ENV.fetch("DB_HOST", "localhost") %>
+    port: <%= ENV.fetch("DB_PORT", 5432) %>
   cache:
     <<: *primary_production
     database: website_production_cache

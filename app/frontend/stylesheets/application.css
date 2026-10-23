@@ -95,11 +95,18 @@
   }
 }
 
-/* 首頁插圖：靜態圖是動畫的最後一格。homeHero 元件把狀態寫在 data-hero；動畫接手後（loading、playing、done）
+/* 首頁插圖：靜態圖是動畫的定格畫面。homeHero 元件把狀態寫在 data-hero；動畫接手後（loading、playing、paused）
    藏起靜態圖但保留它的盒子，canvas 疊在同一個位置上淡入 */
-:is([data-hero="loading"], [data-hero="playing"], [data-hero="done"]) [data-hero-stage] > picture { visibility: hidden; }
+:is([data-hero="loading"], [data-hero="playing"], [data-hero="paused"]) [data-hero-stage] > picture { visibility: hidden; }
 [data-hero-stage] > canvas { position: absolute; inset: 0; width: 100%; height: 100%; animation: hero-fade-in 0.4s ease-out both; }
 @keyframes hero-fade-in { from { opacity: 0; } }
+
+/* 暫停鈕只在動畫播放或暫停時出現，播放中寫暫停、暫停時寫繼續播放；沒有 JS、減少動態效果或退回靜態圖時都不出現。
+   顯示與否只由這裡決定，按鈕與兩段文字本身不放 display 的 class */
+[data-hero-pause], [data-hero-pause] > [data-label] { display: none; }
+:is([data-hero="playing"], [data-hero="paused"]) [data-hero-pause],
+[data-hero="playing"] [data-hero-pause] > [data-label="pause"],
+[data-hero="paused"] [data-hero-pause] > [data-label="resume"] { display: inline-flex; }
 
 /* 有 JS 又允許動態時，一開始就不顯示靜態圖、只保留它的盒子，等動畫接手，免得先畫出最後一格再倒帶；
    JS 在元件啟動前就出錯的話，3 秒後自己顯示出來。減少動態效果或沒有 JS 時這條不成立，靜態圖照常顯示 */
