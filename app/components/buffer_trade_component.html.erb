@@ -1,22 +1,23 @@
 <turbo-frame id="buffer-trade" data-turbo-action="advance">
-  <section data-section="buffer-trade" class="mb-10">
-    <h2 class="mb-1 text-[24px] leading-snug font-bold text-slate-900"><%= t(".title") %></h2>
-    <p class="mb-5 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <section data-section="buffer-trade">
+    <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
+    <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
 
-    <form action="<%= helpers.route_path(@coverage.route_id) %>" method="get" class="mb-5 flex max-w-xl flex-wrap items-center gap-x-4 gap-y-2"
+    <form action="<%= helpers.route_path(@coverage.route_id) %>" method="get"
+          class="mb-5 flex max-w-[680px] flex-col gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4.5 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-3 sm:px-5.5 sm:py-4.5"
           x-data="{ minutes: <%= @buffer_trade.minutes %> }">
       <input type="hidden" name="day" value="<%= @coverage.day.iso8601 %>">
       <input type="hidden" name="range" value="<%= @coverage.range %>">
-      <label for="buffer-minutes" class="font-medium">
+      <label for="buffer-minutes" class="font-semibold text-slate-900">
         <%= t(".buffer_html", minutes: tag.span(@buffer_trade.minutes, "data-value": "minutes", "x-text": "minutes")) %>
       </label>
       <input id="buffer-minutes" type="range" name="buffer" min="<%= minutes_range.min %>" max="<%= minutes_range.max %>" step="1"
              value="<%= @buffer_trade.minutes %>" x-model.number="minutes" x-on:change="$el.form.requestSubmit()"
-             class="w-56 accent-teal-700">
-      <button type="submit" x-init="$el.hidden = true" class="rounded border border-slate-300 px-3 py-1 text-sm"><%= t(".submit") %></button>
+             class="w-full accent-teal-700 sm:w-auto sm:grow sm:basis-60">
+      <button type="submit" x-init="$el.hidden = true" class="self-start rounded border border-slate-300 bg-white px-3 py-1 text-note"><%= t(".submit") %></button>
     </form>
 
-    <div class="mb-4 max-w-[46em] space-y-1 text-slate-600">
+    <div class="mb-5 max-w-[46em] space-y-1 text-slate-600">
       <p>
         <%= t(".coverage_html", days: tag.span(@buffer_trade.n_days, "data-value": "days"),
                                 layovers: tag.span(@buffer_trade.n_layovers, "data-value": "layovers"),
@@ -30,38 +31,38 @@
     </div>
 
     <% if layovers? %>
-      <table class="w-full max-w-xl text-sm tabular-nums">
-        <thead class="text-slate-500">
+      <table class="data-table max-w-[680px]">
+        <thead>
           <tr>
-            <th class="text-left font-normal"></th>
-            <th class="text-right font-normal"><%= t(".lower") %></th>
-            <th class="text-right font-normal"><%= t(".upper") %></th>
+            <th class="text-left"></th>
+            <th><%= t(".lower") %></th>
+            <th><%= t(".upper") %></th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><%= t(".vehicle_hours") %></td>
-            <td class="text-right" data-value="vehicle-hours-lower"><%= decimal(@buffer_trade.vehicle_hours.lower) %></td>
-            <td class="text-right" data-value="vehicle-hours-upper"><%= decimal(@buffer_trade.vehicle_hours.upper) %></td>
+            <td class="text-left whitespace-normal sm:whitespace-nowrap"><%= t(".vehicle_hours") %></td>
+            <td class="font-semibold text-slate-900" data-value="vehicle-hours-lower"><%= decimal(@buffer_trade.vehicle_hours.lower) %></td>
+            <td class="font-semibold text-slate-900" data-value="vehicle-hours-upper"><%= decimal(@buffer_trade.vehicle_hours.upper) %></td>
           </tr>
           <tr>
-            <td><%= t(".peak_vehicles") %></td>
+            <td class="text-left whitespace-normal sm:whitespace-nowrap"><%= t(".peak_vehicles") %></td>
             <% peaks.each do |bound, peak| %>
-              <td class="text-right" data-peak="<%= bound %>" data-hour="<%= peak.hour %>">
-                <span data-vehicles><%= decimal(peak.vehicles) %></span>
-                <span class="block text-xs text-slate-500"><%= hour_span(peak.hour) %></span>
+              <td data-peak="<%= bound %>" data-hour="<%= peak.hour %>">
+                <span data-vehicles class="font-semibold text-slate-900"><%= decimal(peak.vehicles) %></span>
+                <span class="block text-label-sm text-slate-500 sm:text-label"><%= hour_span(peak.hour) %></span>
               </td>
             <% end %>
           </tr>
         </tbody>
       </table>
-      <p class="mt-2 max-w-[46em] text-xs text-slate-500"><%= t(".bounds_note") %></p>
+      <p class="mt-2.5 max-w-[46em] text-note text-slate-500 sm:mt-3"><%= t(".bounds_note") %></p>
 
-      <dl class="mt-4 grid max-w-xl grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
+      <dl class="mt-5 grid max-w-[680px] grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-table sm:grid-cols-[auto_1fr] sm:gap-x-7">
         <dt class="text-slate-500"><%= t(".achieved", minutes: @buffer_trade.minutes) %></dt>
-        <dd class="tabular-nums" data-value="achieved"><%= share(@buffer_trade.achieved_share) %></dd>
+        <dd class="font-semibold text-slate-900" data-value="achieved"><%= share(@buffer_trade.achieved_share) %></dd>
         <dt class="text-slate-500"><%= t(".vehicles_per_day") %></dt>
-        <dd class="tabular-nums" data-value="vehicles-per-day"><%= decimal(@buffer_trade.vehicles_per_day) %></dd>
+        <dd class="font-semibold text-slate-900" data-value="vehicles-per-day"><%= decimal(@buffer_trade.vehicles_per_day) %></dd>
       </dl>
     <% else %>
       <p data-no-layover class="rounded border border-amber-300 bg-amber-50 p-4"><%= t(".no_layover") %></p>

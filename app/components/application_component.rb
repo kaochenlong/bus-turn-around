@@ -13,4 +13,11 @@ class ApplicationComponent < ViewComponent::Base
 
     I18n.t("day_types.#{day_type}", raise: true)
   end
+
+  # The nature of a route end (buses stop there or drive straight on) as a
+  # tag. Both natures share one look, so neither reads as better.
+  def nature_tag(text)
+    tag.span(text, class: "inline-block rounded-md border border-slate-300 bg-slate-50 px-2 text-label leading-5.5 font-medium whitespace-nowrap " \
+                          "text-slate-700 sm:px-2.25")
+  end
 end

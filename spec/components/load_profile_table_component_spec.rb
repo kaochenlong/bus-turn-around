@@ -20,8 +20,10 @@ RSpec.describe LoadProfileTableComponent, type: :component do
     end
   end
 
-  it "每站一列，早尖峰那一格是中位數 / p90（趟數），其他時段顯示 —" do
+  it "每個方向一組，分組標題列寫方向，之後每站一列：早尖峰那一格是中位數 / p90（趟數），其他時段顯示 —" do
     rendered = render_inline(described_class.new(load_profile: RoutePage::LoadProfile.new(RouteDay.where(id: route_day.id))))
-    expect(rendered.css("tbody tr").map { |row| row.css("td").map { it.text.squish } }).to eq([ [ "去程", "3", "丁站", "12.0 / 18.4（3）", "—", "—", "—" ] ])
+    group = rendered.at_css("tbody[data-direction='0']")
+    stop_rows = group&.css("tr")&.filter_map { |row| row.css("td").map { it.text.squish }.presence }
+    expect([ group&.at_css("th")&.text&.squish, stop_rows ]).to eq([ "去程", [ [ "3", "丁站", "12.0 / 18.4（3）", "—", "—", "—" ] ] ])
   end
 end

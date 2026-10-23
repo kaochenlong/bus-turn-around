@@ -1,31 +1,32 @@
-<section data-section="layover-chart" class="mb-10">
-  <h2 class="mb-1 text-[24px] leading-snug font-bold text-slate-900"><%= t(".title") %></h2>
-  <p class="mb-5 max-w-[46em] text-slate-600"><%= t(".note") %></p>
-  <div class="grid gap-8 md:grid-cols-2">
+<section data-section="layover-chart">
+  <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
+  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <div class="grid gap-7 lg:grid-cols-2 lg:gap-12">
     <% directions.each do |direction| %>
       <figure data-direction="<%= direction.go_back %>" class="min-w-0">
         <figcaption data-stops data-last-stop="<%= direction.last_stop %>" data-next-first-stop="<%= direction.next_first_stop %>"
-                    data-end-nature="<%= nature(direction) %>" class="mb-3 font-medium text-slate-800">
+                    data-end-nature="<%= nature(direction) %>" class="mb-3.5 font-medium text-slate-800 sm:mb-4">
           <%= t(".stops_html", direction: t(".directions.#{direction.go_back}"),
                                last_stop: tag.span(direction.last_stop, class: "font-semibold text-teal-800"),
                                next_first_stop: tag.span(direction.next_first_stop, class: "font-semibold text-teal-800"),
-                               nature: tag.span(t(".natures.#{nature(direction)}"), class: "whitespace-nowrap")) %>
+                               nature: nature_tag(t(".natures.#{nature(direction)}"))) %>
         </figcaption>
         <% if empty?(direction) %>
           <p data-no-layover class="text-slate-600"><%= t(".no_layover") %></p>
         <% else %>
-          <svg viewBox="0 0 <%= WIDTH %> <%= height %>" class="h-auto w-full max-w-[460px]" role="img" aria-label="<%= aria_label(direction) %>">
+          <svg viewBox="0 0 <%= WIDTH %> <%= height %>" class="h-auto w-full max-w-[340px]" role="img" aria-label="<%= aria_label(direction) %>">
             <% direction.counts.each_with_index do |count, index| %>
-              <text x="<%= LABEL_WIDTH %>" y="<%= row_y(index) + 12 %>" text-anchor="end" class="fill-slate-500 text-[12px]"><%= bin_label(index) %></text>
+              <text x="<%= LABEL_WIDTH %>" y="<%= text_y(index) %>" text-anchor="end" class="fill-slate-500 text-label"><%= bin_label(index) %></text>
+              <rect x="<%= bar_x %>" y="<%= row_y(index) %>" width="<%= BAR_MAX %>" height="<%= BAR_HEIGHT %>" rx="3" class="fill-slate-100" />
               <rect data-bin="<%= bounds[index] %>" data-count="<%= count %>" x="<%= bar_x %>" y="<%= row_y(index) %>"
-                    width="<%= bar_width(direction, count) %>" height="<%= BAR_HEIGHT %>" rx="2" class="fill-teal-700" />
-              <text x="<%= bar_x + bar_width(direction, count) + 6 %>" y="<%= row_y(index) + 12 %>" class="fill-slate-800 text-[12px] font-medium"><%= count %></text>
+                    width="<%= bar_width(direction, count) %>" height="<%= BAR_HEIGHT %>" rx="3" class="fill-teal-700" />
+              <text x="<%= bar_x + bar_width(direction, count) + 6 %>" y="<%= text_y(index) %>" class="fill-slate-800 text-label font-medium"><%= count %></text>
             <% end %>
             <line data-divider="<%= DIVIDER_MINUTES %>" x1="0" x2="<%= WIDTH %>" y1="<%= divider_y %>" y2="<%= divider_y %>"
                   stroke-dasharray="4 3" class="stroke-slate-400" />
-            <text x="<%= WIDTH %>" y="<%= divider_y - 4 %>" text-anchor="end" class="fill-slate-500 text-[11px]"><%= t(".divider", minutes: DIVIDER_MINUTES) %></text>
+            <text x="<%= WIDTH %>" y="<%= divider_y - 5 %>" text-anchor="end" class="fill-slate-500 text-label-sm"><%= t(".divider", minutes: DIVIDER_MINUTES) %></text>
           </svg>
-          <p class="mt-1 text-xs text-slate-500"><%= t(".minutes") %></p>
+          <p class="mt-1.5 text-label text-slate-500"><%= t(".minutes") %></p>
         <% end %>
       </figure>
     <% end %>

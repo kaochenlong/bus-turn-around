@@ -20,6 +20,11 @@ RSpec.describe DataLimitationsComponent, type: :component do
     end
   end
 
+  it "首頁那份帶上框線；路線頁那份放在卡片裡，不帶上框線" do
+    sections = %i[home route].map { |scope| render_inline(described_class.new(scope:)).at_css("section[data-section=limitations]") }
+    expect(sections.map { it.classes.include?("border-t") }).to eq([ true, false ])
+  end
+
   [ :monthly, "home", nil ].each do |scope|
     it "不接受的 scope #{scope.inspect} 丟 ArgumentError" do
       expect { described_class.new(scope:) }.to raise_error(ArgumentError)

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# The load profile: one row per stop of a direction, one column per time band;
-# each cell is the median and p90 of the on-board count with the number of
-# trips that had a count there.
+# The load profile: one group of rows per direction, one row per stop, one
+# column per time band; each cell is the median and p90 of the on-board count
+# with the number of trips that had a count there.
 class LoadProfileTableComponent < ApplicationComponent
   BANDS = %w[morning_peak daytime evening_peak other].freeze
   NONE = "—"
@@ -11,12 +11,13 @@ class LoadProfileTableComponent < ApplicationComponent
     @load_profile = load_profile
   end
 
-  # [go_back, seq, stop_name] => { band => row }, in direction and stop order.
-  def stops
-    @stops ||= @load_profile.rows.group_by { [ it.go_back, it.seq, it.stop_name ] }
-                            .sort_by { |(go_back, seq, _), _| [ go_back, seq ] }
-                            .to_h { |key, rows| [ key, rows.index_by(&:band) ] }
+  # go_back => { [seq, stop_name] => { band => row } }, directions and stops in order.
+  def directions
+    @directions ||= @load_profile.rows.group_by(&:go_back).sort.to_h do |go_back, rows|
+      stops = rows.group_by { [ it.seq, it.stop_name ] }.sort_by { |(seq, _), _| seq }
+      [ go_back, stops.to_h { |stop, stop_rows| [ stop, stop_rows.index_by(&:band) ] } ]
+    end
   end
 
-  def cell(row) = row ? format("%.1f / %.1f（%d）", row.median, row.p90, row.n_trips) : NONE
+  def decimal(value) = format("%.1f", value)
 end

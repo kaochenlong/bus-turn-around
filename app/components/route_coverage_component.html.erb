@@ -1,37 +1,40 @@
-<header class="mb-8 space-y-3">
+<header class="flex flex-col gap-4 sm:gap-4.5">
   <% if @coverage.data? %>
-    <h1 class="text-[32px] leading-tight font-bold tracking-[0.01em] text-slate-900"><%= route_day.route_name %> <span class="font-route-figure font-medium text-slate-500"><%= @coverage.route_id %></span></h1>
-    <p class="text-slate-600"><%= route_day.departure %>－<%= route_day.destination %></p>
+    <div>
+      <h1 class="text-page-sm leading-tight font-bold tracking-[0.01em] text-slate-900 sm:text-page"><%= route_day.route_name %> <span class="font-route-figure font-medium text-slate-500"><%= @coverage.route_id %></span></h1>
+      <p class="mt-1.5 text-slate-600"><%= route_day.departure %>－<%= route_day.destination %></p>
+    </div>
   <% end %>
 
-  <nav data-range="<%= @coverage.range %>" class="flex gap-2 text-sm">
+  <nav data-range="<%= @coverage.range %>" class="flex gap-0.5 rounded-[10px] border border-slate-200 bg-slate-100 p-0.75 sm:self-start">
     <% range_options.each do |range| %>
-      <%= link_to t(".ranges.#{range}"), range_path(range),
-                  class: [ "rounded px-3 py-1", range == @coverage.range ? "bg-slate-800 text-white" : "bg-slate-100" ] %>
+      <% current = range == @coverage.range %>
+      <%= link_to t(".ranges.#{range}"), range_path(range), aria: { current: ("true" if current) },
+                  class: [ "flex min-h-11 flex-1 items-center justify-center rounded-lg px-4.5 text-base sm:flex-none",
+                           current ? "bg-white font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.14)]" : "font-medium text-slate-600 hover:text-slate-900" ] %>
     <% end %>
   </nav>
 
   <% if @coverage.data? %>
-    <div data-day-type="<%= @coverage.day_type %>" class="text-sm text-slate-600">
-      <span><%= t(".covered", day_type: day_type_label(@coverage.day_type)) %>：</span>
-      <ul data-covered-days class="inline-flex flex-wrap gap-2">
+    <div data-day-type="<%= @coverage.day_type %>" class="flex flex-wrap items-center gap-2 text-note">
+      <span class="text-slate-500"><%= t(".covered") %></span>
+      <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-0.75 text-slate-700"><%= day_type_label(@coverage.day_type) %></span>
+      <ul data-covered-days class="contents">
         <% covered.each do |covered_day| %>
-          <li data-day="<%= covered_day.day.iso8601 %>"><%= day_label(covered_day.day) %><%= covered_day.day_note %></li>
+          <li data-day="<%= covered_day.day.iso8601 %>" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-0.75 text-slate-700"><%= day_label(covered_day.day) %><%= covered_day.day_note %></li>
         <% end %>
       </ul>
       <% if (other_day = other_type_day) %>
-        <p class="mt-2">
-          <%= link_to t(".other_type.#{@coverage.range}", day_type: day_type_label(other_day_type), day: day_label(other_day)),
-                      day_path(other_day), data: { other_day_type: }, class: "underline" %>
-        </p>
+        <%= link_to t(".other_type.#{@coverage.range}", day_type: day_type_label(other_day_type), day: day_label(other_day)),
+                    day_path(other_day), data: { other_day_type: }, class: "text-teal-700 underline underline-offset-2 hover:text-teal-900" %>
       <% end %>
     </div>
   <% else %>
     <div data-no-data class="rounded border border-amber-300 bg-amber-50 p-4">
       <p><%= @coverage.day ? t(".no_data", day: @coverage.day.iso8601) : t(".no_days") %></p>
       <% if @coverage.stored_days.any? %>
-        <p class="mt-2 text-sm"><%= t(".stored") %>：</p>
-        <ul class="flex flex-wrap gap-2 text-sm">
+        <p class="mt-2 text-note"><%= t(".stored") %>：</p>
+        <ul class="flex flex-wrap gap-2 text-note">
           <% @coverage.stored_days.each do |day| %>
             <li><%= link_to day_label(day), day_path(day), data: { stored_day: day.iso8601 }, class: "underline" %></li>
           <% end %>

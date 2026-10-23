@@ -14,6 +14,11 @@ RSpec.describe RouteCoverageComponent, type: :component do
     expect(links).to eq([ "/routes/9001?day=2026-10-19&range=day", "/routes/9001?day=2026-10-19&range=7d" ])
   end
 
+  it "範圍是 7d 時，只有最近 7 天那個連結標成目前的範圍" do
+    links = render_coverage(day: "2026-10-19", range: "7d").css("[data-range] a").map { [ it["href"], it["aria-current"] ] }
+    expect(links).to eq([ [ "/routes/9001?day=2026-10-19&range=day", nil ], [ "/routes/9001?day=2026-10-19&range=7d", "true" ] ])
+  end
+
   describe "10-19 與 10-23 是平日、10-26 是「補假」的假日時" do
     before do
       create(:route_day, day: Date.new(2026, 10, 23))

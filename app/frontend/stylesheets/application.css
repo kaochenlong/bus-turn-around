@@ -12,6 +12,75 @@
 @theme {
   --font-route: "Barlow", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
   --font-route-figure: "Barlow Semi Condensed", "Barlow", "Noto Sans TC", ui-sans-serif, sans-serif;
+
+  /* 路線頁與首頁共用的字級。名稱帶 -sm 的是手機那一級，640px 以上換成不帶 -sm 的；
+     只有內文帶行高，其他的沿用外層的行高 */
+  --text-body: 17px;
+  --text-body--line-height: 1.65;
+  --text-note: 15px;
+  --text-table: 16px;
+  --text-label: 14px;
+  --text-label-sm: 13px;
+  --text-subsection: 20px;
+  --text-section: 26px;
+  --text-section-sm: 23px;
+  --text-page: 40px;
+  --text-page-sm: 30px;
+  --text-stat: 60px;
+  --text-stat-sm: 44px;
+}
+
+/* 首頁與路線頁的 main、layout 輸出的顯名聲明 footer 共用的欄寬與左右內距：
+   三處用同一個定義，卡片與 footer 的左右邊界才對得齊 */
+@layer components {
+  .page-column {
+    @apply mx-auto max-w-6xl px-4 sm:px-8;
+  }
+}
+
+/* 路線頁的表格：格子的內距、列線與字級（手機小一級）定義在這裡，格子預設靠右放數字，
+   文字欄另外加 text-left。放在 components 層，各表格的 utility 蓋得過去 */
+@layer components {
+  .data-table {
+    width: 100%;
+    font-size: var(--text-note);
+    line-height: 1.4;
+
+    & th,
+    & td {
+      padding: --spacing(2) --spacing(1.5);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    & th {
+      border-bottom: 1px solid var(--color-slate-200);
+      font-size: var(--text-label-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-slate-500);
+    }
+
+    & td {
+      border-bottom: 1px solid var(--color-slate-100);
+    }
+
+    & tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    @variant sm {
+      font-size: var(--text-table);
+
+      & th,
+      & td {
+        padding: --spacing(2.5) --spacing(3);
+      }
+
+      & th {
+        font-size: var(--text-label);
+      }
+    }
+  }
 }
 
 /* 首頁插圖：靜態圖是動畫的最後一格。homeHero 元件把狀態寫在 data-hero；動畫接手後（loading、playing、done）

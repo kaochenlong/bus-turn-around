@@ -7,11 +7,11 @@
 # divider separates the bins under 15 minutes from the rest, without marking
 # either side as compliant.
 class LayoverChartComponent < ApplicationComponent
-  WIDTH = 460
-  LABEL_WIDTH = 64
-  BAR_MAX = 300
-  ROW = 26
-  BAR_HEIGHT = 16
+  WIDTH = 300
+  LABEL_WIDTH = 40
+  BAR_MAX = 190
+  ROW = 30
+  BAR_HEIGHT = 18
   DIVIDER_MINUTES = RoutePage::LayoverStats::SHORT_MINUTES
 
   def initialize(layover_distribution:, ends:)
@@ -27,9 +27,12 @@ class LayoverChartComponent < ApplicationComponent
 
   def height = (bounds.size * ROW) + 4
 
-  def bar_x = LABEL_WIDTH + 4
+  def bar_x = LABEL_WIDTH + 8
 
   def row_y(index) = (index * ROW) + 4
+
+  # The baseline of a row's label and count, centred on its bar.
+  def text_y(index) = row_y(index) + 14.5
 
   def bar_width(direction, count)
     largest = direction.counts.max
