@@ -33,7 +33,7 @@ RSpec.describe "analysis/params.sql" do
   end
 
   it "其他 SQL 檔不出現這些常數的字面數字" do
-    constants = %w[2 7 9 15 17 19 30 60 240]
+    constants = %w[2 3 7 9 15 17 19 30 60 240]
     found = Dir[File.join(DuckdbHelpers::ANALYSIS_DIR, "[0-9]*.sql")].to_h { [ File.basename(it), literals_in(it) & constants ] }
     expect(found.reject { |_file, literals| literals.empty? }).to eq({})
   end

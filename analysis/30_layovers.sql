@@ -1,14 +1,17 @@
 -- Stage 30: layovers between consecutive trips of a vehicle, their
 -- distribution, and the four-hour rest windows built on them.
 --
--- Reads trips from stage 20 and stops from stage 10. Creates views:
---   layover_pairs         every pair of consecutive trips of a vehicle, with
---                         the category deciding whether it is a layover
+-- Reads trips from stage 20, and stops and other_route_events from stage 10.
+-- Creates views:
+--   layover_pairs         every pair of consecutive trips of a vehicle, whether
+--                         it ran another route in between, and the category
+--                         deciding whether the pair is a layover
 --   layovers              the pairs that qualify, in minutes
 --   layover_exclusions    pairs that do not qualify, counted per category
 --   layover_distribution  overall and per direction of the trip that ended
 --   rest_runs             complete trips grouped into runs of consecutive
---                         complete trips of one vehicle on one route
+--                         complete trips of one vehicle, cut where it ran
+--                         another route in between
 --   rest_windows          per trip of a run, the shortest window reaching the
 --                         rest window length, its rest credit and flag
 --   chains                flagged windows of a vehicle merged where they
@@ -27,11 +30,23 @@ WITH ordered AS (
            end_time,
            completeness,
            lead(trip_id) OVER vehicle_trips AS next_trip_id,
-           lead(route_id) OVER vehicle_trips AS next_route_id,
            lead(start_time) OVER vehicle_trips AS next_start_time,
            lead(completeness) OVER vehicle_trips AS next_completeness
     FROM trips
     WINDOW vehicle_trips AS (PARTITION BY bus_id ORDER BY start_time, trip_id)
+),
+-- The vehicle ran another route between the two trips when its records on
+-- other routes after this trip's end and before the next trip's start, both
+-- excluded, cover at least other_route_min_stops distinct stops. A negative
+-- pair has no time in between, so it never ran another route.
+paired AS (
+    SELECT o.*,
+           (SELECT count(DISTINCT e.stop_id)
+            FROM other_route_events e
+            WHERE e.bus_id = o.bus_id AND e.data_time > o.end_time AND e.data_time < o.next_start_time)
+               >= getvariable('other_route_min_stops') AS ran_other_route
+    FROM ordered o
+    WHERE o.next_trip_id IS NOT NULL
 )
 SELECT *,
        minutes_between(end_time, next_start_time) AS minutes,
@@ -42,12 +57,11 @@ SELECT *,
        CASE
            WHEN completeness NOT IN ('complete', 'missing_start') THEN 'no_last_stop'
            WHEN next_completeness NOT IN ('complete', 'missing_end') THEN 'no_first_stop'
-           WHEN next_route_id <> route_id THEN 'other_route'
+           WHEN ran_other_route THEN 'other_route'
            WHEN next_start_time < end_time THEN 'negative'
            ELSE 'layover'
        END AS category
-FROM ordered
-WHERE next_trip_id IS NOT NULL;
+FROM paired;
 
 CREATE OR REPLACE VIEW layovers AS
 SELECT trip_id, next_trip_id, bus_id, route_id, go_back, end_time, next_start_time, minutes
@@ -98,19 +112,18 @@ SELECT go_back,
        ) AS bin_counts
 FROM summary;
 
--- Rest rule of 第 19 條之 2. A trip that is not complete, or a change of
--- route, ends a run; the incomplete trip itself belongs to no run.
+-- Rest rule of 第 19 條之 2. A vehicle's first trip starts a run, and so does
+-- every trip that is not complete or that the vehicle reached after running
+-- another route since its previous trip. The incomplete trip itself belongs to
+-- no run.
 CREATE OR REPLACE VIEW rest_runs AS
-WITH ordered AS (
-    SELECT *, lag(route_id) OVER vehicle_trips AS previous_route_id
-    FROM trips
-    WINDOW vehicle_trips AS (PARTITION BY bus_id ORDER BY start_time, trip_id)
-),
-numbered AS (
-    SELECT *,
-           sum(CASE WHEN completeness <> 'complete' OR route_id IS DISTINCT FROM previous_route_id THEN 1 ELSE 0 END)
-               OVER (PARTITION BY bus_id ORDER BY start_time, trip_id ROWS UNBOUNDED PRECEDING) AS run_no
-    FROM ordered
+WITH numbered AS (
+    SELECT t.*,
+           sum(CASE WHEN p.trip_id IS NULL OR t.completeness <> 'complete' OR p.ran_other_route THEN 1 ELSE 0 END)
+               OVER (PARTITION BY t.bus_id ORDER BY t.start_time, t.trip_id ROWS UNBOUNDED PRECEDING) AS run_no
+    FROM trips t
+    -- The pair that ends at this trip; a vehicle's first trip has none.
+    LEFT JOIN layover_pairs p ON p.next_trip_id = t.trip_id
 )
 SELECT trip_id, bus_id, route_id, start_time, end_time, run_no,
        row_number() OVER (PARTITION BY bus_id, run_no ORDER BY start_time, trip_id) AS position

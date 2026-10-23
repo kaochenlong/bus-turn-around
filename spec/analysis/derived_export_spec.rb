@@ -32,9 +32,9 @@ RSpec.describe "analysis/derived_export.sql" do
     expect(files.transform_values { it.lines.first.chomp }).to eq(expected_headers)
   end
 
-  it "趟次 27 列、折返停留 19 列、有人數的趟次站 96 列、站序 10 列、路線日 1 列" do
+  it "趟次 27 列、折返停留 18 列、有人數的趟次站 96 列、站序 10 列、路線日 1 列" do
     counts = %w[trips.csv layovers.csv trip_stop_counts.csv stops.csv route_day.csv].map { rows(it).size }
-    expect(counts).to eq([ 27, 19, 96, 10, 1 ])
+    expect(counts).to eq([ 27, 18, 96, 10, 1 ])
   end
 
   it "趟次依車牌與起點排序，時刻帶 +08:00：第一列是 TEST-0001 06:00 那趟，時段是其餘" do

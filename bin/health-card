@@ -306,7 +306,9 @@ module HealthCard
       chains = @data.fetch("chains")
       distribution = Array(layovers["distribution"])
       [ "## 折返停留",
-        "同一車牌相鄰兩趟、同一條路線，本趟有到末站、下一趟從起站出發，下一趟起點減本趟終點，單位分鐘；另一端漏站不影響，每台車當天最後一趟沒有折返停留。它包含回場、加油、等發車在內的一切，是駕駛休息的上限。百分位數在順序統計量之間線性內插。",
+        "同一車牌相鄰兩趟，本趟有到末站、下一趟從起站出發，而且兩趟之間沒有去跑別的路線，下一趟起點減本趟終點，單位分鐘；另一端漏站不影響，每台車當天最後一趟沒有折返停留。" \
+        "兩趟之間跑了別的路線，指這台車在兩趟之間有 RouteID 不是 0、也不是這條路線附屬路線的到離站事件，經過至少 #{layovers['other_route_min_stops']} 個站。" \
+        "它包含回場、加油、等發車在內的一切，是駕駛休息的上限。百分位數在順序統計量之間線性內插。",
         table([ "範圍", "筆數", *Array(layovers["percentile_levels"]).map { "p#{(it * 100).round}" }, "不到 #{layovers['short_layover_minutes']} 分鐘" ],
               distribution.map { [ layover_scope(it), count(it["n_layovers"]), *percentiles(it["percentiles"], layovers), percent(it["short_share"]) ] }, "lrrrrr"),
         "分箱的分鐘數含下界、不含上界：",
@@ -327,13 +329,13 @@ module HealthCard
 
     def exclusions(excluded)
       "本趟沒有到末站 #{count(excluded['no_last_stop'])} 組、下一趟不是從起站出發 #{count(excluded['no_first_stop'])} 組、" \
-        "下一趟是別的路線 #{count(excluded['other_route'])} 組、差值為負 #{count(excluded['negative'])} 組"
+        "兩趟之間跑了別的路線 #{count(excluded['other_route'])} 組、差值為負 #{count(excluded['negative'])} 組"
     end
 
     def chains_text(chains)
       summary = chains.fetch("summary")
       report = Array(chains["report"])
-      text = [ "班次串對照汽車運輸業管理規則第 19 條之 2：任何連續 #{chains['rest_window_minutes']} 分鐘內，每段至少 #{chains['rest_min_minutes']} 分鐘的折返停留累計不到 #{chains['rest_credit_minutes']} 分鐘，就標為不合規；同一車牌重疊的不合規視窗併成一串。只用相鄰完整趟次接成的序列，遇到不完整趟次就切斷。",
+      text = [ "班次串對照汽車運輸業管理規則第 19 條之 2：任何連續 #{chains['rest_window_minutes']} 分鐘內，每段至少 #{chains['rest_min_minutes']} 分鐘的折返停留累計不到 #{chains['rest_credit_minutes']} 分鐘，就標為不合規；同一車牌重疊的不合規視窗併成一串。只用相鄰完整趟次接成的序列，遇到不完整趟次、或兩趟之間跑了別的路線，就切斷。",
                "- 班次串：#{count(summary['n_chains'])} 串，涉及 #{count(summary['n_vehicles'])} 台車" ]
       return text.join("\n\n") if report.empty?
 

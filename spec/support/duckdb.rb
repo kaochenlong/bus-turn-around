@@ -101,6 +101,18 @@ module DuckdbHelpers
     SQL
   end
 
+  # SQL that replaces the other_route_events table of stage 10 with the given
+  # records, each [bus_id, "HH:MM" on 2026-10-19 or a full timestamp, stop_id,
+  # path_attribute_id = 9100]. An empty list leaves the table empty, so the
+  # fixture's records stay out of examples built on injected trips.
+  def replace_other_route_events_sql(records)
+    rows = records.map { |bus, at, stop, path = 9100| "('#{bus}', #{path}, #{stop}, #{timestamp_sql(at)})" }
+    <<~SQL
+      CREATE OR REPLACE TABLE other_route_events (bus_id VARCHAR, path_attribute_id BIGINT, stop_id BIGINT, data_time TIMESTAMP);
+      #{"INSERT INTO other_route_events VALUES #{rows.join(', ')};" unless rows.empty?}
+    SQL
+  end
+
   # Runs bin/health-card with the current Ruby, so a test can narrow PATH
   # without losing the interpreter. It runs outside the bundle, the way an
   # operator runs it; `bundled: true` keeps the bundle of this process, whose

@@ -210,6 +210,18 @@ RSpec.describe "spec/fixtures/analysis" do
                                [ "TEST-0004", "2026-10-19 15:00:00", "0" ] ])
     end
 
+    def on_control_route(bus) = records.select { it.values_at("BusID", "RouteID") == [ bus, "9100" ] }.map { it.values_at("DataTime", "StopID", "file") }
+
+    it "兩趟之間跑了別的路線：TEST-0002 14:10 到 14:30 在對照路線 9100 經過三個站，都在 14 時檔" do
+      expect(on_control_route("TEST-0002")).to eq([ [ "2026-10-19 14:10:00", "92000", "2026-10-19/14.jsonl" ], [ "2026-10-19 14:20:00", "92001", "2026-10-19/14.jsonl" ],
+                                                     [ "2026-10-19 14:30:00", "92002", "2026-10-19/14.jsonl" ] ])
+    end
+
+    it "在末站切路線碼：TEST-0001 15:50 到 15:55 在對照路線 9100 只有兩個站，都在 15 時檔" do
+      expect(on_control_route("TEST-0001")).to eq([ [ "2026-10-19 15:50:00", "92000", "2026-10-19/15.jsonl" ], [ "2026-10-19 15:51:00", "92000", "2026-10-19/15.jsonl" ],
+                                                     [ "2026-10-19 15:55:00", "92001", "2026-10-19/15.jsonl" ] ])
+    end
+
     it "16 時的小時檔是空的" do
       expect(File.size(File.join(DuckdbHelpers::FIXTURE_DATA, "bus_event/2026-10-19/16.jsonl"))).to eq(0)
     end

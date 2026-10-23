@@ -50,14 +50,18 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 | 檔案 | 讀 | 建立 |
 | --- | --- | --- |
 | `params.sql` | | 定義用的常數，全部是變數；`minutes_between` macro |
-| `10_load.sql` | 變數 `data_root`、`route_id`、`day`、`static_day`；原始檔 | `input_files`、`routes`、`bus_events`、`seat_events`、`load_counts`、`stops`、`path_stops`、`stop_events`、`unknown_stop_events`、`sequence_check` |
+| `10_load.sql` | 變數 `data_root`、`route_id`、`day`、`static_day`；原始檔 | `input_files`、`routes`、`bus_events`、`seat_events`、`other_route_events`、`load_counts`、`stops`、`path_stops`、`stop_events`、`unknown_stop_events`、`sequence_check` |
 | `20_trips.sql` | `stop_events`、`stops`、`routes` | `trip_events`、`segmented_trips`、`trips`、`path_trip_counts` |
-| `30_layovers.sql` | `trips`、`stops` | `layover_pairs`、`layovers`、`layover_exclusions`、`layover_distribution`、`rest_runs`、`rest_windows`、`chains`、`chain_report`、`chain_summary` |
+| `30_layovers.sql` | `trips`、`stops`、`other_route_events` | `layover_pairs`、`layovers`、`layover_exclusions`、`layover_distribution`、`rest_runs`、`rest_windows`、`chains`、`chain_report`、`chain_summary` |
 | `40_load_profile.sql` | `seat_events`、`routes`、`stops`、`trips`、`trip_events` | `seat_stop_events`、`trip_seat_records`、`trip_stop_counts`、`net_boarding`、`count_coverage`、`trip_bands`、`load_profile`、`reset_counts`、`reset_check`、`count_anomalies` |
 | `50_quality.sql` | `load_counts`、`unknown_stop_events`、`sequence_check`、`routes`、`stops`、`trips`、`trip_events`、`path_trip_counts` | `completeness_counts`、`path_trip_shares`、`vehicle_day_ends`、`last_stop_departures`、`missing_stop_rate`、`duty_status_counts`、`duty_status_trip_ends`、`quality` |
 | `60_export.sql` | 前面各階段的名字、變數 `inspect_dir` | 檢查目錄的五個 CSV；最後印出一列 `card`，是卡上所有數字的 JSON，也是整段唯一會印東西的敘述 |
 
-`layover_pairs` 把每台車相鄰兩趟配成一組。本趟有到末站（`complete` 或 `missing_start`）、下一趟從起站出發（`complete` 或 `missing_end`）、同一路線、差值不為負，才進 `layovers`；另一端漏站不影響，因為折返停留只用本趟的末站到站與下一趟的起站離站。不成立的配對在 `layover_exclusions` 分四類計數，一組只算在第一個符合的類別：`no_last_stop`（本趟沒有到末站）、`no_first_stop`（下一趟不是從起站出發）、`other_route`、`negative`。量不到的配對只計數，它們的時間差是拿中途某一站代替端點量的，不代表停留。班次串的 `rest_runs` 仍只用相鄰完整趟次。
+`layover_pairs` 把每台車相鄰兩趟配成一組。本趟有到末站（`complete` 或 `missing_start`）、下一趟從起站出發（`complete` 或 `missing_end`）、兩趟之間沒有去跑別的路線、差值不為負，才進 `layovers`；另一端漏站不影響，因為折返停留只用本趟的末站到站與下一趟的起站離站。不成立的配對在 `layover_exclusions` 分四類計數，一組只算在第一個符合的類別：`no_last_stop`（本趟沒有到末站）、`no_first_stop`（下一趟不是從起站出發）、`other_route`（兩趟之間跑了別的路線）、`negative`。量不到的配對只計數：前兩類的時間差是拿中途某一站代替端點量的，`other_route` 的時間差包含別條路線上的行駛，都不代表停留。
+
+兩趟之間跑了別的路線，看的是 `other_route_events`：第 10 階段從同一批 `bus_event` 小時檔另外讀出這條路線的車、`RouteID` 不是 0 也不是這條路線附屬路線的記錄，照 `(BusID, DataTime)` 去重。這台車在本趟終點之後、下一趟起點之前（兩端都不含）的這些記錄，經過至少 `params.sql` 的 `other_route_min_stops` 個不同的站牌，`layover_pairs` 的 `ran_other_route` 就是 true。`RouteID` 0 是末站勤務結束這類非營運記錄，不算別條路線；不到門檻的是在末站切了路線碼，車沒有離開。
+
+班次串的 `rest_runs` 只用相鄰完整趟次接成的序列，遇到不完整趟次、或兩趟之間跑了別的路線（同一組配對的 `ran_other_route`），就開始新的序列。
 
 歸零檢查不用剖面的人數。`reset_counts` 對每個完整趟次取兩筆落在趟次起訖之外的記錄：起點前 `reset_record_minutes` 分鐘內、在起站的最後一筆到站記錄（上客前），以及終點後同樣分鐘內、在末站的第一筆離站記錄（下客後）。`reset_check` 每個方向（`go_back`）的每一端一列，帶那一端的站名 `stop_name`，給有記錄的趟數 `n_trips`、該方向完整趟次中沒有記錄的趟數 `n_missing`、等於 0 與不超過 `reset_near_zero` 的比例、最大值，比例只算有記錄的趟次。路線兩端的性質可能不同，所以不合併。
 

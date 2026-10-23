@@ -127,7 +127,8 @@ SELECT to_json({
                        FROM layover_exclusions),
         'bin_lower_bounds': getvariable('layover_bin_lower_bounds'),
         'percentile_levels': getvariable('percentile_levels'),
-        'short_layover_minutes': getvariable('short_layover_minutes')
+        'short_layover_minutes': getvariable('short_layover_minutes'),
+        'other_route_min_stops': getvariable('other_route_min_stops')
     },
     'chains': {
         'summary': (SELECT {'n_chains': n_chains, 'n_vehicles': n_vehicles} FROM chain_summary),
