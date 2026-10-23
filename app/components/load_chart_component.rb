@@ -9,12 +9,12 @@ class LoadChartComponent < ApplicationComponent
   BANDS = %w[morning_peak daytime evening_peak other].freeze
   DEFAULT_BAND = BANDS.first
   SCALE_STEP = 10
-  WIDTH = 720
-  HEIGHT = 230
-  LEFT = 36
-  RIGHT = 12
-  TOP = 22
-  BOTTOM = 34
+  WIDTH = 840
+  HEIGHT = 250
+  LEFT = 40
+  RIGHT = 16
+  TOP = 30
+  BOTTOM = 36
 
   Chart = Data.define(:go_back, :stops, :medians, :ranges)
 

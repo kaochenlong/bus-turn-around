@@ -5,7 +5,7 @@ tw: &tw
   directions:
     "0": 去程結束
     "1": 返程結束
-  stops_html: "%{direction}：%{last_stop} 到站 → 下一趟從 %{next_first_stop} 出發（%{nature}）"
+  stops_html: "%{direction}：%{last_stop} 到站 → 下一趟從 %{next_first_stop} 出發 %{nature}"
   natures:
     stop: 停車
     pass_through: 開過去就走
@@ -22,7 +22,7 @@ en:
   directions:
     "0": Outbound ends
     "1": Inbound ends
-  stops_html: "%{direction}: arrives at %{last_stop} → next trip leaves %{next_first_stop} (%{nature})"
+  stops_html: "%{direction}: arrives at %{last_stop} → next trip leaves %{next_first_stop} %{nature}"
   natures:
     stop: buses stop here
     pass_through: buses drive straight on

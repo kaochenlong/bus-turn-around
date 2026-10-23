@@ -19,6 +19,10 @@ RSpec.describe RunTimeTableComponent, type: :component do
 
   def cells(go_back) = rendered.css("[data-direction='#{go_back}'] tbody tr").map { |row| row.css("td").map { it.text.squish } }
 
+  # The component's own translation for a small sample, read from its file:
+  # sidecar translations are not in the global I18n backend.
+  def small_sample_label = YAML.load_file(Rails.root.join("app/components/run_time_table_component.yml"), aliases: true).dig("tw", "small_sample")
+
   before do
     [ 50, 52, 55, 60, 70 ].each_with_index { |minutes, index| trip(format("07:%02d", index * 10), minutes) }
     trip("22:00", 40, go_back: 1).then { trip("22:30", 50, go_back: 1) }
@@ -31,6 +35,11 @@ RSpec.describe RunTimeTableComponent, type: :component do
 
   it "趟數少於 5 的列標成樣本少" do
     expect([ 0, 1 ].map { |go_back| rendered.css("[data-direction='#{go_back}'] tr[data-small-sample]").size }).to eq([ 0, 1 ])
+  end
+
+  it "樣本少的列在趟數旁標出樣本少，其他列沒有" do
+    rows = rendered.css("tbody tr").map { [ it.key?("data-small-sample"), it.text.include?(small_sample_label) ] }
+    expect(rows).to eq([ [ false, false ], [ true, true ] ])
   end
 
   it "每個方向寫出排除的趟數" do

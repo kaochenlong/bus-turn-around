@@ -1,30 +1,43 @@
-<section data-section="load-profile" class="mb-10">
-  <h2 class="mb-1 text-[24px] leading-snug font-bold text-slate-900"><%= t(".title") %></h2>
-  <p class="mb-5 max-w-[46em] text-slate-600"><%= t(".note") %></p>
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm tabular-nums">
-      <thead class="text-slate-500">
-        <tr>
-          <th class="text-left font-normal"><%= t(".direction") %></th>
-          <th class="text-right font-normal"><%= t(".seq") %></th>
-          <th class="text-left font-normal"><%= t(".stop") %></th>
-          <% BANDS.each do |band| %>
-            <th class="text-right font-normal"><%= t(".bands.#{band}") %></th>
-          <% end %>
-        </tr>
-      </thead>
-      <tbody>
-        <% stops.each do |(go_back, seq, stop_name), by_band| %>
+<section data-section="load-profile">
+  <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
+  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <div class="@container relative">
+    <div class="overflow-x-auto">
+      <table class="data-table min-w-[680px]">
+        <thead>
           <tr>
-            <td><%= t(".directions.#{go_back}") %></td>
-            <td class="text-right"><%= seq %></td>
-            <td><%= stop_name %></td>
+            <th><%= t(".seq") %></th>
+            <th class="text-left"><%= t(".stop") %></th>
             <% BANDS.each do |band| %>
-              <td class="text-right"><%= cell(by_band[band]) %></td>
+              <th><%= t(".bands.#{band}") %></th>
             <% end %>
           </tr>
+        </thead>
+        <% directions.each do |go_back, stops| %>
+          <tbody data-direction="<%= go_back %>">
+            <tr>
+              <th scope="rowgroup" colspan="<%= BANDS.size + 2 %>" class="border-slate-100 pt-3.5 text-left text-note font-semibold text-teal-800 sm:pt-4 sm:text-table">
+                <%= t(".directions.#{go_back}") %>
+              </th>
+            </tr>
+            <% stops.each do |(seq, stop_name), by_band| %>
+              <tr>
+                <td><%= seq %></td>
+                <td class="text-left"><%= stop_name %></td>
+                <% BANDS.each do |band| %>
+                  <% if (row = by_band[band]) %>
+                    <td><span class="font-semibold text-slate-900"><%= decimal(row.median) %></span><span class="text-slate-600"> / <%= decimal(row.p90) %></span><span class="text-label text-slate-500">（<%= row.n_trips %>）</span></td>
+                  <% else %>
+                    <td><%= NONE %></td>
+                  <% end %>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
         <% end %>
-      </tbody>
-    </table>
+      </table>
+    </div>
+    <%# 只在框比表格窄、需要橫向捲動時，才在右緣提示還有內容 %>
+    <div aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-0 w-9 bg-linear-to-r from-white/0 to-white @min-[680px]:hidden"></div>
   </div>
 </section>

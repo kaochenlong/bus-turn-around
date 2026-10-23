@@ -5,7 +5,6 @@ tw: &tw
   directions:
     "0": 去程
     "1": 返程
-  direction: 方向
   seq: 站序
   stop: 站名
   bands:
@@ -21,7 +20,6 @@ en:
   directions:
     "0": Outbound
     "1": Inbound
-  direction: Direction
   seq: Seq
   stop: Stop
   bands:

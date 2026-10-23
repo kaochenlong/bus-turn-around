@@ -1,37 +1,38 @@
-<section data-section="run-times" class="mb-10">
-  <h2 class="mb-1 text-[24px] leading-snug font-bold text-slate-900"><%= t(".title") %></h2>
-  <p class="mb-5 max-w-[46em] text-slate-600"><%= t(".note") %></p>
-  <div class="grid gap-6 md:grid-cols-2">
+<section data-section="run-times">
+  <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
+  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
     <% directions.each do |go_back| %>
-      <div data-direction="<%= go_back %>">
-        <h3 class="mb-2 text-[19px] font-semibold text-teal-800"><%= t(".directions.#{go_back}") %></h3>
+      <div data-direction="<%= go_back %>" class="min-w-0">
+        <h3 class="mb-2 text-subsection font-semibold text-teal-800"><%= t(".directions.#{go_back}") %></h3>
         <% if rows_for(go_back).any? %>
-          <table class="w-full text-sm tabular-nums">
-            <thead class="text-slate-500">
+          <table class="data-table">
+            <thead>
               <tr>
-                <th class="text-left font-normal"><%= t(".hour") %></th>
-                <th class="text-right font-normal"><%= t(".trips") %></th>
-                <th class="text-right font-normal">p50</th>
-                <th class="text-right font-normal">p85</th>
-                <th class="text-right font-normal">p95</th>
+                <th class="text-left"><%= t(".hour") %></th>
+                <th><%= t(".trips") %></th>
+                <th>p50</th>
+                <th class="font-semibold text-slate-900">p85</th>
+                <th>p95</th>
               </tr>
             </thead>
             <tbody>
               <% rows_for(go_back).each do |row| %>
-                <tr <%= "data-small-sample" if row.small_sample %> class="<%= "text-slate-400" if row.small_sample %>">
-                  <td><%= hour_label(row.hour) %></td>
-                  <td class="text-right"><%= row.n_trips %><% if row.small_sample %> <span class="text-xs">（<%= t(".small_sample") %>）</span><% end %></td>
-                  <% row.percentiles.each do |value| %>
-                    <td class="text-right"><%= minutes(value) %></td>
-                  <% end %>
+                <% p50, p85, p95 = row.percentiles %>
+                <tr <%= "data-small-sample" if row.small_sample %> class="<%= "text-slate-500" if row.small_sample %>">
+                  <td class="text-left"><%= hour_label(row.hour) %></td>
+                  <td><%= row.n_trips %><% if row.small_sample %><span class="ml-1.5 inline-block rounded-[5px] bg-slate-100 px-1.5 align-[1px] text-label-sm leading-5 font-medium text-slate-600 sm:ml-2 sm:px-1.75"><%= t(".small_sample") %></span><% end %></td>
+                  <td><%= minutes(p50) %></td>
+                  <td class="font-semibold <%= "text-slate-900" unless row.small_sample %>"><%= minutes(p85) %></td>
+                  <td><%= minutes(p95) %></td>
                 </tr>
               <% end %>
             </tbody>
           </table>
         <% else %>
-          <p class="text-sm text-slate-500"><%= t(".none") %></p>
+          <p class="text-note text-slate-500"><%= t(".none") %></p>
         <% end %>
-        <p data-excluded-for="<%= go_back %>" data-excluded-count="<%= excluded.fetch(go_back) %>" class="mt-2 text-xs text-slate-500">
+        <p data-excluded-for="<%= go_back %>" data-excluded-count="<%= excluded.fetch(go_back) %>" class="mt-2.5 text-note text-slate-500 sm:mt-3">
           <%= t(".excluded", count: excluded.fetch(go_back)) %>
         </p>
       </div>

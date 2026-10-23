@@ -25,7 +25,7 @@
     <%= vite_assets %>
   </head>
 
-  <body>
+  <body class="<%= content_for(:body_class) %>">
     <%= yield %>
     <%= render AttributionComponent.new %>
   </body>
