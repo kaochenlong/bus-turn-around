@@ -10,6 +10,7 @@
     "@hotwired/turbo-rails": "^8.0.23",
     "alpine-turbo-drive-adapter": "^2.2.0",
     "alpinejs": "^3.17.4",
+    "leaflet": "^1.9.4",
     "three": "0.186.1"
   },
   "devDependencies": {

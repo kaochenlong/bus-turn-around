@@ -1,0 +1,91 @@
+<section data-section="facilities">
+  <%= eyebrow(t(".eyebrow")) %>
+  <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
+  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+
+  <% if needs_reload? %>
+    <p data-needs-reload class="rounded border border-amber-300 bg-amber-50 p-4"><%= t(".needs_reload") %></p>
+  <% else %>
+    <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
+      <% ends.each do |route_end| %>
+        <div data-end="<%= route_end.go_back %>" data-end-nature="<%= route_end.nature %>" class="min-w-0">
+          <h3 class="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-subsection font-semibold text-teal-800">
+            <span><%= t(".end_title", direction: t(".directions.#{route_end.go_back}"), stop: route_end.end_stop_name) %></span>
+            <%= nature_tag(t(".natures.#{route_end.nature}")) %>
+          </h3>
+          <% if route_end.located_day %>
+            <p data-location-source="<%= route_end.location_source %>" class="mb-4 max-w-[46em] text-slate-600">
+              <% if route_end.location_source == "standstill" %>
+                <%= t(".standstill_html", meters: value("end-stop-meters", meters(route_end.end_stop_meters)), layovers: value("layovers", route_end.n_layovers),
+                                          located: value("located-layovers", route_end.n_located_layovers), radius: located_radius) %>
+              <% else %>
+                <%= t(".end_stop") %>
+              <% end %>
+            </p>
+            <p class="mb-2 flex flex-wrap gap-x-5 gap-y-1">
+              <% thresholds.each do |radius| %>
+                <span class="<%= "font-semibold text-slate-900" if radius == main_threshold %>">
+                  <%= t(".within_html", meters: radius, count: value("toilets-#{radius}", route_end.counts.fetch(radius))) %>
+                </span>
+              <% end %>
+            </p>
+            <% if route_end.nearest %>
+              <% nearest = route_end.nearest %>
+              <p data-nearest class="mb-4 text-slate-800">
+                <%= t(".nearest_html", name: value("nearest-name", nearest.name), category: value("nearest-category", nearest.category),
+                                       meters: value("nearest-meters", meters(nearest.meters)), rooms: value("nearest-rooms", nearest.n_toilets)) %>
+              </p>
+              <details data-toilet-list class="group rounded-xl border border-slate-200 bg-slate-50">
+                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 [&::-webkit-details-marker]:hidden">
+                  <span class="font-semibold text-slate-900"><%= t(".list", meters: list_radius, count: route_end.places.size) %></span>
+                  <svg aria-hidden="true" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"
+                       class="size-5.5 shrink-0 fill-none stroke-slate-600 stroke-2 group-open:rotate-180"><path d="M6 9l6 6 6-6" /></svg>
+                </summary>
+                <div class="overflow-x-auto px-4 pb-4">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th class="text-left"><%= t(".name") %></th>
+                        <th class="text-left"><%= t(".category") %></th>
+                        <th class="text-left"><%= t(".address") %></th>
+                        <th><%= t(".meters") %></th>
+                        <th><%= t(".rooms") %></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% route_end.places.each do |place| %>
+                        <tr data-place>
+                          <td class="text-left"><%= place.name %></td>
+                          <td class="text-left"><%= place.category %></td>
+                          <td class="text-left"><%= place.address %></td>
+                          <td><%= meters(place.meters) %></td>
+                          <td><%= place.n_toilets %></td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            <% else %>
+              <p data-no-places class="mb-4 text-slate-600"><%= t(".no_places", meters: list_radius) %></p>
+            <% end %>
+            <p class="mt-4 text-label text-slate-500">
+              <%= t(".days_html", located_day: tag.span(route_end.located_day.iso8601, data: { located_day: route_end.located_day.iso8601 }),
+                                  snapshot_day: tag.span(route_end.public_toilets_day&.iso8601, data: { public_toilets_day: route_end.public_toilets_day&.iso8601 })) %>
+              <% if route_end.n_days_without_location.positive? %>
+                <%= t(".days_without_location_html", count: value("days-without-location", route_end.n_days_without_location)) %>
+              <% end %>
+            </p>
+          <% else %>
+            <p data-no-location class="rounded border border-slate-200 bg-slate-50 p-4 text-slate-700">
+              <%= t(".no_location_html", layovers: value("layovers", route_end.n_layovers)) %>
+            </p>
+          <% end %>
+          <% if (map_end = map_end(route_end.go_back)) %>
+            <%= render EndMapComponent.new(end: map_end) %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</section>

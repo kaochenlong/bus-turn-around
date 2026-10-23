@@ -117,11 +117,35 @@ RSpec.describe "Routes", type: :request do
     )
   end
 
-  it "有資料的那一天，頁面依序是摘要、折返停留分佈圖、折返停留、來回與週期、試算、行駛時間、沿線人數圖、捷運重疊、載客剖面、資料限制" do
+  it "有資料的那一天，頁面依序是摘要、折返停留分佈圖、折返停留、來回與週期、折返點設施、試算、行駛時間、沿線人數圖、捷運重疊、載客剖面、資料限制" do
     store_days("2026-10-19")
     get route_path(9001), params: { day: "2026-10-19" }
     expect(page.css("[data-section]").map { it["data-section"] })
-      .to eq(%w[summary layover-chart layovers cycles buffer-trade run-times load-chart mrt-overlap load-profile limitations])
+      .to eq(%w[summary layover-chart layovers cycles facilities buffer-trade run-times load-chart mrt-overlap load-profile limitations])
+  end
+
+  it "涵蓋的日子沒有兩端的列時，折返點設施那一區說要重新載入，也沒有地圖容器" do
+    store_days("2026-10-19")
+    get route_path(9001), params: { day: "2026-10-19" }
+    expect([ page.css("[data-section=facilities] [data-needs-reload]").size, page.css("[data-end-map]").size ]).to eq([ 1, 0 ])
+  end
+
+  describe "涵蓋的日子有兩端的列時" do
+    before do
+      route_day = create(:route_day, day: Date.new(2026, 10, 19))
+      create(:route_day_end, route_day:, go_back: 0)
+      create(:route_day_end, route_day:, go_back: 1, end_seq: 9, end_stop_name: "甲站", latitude: 25.0497, longitude: 121.5006)
+      get route_path(9001), params: { day: "2026-10-19" }
+    end
+
+    it "每一端各一個地圖容器，各帶一段地圖資料，狀態是 pending" do
+      maps = page.css("[data-section=facilities] [data-end-map]")
+      expect(maps.map { [ it["data-end"], it["data-map"], it.css("script[data-end-map-data]").size ] }).to eq([ [ "0", "pending", 1 ], [ "1", "pending", 1 ] ])
+    end
+
+    it "沒有腳本時，兩個容器裡都是那一句，設施兩端的數字都在" do
+      expect([ page.css("[data-end-map] [data-map-note]").size, page.css("[data-section=facilities] [data-value=toilets-300]").size ]).to eq([ 2, 2 ])
+    end
   end
 
   it "重點數字連到的區塊：兩個折返停留的數字連到折返停留那張卡，捷運重疊連到捷運重疊那一區" do
@@ -130,10 +154,10 @@ RSpec.describe "Routes", type: :request do
     expect(key_number_targets).to eq("layover-p50" => %w[layover-chart layovers], "short-share" => %w[layover-chart layovers], "mrt-share" => %w[mrt-overlap])
   end
 
-  it "摘要後面的區塊導覽依頁面順序連到七個區塊，每個 fragment 都對得到包住那一區的元素" do
+  it "摘要後面的區塊導覽依頁面順序連到八個區塊，每個 fragment 都對得到包住那一區的元素" do
     store_days("2026-10-19")
     get route_path(9001), params: { day: "2026-10-19" }
-    expect(section_links).to eq([ [ "#layovers", %w[layover-chart layovers] ], [ "#cycles", %w[cycles] ], [ "#buffer", %w[buffer-trade] ],
+    expect(section_links).to eq([ [ "#layovers", %w[layover-chart layovers] ], [ "#cycles", %w[cycles] ], [ "#facilities", %w[facilities] ], [ "#buffer", %w[buffer-trade] ],
                                   [ "#runtimes", %w[run-times] ], [ "#load", %w[load-chart mrt-overlap load-profile] ], [ "#mrt", %w[mrt-overlap] ],
                                   [ "#limits", %w[limitations] ] ])
   end

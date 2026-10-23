@@ -2,6 +2,22 @@
 <html>
   <head>
     <title><%= content_for(:title) || t("site.name") %></title>
+    <meta name="description" content="<%= t("site.description") %>">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="<%= t("site.name") %>">
+    <meta property="og:title" content="<%= content_for(:title) || t("site.name") %>">
+    <meta property="og:description" content="<%= t("site.description") %>">
+    <meta property="og:url" content="<%= request.original_url %>">
+    <meta property="og:image" content="<%= image_url("/turnaround/og-image-v2.jpg") %>">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="<%= t("site.share_image_alt") %>">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<%= content_for(:title) || t("site.name") %>">
+    <meta name="twitter:description" content="<%= t("site.description") %>">
+    <meta name="twitter:image" content="<%= image_url("/turnaround/og-image-v2.jpg") %>">
+    <meta name="twitter:image:alt" content="<%= t("site.share_image_alt") %>">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="<%= t("site.name") %>">

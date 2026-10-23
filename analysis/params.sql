@@ -59,5 +59,23 @@ SET VARIABLE profile_upper_level = 0.9;
 -- it marks the end of a trip is what the 資料品質 section measures.
 SET VARIABLE duty_status_end_code = 2;
 
+-- Turnaround facilities (analysis/turnaround_facilities.sql). The location of
+-- a stopping end is the count-weighted mean of the standstill points within
+-- the standstill radius of the densest one: 50 metres is three to four bus
+-- lengths, so the GPS jitter of one parking space stays together. A layover
+-- counts as located when one of its standstill reports lies within the
+-- located radius of the location; the stopping ends verified by hand stood
+-- within 112 and 136 metres of the nearer stop. Toilets are stored within the
+-- toilet radius; the route page applies 300 metres when it reads them.
+SET VARIABLE standstill_radius_meters = 50;
+SET VARIABLE located_radius_meters = 150;
+SET VARIABLE toilet_radius_meters = 500;
+-- Standstill cells, for a map: the south-west corner of a cell is a multiple
+-- of this many degrees (about 22 metres north-south and 20 metres east-west in
+-- Taipei), and a cell is exported only when at least this many vehicles stood
+-- in it that day, so no cell traces a single vehicle.
+SET VARIABLE standstill_cell_degrees = 0.0002;
+SET VARIABLE cell_min_buses = 3;
+
 -- Minutes from one timestamp to a later one, with the seconds kept.
 CREATE OR REPLACE MACRO minutes_between(earlier, later) AS epoch(later - earlier) / 60;

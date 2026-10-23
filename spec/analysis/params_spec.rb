@@ -37,4 +37,18 @@ RSpec.describe "analysis/params.sql" do
     found = Dir[File.join(DuckdbHelpers::ANALYSIS_DIR, "[0-9]*.sql")].to_h { [ File.basename(it), literals_in(it) & constants ] }
     expect(found.reject { |_file, literals| literals.empty? }).to eq({})
   end
+
+  describe "折返點設施" do
+    let(:names) { %w[standstill_radius_meters located_radius_meters toilet_radius_meters standstill_cell_degrees cell_min_buses] }
+
+    # The cell size is a DECIMAL, which DuckDB's JSON output writes as a string.
+    it "靜止點聚在 50 公尺內、查核用 150 公尺、公廁存 500 公尺內、靜止格 0.0002 度、一格至少 3 台車" do
+      row = run_sql_stages(through: "params", query: "SELECT #{names.map { "getvariable('#{it}') AS #{it}" }.join(', ')}").first
+      expect(row.values_at(*names).map(&:to_s)).to eq(%w[50 150 500 0.0002 3])
+    end
+
+    it "turnaround_facilities.sql 不出現這五個常數的字面數字" do
+      expect(literals_in(File.join(DuckdbHelpers::ANALYSIS_DIR, "turnaround_facilities.sql")) & %w[50 150 500 0.0002 3]).to eq([])
+    end
+  end
 end

@@ -89,7 +89,7 @@ tests:
 ---
 ### Requirement: Day eligibility
 
-A day D SHALL be loaded only when `bus_event/<D>/` contains at least one hour file, `static/<D>/` contains `GetRoute.gz`, `GetStop.gz` and `GetPathDetail.gz`, the read window of D has ended, shown by an hour file `bus_event/<D+1>/01.jsonl` or `bus_event/<D+1>/01.jsonl.gz`, `external/taipei-mrt-exits/` contains at least one MRT entrance snapshot, and `external/office-calendar/<year of D>/` contains at least one office calendar snapshot as defined by `day-types` whose newest file has a row for D. A day that fails these checks SHALL fail with a message naming the missing file or directory; a missing entrance snapshot SHALL name `bin/rails external:mrt_exits`, and a missing calendar snapshot SHALL name `bin/rails external:office_calendar YEAR=<year of D>`. When both snapshots are missing, the message SHALL name the entrance snapshot.
+A day D SHALL be loaded only when `bus_event/<D>/` contains at least one hour file, `bus_data/<D>/` contains at least one hour file, `static/<D>/` contains `GetRoute.gz`, `GetStop.gz` and `GetPathDetail.gz`, the read window of D has ended, shown by an hour file `bus_event/<D+1>/01.jsonl` or `bus_event/<D+1>/01.jsonl.gz`, `external/taipei-mrt-exits/` contains at least one MRT entrance snapshot, `external/public-toilets/` contains at least one public toilet snapshot as defined by `turnaround-facilities`, and `external/office-calendar/<year of D>/` contains at least one office calendar snapshot as defined by `day-types` whose newest file has a row for D. A day that fails these checks SHALL fail with a message naming the missing file or directory; a missing entrance snapshot SHALL name `bin/rails external:mrt_exits`, a missing toilet snapshot SHALL name `bin/rails external:public_toilets`, and a missing calendar snapshot SHALL name `bin/rails external:office_calendar YEAR=<year of D>`. When the entrance snapshot is missing together with any other snapshot, the message SHALL name the entrance snapshot; when only the toilet and calendar snapshots are missing, the message SHALL name the toilet snapshot.
 
 #### Scenario: Read window not over
 
@@ -103,134 +103,289 @@ A day D SHALL be loaded only when `bus_event/<D>/` contains at least one hour fi
 
 #### Scenario: No calendar snapshot
 
-- **WHEN** the data root has an entrance snapshot but no file under `external/office-calendar/2026/`, and day 2026-10-19 is loaded
+- **WHEN** the data root has an entrance snapshot and a toilet snapshot but no file under `external/office-calendar/2026/`, and day 2026-10-19 is loaded
 - **THEN** the day fails with a message naming `bin/rails external:office_calendar YEAR=2026` and nothing is written for it
+
+#### Scenario: No toilet snapshot
+
+- **WHEN** the data root has an entrance snapshot but no file under `external/public-toilets/`
+- **THEN** the day fails with a message naming `bin/rails external:public_toilets` and nothing is written for it
+
+#### Scenario: No vehicle position files
+
+- **WHEN** `bus_event/<D>/` has hour files but `bus_data/<D>/` has none
+- **THEN** the day fails with a message naming the `bus_data/<D>` directory and nothing is written for it
 
 
 <!-- @trace
-source: day-types
-updated: 2026-10-23
+source: turnaround-facilities
+updated: 2026-10-24
 code:
-  - lib/tasks/external.rake
-  - app/models/office_calendar_snapshot.rb
-  - docs/data-sources.md
-  - config/locales/tw.yml
-  - app/models/route_day_loader.rb
-  - app/components/data_limitations_component.yml
-  - app/components/route_coverage_component.rb
-  - app/components/route_coverage_component.yml
-  - app/models/mrt_exits_snapshot.rb
-  - app/components/route_coverage_component.html.erb
-  - db/schema.rb
-  - app/components/route_list_component.html.erb
-  - db/migrate/20261022230942_add_day_type_to_route_days.rb
+  - app/components/cycle_table_component.yml
+  - app/frontend/hero/scene.js
+  - app/components/turnaround_facilities_component.html.erb
+  - app/frontend/hero/runtime.js
+  - spec/factories/route_day_ends.rb
+  - app/components/section_nav_component.yml
   - spec/factories/route_days.rb
-  - app/components/attribution_component.html.erb
+  - app/models/route_page/facilities.rb
+  - app/models/public_toilets_snapshot.rb
+  - output/branding-v2/a-bus/favicon.ico
+  - app/models/route_day_end_toilet.rb
+  - app/models/route_page/cycles.rb
+  - app/components/turnaround_facilities_component.yml
+  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
+  - app/models/route_day_end_cell.rb
+  - app/models/derived_load_command.rb
+  - app/components/site_bar_component.html.erb
+  - app/components/cycle_table_component.rb
+  - analysis/README.md
   - app/components/attribution_component.yml
-  - config/locales/en.yml
-  - spec/fixtures/analysis/README.md
-  - app/models/route_page/coverage.rb
-  - app/components/application_component.rb
-  - app/components/route_list_component.yml
-  - app/models/http_fetcher.rb
-  - spec/fixtures/analysis/external/office-calendar/2026/2026-10-19.csv
+  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
+  - analysis/derived_export.sql
+  - config/environments/production.rb
+  - app/frontend/end_map/runtime.js
+  - spec/factories/route_day_end_toilets.rb
+  - analysis/turnaround_facilities.sql
+  - app/components/home_hero_component.yml
+  - app/components/home_hero_component.rb
+  - app/assets/images/home-hero-wide.webp
+  - public/turnaround/icon-16.png
+  - config/locales/tw.yml
+  - app/assets/images/home-hero-narrow.webp
   - app/models/route_day.rb
-  - db/migrate/20261022231802_require_day_type_on_route_days.rb
+  - app/components/section_nav_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
+  - Gemfile.lock
+  - config/map.yml
+  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
+  - config/database.yml
+  - app/components/data_limitations_component.yml
+  - app/components/end_map_component.html.erb
+  - public/turnaround/og-image-v2.jpg
+  - app/components/end_map_component.rb
+  - db/schema.rb
+  - tools/hero/export.js
+  - .kamal/secrets
+  - app/frontend/entrypoints/application.js
+  - app/models/route_day_end.rb
+  - public/turnaround/icon-32.png
+  - config/locales/en.yml
+  - app/frontend/stylesheets/application.css
+  - docs/decisions.md
+  - app/views/layouts/application.html.erb
+  - .ruby-version
+  - tools/hero/index.html
+  - app/components/attribution_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - analysis/params.sql
+  - public/turnaround/favicon.ico
+  - app/models/route_page/end_map.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
+  - app/assets/images/home-hero-tall.webp
+  - bin/health-card
+  - Gemfile
+  - app/components/cycle_table_component.html.erb
+  - output/branding-v2/a-bus/favicon-preview.png
+  - config/deploy.yml
+  - package.json
+  - app/components/home_hero_component.html.erb
+  - app/components/attribution_component.html.erb
+  - spec/factories/route_day_end_cells.rb
+  - spec/fixtures/analysis/README.md
+  - output/branding-v2/a-bus/logo.png
+  - app/assets/images/turnaround-logo.webp
+  - public/turnaround/apple-touch-icon.png
+  - lib/tasks/external.rake
+  - Dockerfile
+  - spec/support/duckdb.rb
+  - app/views/routes/show.html.erb
+  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
+  - config/credentials/production.yml.enc
+  - app/components/turnaround_facilities_component.rb
+  - app/models/map_tiles.rb
+  - docs/data-sources.md
+  - app/components/end_map_component.yml
+  - app/models/route_day_loader.rb
 tests:
-  - spec/components/mrt_overlap_component_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/components/route_summary_component_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/models/route_page/load_profile_spec.rb
-  - spec/components/load_profile_table_component_spec.rb
-  - spec/components/run_time_table_component_spec.rb
-  - spec/system/home_hero_spec.rb
-  - spec/models/http_fetcher_spec.rb
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/assets/home_hero_images_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/route_page/cycles_spec.rb
+  - spec/models/map_tiles_spec.rb
   - spec/models/route_day_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/components/layover_chart_component_spec.rb
-  - spec/components/load_chart_component_spec.rb
-  - spec/components/application_component_spec.rb
-  - spec/models/route_page/layover_stats_spec.rb
-  - spec/models/route_page/coverage_spec.rb
-  - spec/components/layover_table_component_spec.rb
-  - spec/components/route_list_component_spec.rb
-  - spec/models/home_page/route_list_spec.rb
-  - spec/models/route_day_loader_spec.rb
-  - spec/models/route_page/mrt_overlap_spec.rb
   - spec/analysis/fixtures_spec.rb
-  - spec/models/office_calendar_snapshot_spec.rb
-  - spec/requests/pages_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/components/home_hero_component_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/models/route_page/layover_distribution_spec.rb
-  - spec/models/route_page/run_times_spec.rb
-  - spec/components/route_coverage_component_spec.rb
+  - spec/components/cycle_table_component_spec.rb
+  - spec/models/route_page/facilities_spec.rb
+  - spec/models/route_page/end_map_spec.rb
+  - spec/system/route_page_mobile_spec.rb
+  - spec/models/public_toilets_snapshot_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/system/home_hero_spec.rb
 -->
 
 ---
 ### Requirement: Derived export
 
-For an eligible day the system SHALL run `analysis/params.sql`, every numbered stage file in file name order, then `analysis/mrt_overlap.sql` with the newest MRT entrance snapshot by file name date, and then `analysis/derived_export.sql`, which SHALL write five CSV files: the route day (route `Id`, name, departure, destination, static snapshot day, and the day of the entrance snapshot used), the stops of both directions (direction, sequence number, stop name, latitude, longitude, nearest entrance name and distance as defined by `mrt-overlap`), the trips of the day as defined by `trip-reconstruction` together with each trip's time band from `load-profile`, the layovers as defined by `layover-metrics` with the end time of the trip and the start time of the next trip, and the per-stop on-board counts of each trip as defined by `load-profile`. Timestamps SHALL be written with the `+08:00` offset. Rows SHALL be sorted so that two runs over the same input produce byte-identical files.
+For an eligible day the system SHALL run `analysis/params.sql`, every numbered stage file in file name order, then `analysis/mrt_overlap.sql` with the newest MRT entrance snapshot by file name date, then `analysis/turnaround_facilities.sql` with the newest public toilet snapshot by file name date and the natures of the route's two ends from the configuration defined by `turnaround-ends` (or `unknown` for both when the route is not configured), and then `analysis/derived_export.sql`, which SHALL write eight CSV files: the route day (route `Id`, name, departure, destination, static snapshot day, the day of the entrance snapshot used and the day of the toilet snapshot used), the stops of both directions (direction, sequence number, stop name, latitude, longitude, nearest entrance name and distance as defined by `mrt-overlap`), the trips of the day as defined by `trip-reconstruction` together with each trip's time band from `load-profile`, the layovers as defined by `layover-metrics` with the end time of the trip and the start time of the next trip, the per-stop on-board counts of each trip as defined by `load-profile`, the ends of the route (direction, last stop sequence number, name, latitude and longitude, location source, location latitude and longitude, numbers of layovers, located layovers and standstill reports, and metres from the location to the last stop) as defined by `turnaround-facilities`, the toilets within the radius of each located end (direction, name, category, address, latitude, longitude, metres) as defined by `turnaround-facilities`, and the standstill cells of each end (direction, cell latitude, cell longitude, numbers of standstill reports, vehicles and layovers) as defined by `turnaround-facilities`. The `bus_data` hour files SHALL be read only by `analysis/turnaround_facilities.sql`, over the same read window as the stage files, so that `bin/health-card` and its inspection files do not change. Timestamps SHALL be written with the `+08:00` offset. Rows SHALL be sorted so that two runs over the same input produce byte-identical files.
 
 #### Scenario: Stage order shared with the health card
 
 - **WHEN** `bin/health-card` and `derived:load` assemble their SQL
-- **THEN** both put the variable settings first, `analysis/params.sql` second and the numbered stage files after it in file name order, and only `derived:load` appends `analysis/mrt_overlap.sql` and `analysis/derived_export.sql`
+- **THEN** both put the variable settings first, `analysis/params.sql` second and the numbered stage files after it in file name order, and only `derived:load` appends `analysis/mrt_overlap.sql`, `analysis/turnaround_facilities.sql` and `analysis/derived_export.sql` in that order
 
 #### Scenario: Newest snapshot used
 
 - **WHEN** the snapshot folder holds `2026-10-20.csv` and `2026-10-22.csv` and day 2026-10-19 is loaded
 - **THEN** the distances come from `2026-10-22.csv` and the stored route day records 2026-10-22 as its entrance snapshot day
 
+#### Scenario: Newest toilet snapshot used
+
+- **WHEN** `external/public-toilets/` holds `2026-10-20.csv` and `2026-10-23.csv` and day 2026-10-19 is loaded
+- **THEN** the toilets come from `2026-10-23.csv` and the stored route day records 2026-10-23 as its toilet snapshot day
+
+#### Scenario: Eight files written
+
+- **WHEN** the fixture day 2026-10-19 of route 9001 is exported twice
+- **THEN** both runs write `route_day.csv`, `stops.csv`, `trips.csv`, `layovers.csv`, `trip_stop_counts.csv`, `ends.csv`, `end_toilets.csv` and `end_cells.csv` with identical bytes, and the health card's inspection files are unchanged
+
 
 <!-- @trace
-source: zhongshan-mrt-overlap
-updated: 2026-10-22
+source: turnaround-facilities
+updated: 2026-10-24
 code:
-  - lib/tasks/external.rake
-  - analysis/mrt_overlap.sql
-  - docs/data-sources.md
-  - app/components/mrt_overlap_component.yml
-  - db/migrate/20261021193708_add_mrt_overlap_to_derived_tables.rb
-  - app/components/data_limitations_component.yml
-  - analysis/10_load.sql
-  - app/models/route_page/mrt_overlap.rb
-  - app/models/route_day.rb
-  - analysis/derived_export.sql
-  - spec/fixtures/analysis/README.md
-  - app/models/route_day_loader.rb
-  - app/models/mrt_exits_snapshot.rb
-  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
-  - app/components/mrt_overlap_component.rb
-  - app/models/route_day_stop.rb
-  - db/schema.rb
-  - app/components/mrt_overlap_component.html.erb
+  - app/components/cycle_table_component.yml
+  - app/frontend/hero/scene.js
+  - app/components/turnaround_facilities_component.html.erb
+  - app/frontend/hero/runtime.js
+  - spec/factories/route_day_ends.rb
+  - app/components/section_nav_component.yml
+  - spec/factories/route_days.rb
+  - app/models/route_page/facilities.rb
+  - app/models/public_toilets_snapshot.rb
+  - output/branding-v2/a-bus/favicon.ico
+  - app/models/route_day_end_toilet.rb
+  - app/models/route_page/cycles.rb
+  - app/components/turnaround_facilities_component.yml
+  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
+  - app/models/route_day_end_cell.rb
+  - app/models/derived_load_command.rb
+  - app/components/site_bar_component.html.erb
+  - app/components/cycle_table_component.rb
   - analysis/README.md
+  - app/components/attribution_component.yml
+  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
+  - analysis/derived_export.sql
+  - config/environments/production.rb
+  - app/frontend/end_map/runtime.js
+  - spec/factories/route_day_end_toilets.rb
+  - analysis/turnaround_facilities.sql
+  - app/components/home_hero_component.yml
+  - app/components/home_hero_component.rb
+  - app/assets/images/home-hero-wide.webp
+  - public/turnaround/icon-16.png
+  - config/locales/tw.yml
+  - app/assets/images/home-hero-narrow.webp
+  - app/models/route_day.rb
+  - app/components/section_nav_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
+  - Gemfile.lock
+  - config/map.yml
+  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
+  - config/database.yml
+  - app/components/data_limitations_component.yml
+  - app/components/end_map_component.html.erb
+  - public/turnaround/og-image-v2.jpg
+  - app/components/end_map_component.rb
+  - db/schema.rb
+  - tools/hero/export.js
+  - .kamal/secrets
+  - app/frontend/entrypoints/application.js
+  - app/models/route_day_end.rb
+  - public/turnaround/icon-32.png
+  - config/locales/en.yml
+  - app/frontend/stylesheets/application.css
+  - docs/decisions.md
+  - app/views/layouts/application.html.erb
+  - .ruby-version
+  - tools/hero/index.html
+  - app/components/attribution_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - analysis/params.sql
+  - public/turnaround/favicon.ico
+  - app/models/route_page/end_map.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
+  - app/assets/images/home-hero-tall.webp
+  - bin/health-card
+  - Gemfile
+  - app/components/cycle_table_component.html.erb
+  - output/branding-v2/a-bus/favicon-preview.png
+  - config/deploy.yml
+  - package.json
+  - app/components/home_hero_component.html.erb
+  - app/components/attribution_component.html.erb
+  - spec/factories/route_day_end_cells.rb
+  - spec/fixtures/analysis/README.md
+  - output/branding-v2/a-bus/logo.png
+  - app/assets/images/turnaround-logo.webp
+  - public/turnaround/apple-touch-icon.png
+  - lib/tasks/external.rake
+  - Dockerfile
+  - spec/support/duckdb.rb
   - app/views/routes/show.html.erb
-  - spec/fixtures/analysis/external/taipei-mrt-exits/2026-10-19.csv
+  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
+  - config/credentials/production.yml.enc
+  - app/components/turnaround_facilities_component.rb
+  - app/models/map_tiles.rb
+  - docs/data-sources.md
+  - app/components/end_map_component.yml
+  - app/models/route_day_loader.rb
 tests:
-  - spec/analysis/fixtures_spec.rb
-  - spec/models/route_page/mrt_overlap_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/analysis/mrt_overlap_spec.rb
-  - spec/models/derived_load_command_spec.rb
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/assets/home_hero_images_spec.rb
   - spec/requests/route_page_fixture_spec.rb
-  - spec/components/mrt_overlap_component_spec.rb
-  - spec/models/mrt_exits_snapshot_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/route_page/cycles_spec.rb
+  - spec/models/map_tiles_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/analysis/fixtures_spec.rb
   - spec/models/route_day_loader_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/components/home_hero_component_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/components/cycle_table_component_spec.rb
+  - spec/models/route_page/facilities_spec.rb
+  - spec/models/route_page/end_map_spec.rb
+  - spec/system/route_page_mobile_spec.rb
+  - spec/models/public_toilets_snapshot_spec.rb
+  - spec/models/derived_load_command_spec.rb
   - spec/analysis/derived_export_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/system/home_hero_spec.rb
 -->
 
 ---
 ### Requirement: Replace one route day atomically
 
-Writing a day SHALL happen in one database transaction that first deletes the existing route day of the same route `Id` and Taipei day, together with all its stops, trips, layovers and trip stop counts, and then inserts the five files. A failure at any step SHALL leave the previously stored data of that day unchanged. Loading the same day twice from the same input SHALL leave the same rows.
+Writing a day SHALL happen in one database transaction that first deletes the existing route day of the same route `Id` and Taipei day, together with all its stops, trips, layovers, trip stop counts, ends, end toilets and end cells, and then inserts the eight files. A failure at any step SHALL leave the previously stored data of that day unchanged. Loading the same day twice from the same input SHALL leave the same rows.
 
 #### Scenario: Reload is idempotent
 
 - **WHEN** the fixture day 2026-10-19 of route 9001 is loaded twice
-- **THEN** the number of trips, layovers and trip stop counts stored for that day equals the number after the first load
+- **THEN** the number of trips, layovers, trip stop counts, ends, end toilets and end cells stored for that day equals the number after the first load
 
 #### Scenario: Failure keeps the old day
 
@@ -239,68 +394,120 @@ Writing a day SHALL happen in one database transaction that first deletes the ex
 
 
 <!-- @trace
-source: zhongshan-route-page
-updated: 2026-10-22
+source: turnaround-facilities
+updated: 2026-10-24
 code:
-  - app/components/route_summary_component.yml
-  - app/components/load_profile_table_component.yml
-  - app/components/layover_table_component.rb
-  - app/components/route_summary_component.rb
-  - app/controllers/routes_controller.rb
-  - analysis/derived_export.sql
-  - app/components/data_limitations_component.html.erb
-  - app/components/route_coverage_component.rb
-  - app/components/route_coverage_component.yml
-  - app/models/route_page/run_times.rb
-  - app/components/load_profile_table_component.rb
-  - db/migrate/20261021184616_create_derived_tables.rb
-  - app/components/run_time_table_component.yml
-  - app/models/trip_stop_count.rb
-  - app/components/data_limitations_component.rb
-  - app/components/route_summary_component.html.erb
-  - db/schema.rb
-  - bin/health-card
-  - app/views/routes/show.html.erb
-  - config/route_page.yml
-  - lib/analysis_run.rb
-  - app/frontend/stylesheets/application.css
-  - app/components/route_coverage_component.html.erb
-  - app/models/route_page/summary.rb
-  - app/components/load_profile_table_component.html.erb
-  - app/components/run_time_table_component.html.erb
-  - app/models/route_day_stop.rb
-  - app/components/layover_table_component.yml
+  - app/components/cycle_table_component.yml
+  - app/frontend/hero/scene.js
+  - app/components/turnaround_facilities_component.html.erb
+  - app/frontend/hero/runtime.js
+  - spec/factories/route_day_ends.rb
+  - app/components/section_nav_component.yml
+  - spec/factories/route_days.rb
+  - app/models/route_page/facilities.rb
+  - app/models/public_toilets_snapshot.rb
+  - output/branding-v2/a-bus/favicon.ico
+  - app/models/route_day_end_toilet.rb
+  - app/models/route_page/cycles.rb
+  - app/components/turnaround_facilities_component.yml
+  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
+  - app/models/route_day_end_cell.rb
   - app/models/derived_load_command.rb
+  - app/components/site_bar_component.html.erb
+  - app/components/cycle_table_component.rb
   - analysis/README.md
-  - app/components/run_time_table_component.rb
+  - app/components/attribution_component.yml
+  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
+  - analysis/derived_export.sql
+  - config/environments/production.rb
+  - app/frontend/end_map/runtime.js
+  - spec/factories/route_day_end_toilets.rb
+  - analysis/turnaround_facilities.sql
+  - app/components/home_hero_component.yml
+  - app/components/home_hero_component.rb
+  - app/assets/images/home-hero-wide.webp
+  - public/turnaround/icon-16.png
+  - config/locales/tw.yml
+  - app/assets/images/home-hero-narrow.webp
   - app/models/route_day.rb
-  - app/models/route_page/load_profile.rb
-  - app/models/route_page/layover_stats.rb
-  - app/models/trip.rb
-  - lib/tasks/derived.rake
-  - app/models/route_day_loader.rb
-  - app/models/route_page/coverage.rb
-  - app/models/route_page.rb
-  - app/components/layover_table_component.html.erb
-  - app/models/layover.rb
+  - app/components/section_nav_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
+  - Gemfile.lock
+  - config/map.yml
+  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
+  - config/database.yml
   - app/components/data_limitations_component.yml
-  - config/routes.rb
+  - app/components/end_map_component.html.erb
+  - public/turnaround/og-image-v2.jpg
+  - app/components/end_map_component.rb
+  - db/schema.rb
+  - tools/hero/export.js
+  - .kamal/secrets
+  - app/frontend/entrypoints/application.js
+  - app/models/route_day_end.rb
+  - public/turnaround/icon-32.png
+  - config/locales/en.yml
+  - app/frontend/stylesheets/application.css
+  - docs/decisions.md
+  - app/views/layouts/application.html.erb
+  - .ruby-version
+  - tools/hero/index.html
+  - app/components/attribution_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - analysis/params.sql
+  - public/turnaround/favicon.ico
+  - app/models/route_page/end_map.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
+  - app/assets/images/home-hero-tall.webp
+  - bin/health-card
+  - Gemfile
+  - app/components/cycle_table_component.html.erb
+  - output/branding-v2/a-bus/favicon-preview.png
+  - config/deploy.yml
+  - package.json
+  - app/components/home_hero_component.html.erb
+  - app/components/attribution_component.html.erb
+  - spec/factories/route_day_end_cells.rb
+  - spec/fixtures/analysis/README.md
+  - output/branding-v2/a-bus/logo.png
+  - app/assets/images/turnaround-logo.webp
+  - public/turnaround/apple-touch-icon.png
+  - lib/tasks/external.rake
+  - Dockerfile
+  - spec/support/duckdb.rb
+  - app/views/routes/show.html.erb
+  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
+  - config/credentials/production.yml.enc
+  - app/components/turnaround_facilities_component.rb
+  - app/models/map_tiles.rb
+  - docs/data-sources.md
+  - app/components/end_map_component.yml
+  - app/models/route_day_loader.rb
 tests:
-  - spec/components/run_time_table_component_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/models/route_page/run_times_spec.rb
-  - spec/models/route_page/card_consistency_spec.rb
-  - spec/models/route_day_loader_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/models/route_page/layover_stats_spec.rb
-  - spec/analysis/derived_export_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/components/layover_table_component_spec.rb
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/assets/home_hero_images_spec.rb
   - spec/requests/route_page_fixture_spec.rb
-  - spec/components/route_coverage_component_spec.rb
-  - spec/analysis/analysis_run_spec.rb
-  - spec/components/load_profile_table_component_spec.rb
-  - spec/components/route_summary_component_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/route_page/cycles_spec.rb
+  - spec/models/map_tiles_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/components/home_hero_component_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/components/cycle_table_component_spec.rb
+  - spec/models/route_page/facilities_spec.rb
+  - spec/models/route_page/end_map_spec.rb
+  - spec/system/route_page_mobile_spec.rb
+  - spec/models/public_toilets_snapshot_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/system/home_hero_spec.rb
 -->
 
 ---

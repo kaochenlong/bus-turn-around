@@ -1,6 +1,8 @@
 tw:
   site:
     name: "折返點 TurnAround"
+    description: "逐條路線量台北公車的兩個數字：折返點實際能休幾分鐘，以及跟捷運重疊的路段實際載多少人。"
+    share_image_alt: "青綠色公車標誌與折返路線，搭配折返點 TurnAround 名稱。"
   day_types:
     weekday: 平日
     holiday: 假日

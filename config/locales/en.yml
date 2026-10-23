@@ -30,6 +30,8 @@
 en:
   site:
     name: "TurnAround"
+    description: "Two numbers for Taipei buses, route by route: how long the rest at the turnaround actually is, and how many people ride the stretches that overlap the MRT."
+    share_image_alt: "A teal bus logo framed by a turning route, with the TurnAround name."
   day_types:
     weekday: weekday
     holiday: holiday

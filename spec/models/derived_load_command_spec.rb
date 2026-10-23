@@ -29,9 +29,9 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
     expect([ status.zero?, out.include?("brew install duckdb"), stored_days ]).to eq([ false, true, [] ])
   end
 
-  it "寫入一天：印出那一天的趟次、折返停留與趟次站筆數，結束碼 0" do
+  it "寫入一天：印出那一天的趟次、折返停留、趟次站筆數與兩端的公廁間數、靜止格數，結束碼 0" do
     status, out = run_command("DAY" => "2026-10-19")
-    expect([ status, out.lines.first.chomp ]).to eq([ 0, "2026-10-19 寫入：趟次 27、折返停留 18、趟次站 96" ])
+    expect([ status, out.lines.first.chomp ]).to eq([ 0, "2026-10-19 寫入：趟次 27、折返停留 18、趟次站 96、兩端公廁 5 間、靜止格 1 格" ])
   end
 
   it "讀檔視窗還沒結束的日子失敗，說明缺哪個小時檔，那一天不寫" do
@@ -39,31 +39,28 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
     expect([ status.zero?, out.lines.first.include?("bus_event/2026-10-21/01.jsonl"), stored_days ]).to eq([ false, true, [] ])
   end
 
-  describe "資料根目錄沒有捷運出入口快照時" do
-    # The fixture's raw files without its external/ folder.
-    def data_root_without_snapshot(dir)
-      %w[bus_event bus_seat_event static].each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, it), File.join(dir, it)) }
-      dir
-    end
-
-    it "那一天失敗，說要先跑 bin/rails external:mrt_exits，什麼都不寫" do
-      status, out = Dir.mktmpdir { run_command("DAY" => "2026-10-19", "TURNAROUND_DATA" => data_root_without_snapshot(it)) }
-      expect([ status.zero?, out.lines.first.include?("bin/rails external:mrt_exits"), stored_days ]).to eq([ false, true, [] ])
-    end
-  end
-
-  describe "有捷運出入口快照、沒有辦公日曆快照時" do
-    # The fixture's raw files and entrance snapshot without its office calendar.
-    def data_root_without_calendar(dir)
-      %w[bus_event bus_seat_event static].each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, it), File.join(dir, it)) }
+  describe "資料根目錄缺東西時" do
+    # A data root in `dir` that links the fixture's given feeds and external
+    # snapshot folders, so an example can leave some out.
+    def data_root(dir, feeds: %w[bus_event bus_seat_event bus_data static], externals: %w[taipei-mrt-exits public-toilets office-calendar])
+      feeds.each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, it), File.join(dir, it)) }
       FileUtils.mkdir_p(File.join(dir, "external"))
-      File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, "external/taipei-mrt-exits"), File.join(dir, "external/taipei-mrt-exits"))
+      externals.each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, "external", it), File.join(dir, "external", it)) }
       dir
     end
 
-    it "那一天失敗，說要先跑 bin/rails external:office_calendar YEAR=2026，什麼都不寫" do
-      status, out = Dir.mktmpdir { run_command("DAY" => "2026-10-19", "TURNAROUND_DATA" => data_root_without_calendar(it)) }
-      expect([ status.zero?, out.lines.first.include?("bin/rails external:office_calendar YEAR=2026"), stored_days ]).to eq([ false, true, [] ])
+    {
+      "三種快照都沒有" => [ { externals: [] }, "bin/rails external:mrt_exits" ],
+      "有辦公日曆、沒有捷運出入口與公廁快照" => [ { externals: %w[office-calendar] }, "bin/rails external:mrt_exits" ],
+      "有捷運出入口快照與辦公日曆、沒有公廁快照" => [ { externals: %w[taipei-mrt-exits office-calendar] }, "bin/rails external:public_toilets" ],
+      "只有捷運出入口快照" => [ { externals: %w[taipei-mrt-exits] }, "bin/rails external:public_toilets" ],
+      "有捷運出入口與公廁快照、沒有辦公日曆" => [ { externals: %w[taipei-mrt-exits public-toilets] }, "bin/rails external:office_calendar YEAR=2026" ],
+      "當天有 bus_event、沒有 bus_data 小時檔" => [ { feeds: %w[bus_event bus_seat_event static] }, "bus_data/2026-10-19" ]
+    }.each do |situation, (options, message)|
+      it "#{situation}：那一天失敗，訊息含 #{message}，什麼都不寫" do
+        status, out = Dir.mktmpdir { run_command("DAY" => "2026-10-19", "TURNAROUND_DATA" => data_root(it, **options)) }
+        expect([ status.zero?, out.lines.first.include?(message), stored_days ]).to eq([ false, true, [] ])
+      end
     end
   end
 

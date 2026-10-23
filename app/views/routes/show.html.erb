@@ -27,6 +27,11 @@
     <%= render CardComponent.new(id: "cycles") do %>
       <%= render CycleTableComponent.new(cycles: RoutePage::Cycles.new(route_days, ends: @ends)) %>
     <% end %>
+    <%# 地圖跟設施那一塊共用同一份設施的查詢 %>
+    <% facilities = RoutePage::Facilities.new(route_days, ends: @ends) %>
+    <%= render CardComponent.new(id: "facilities") do %>
+      <%= render TurnaroundFacilitiesComponent.new(facilities:, end_map: RoutePage::EndMap.new(route_days, ends: @ends, facilities:)) %>
+    <% end %>
     <%# 卡片在 turbo-frame 外面：拉桿只重新載入卡片裡的這一塊 %>
     <%= render CardComponent.new(id: "buffer") do %>
       <%= render BufferTradeComponent.new(buffer_trade: RoutePage::BufferTrade.new(route_days, minutes: @buffer_minutes, ends: @ends), coverage: @coverage) %>

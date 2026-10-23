@@ -13,6 +13,7 @@ require "rails_helper"
 #  loaded_at           :timestamptz      not null
 #  mrt_exits_day       :date
 #  office_calendar_day :date             not null
+#  public_toilets_day  :date
 #  route_name          :string           not null
 #  static_day          :date             not null
 #  route_id            :integer          not null
