@@ -1,7 +1,8 @@
 ---
 tw: &tw
-  title: 載客剖面
-  note: 車上人數取每站的離站記錄，沒有離站記錄時取到站記錄。每格是中位數 / p90，括號裡是那一站有人數的趟數；時段依趟次起點的小時。
+  note: 車上人數取每站的離站記錄，沒有離站記錄時取到站記錄。時段依趟次起點的小時。
+  summary: 逐站數字：載客剖面表
+  summary_note: "%{count} 站 × %{bands} 個時段，每格是中位數 / p90（趟數）"
   directions:
     "0": 去程
     "1": 返程
@@ -15,8 +16,9 @@ tw: &tw
 zh-TW:
   <<: *tw
 en:
-  title: Load profile
-  note: The on-board count when leaving each stop, or when arriving where no departure was recorded. Each cell is the median / p90, with the number of trips counted at that stop; bands follow the trip's start hour.
+  note: The on-board count when leaving each stop, or when arriving where no departure was recorded. Bands follow the trip's start hour.
+  summary: "Stop by stop: the load profile table"
+  summary_note: "%{count} stops × %{bands} time bands; each cell is median / p90 (trips)"
   directions:
     "0": Outbound
     "1": Inbound

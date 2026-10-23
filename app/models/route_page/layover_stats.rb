@@ -15,8 +15,9 @@ module RoutePage
       @latest_id = route_days.order(day: :desc).pick(:id)
     end
 
+    # Read once: the summary and the layover table of a page share one query.
     def rows
-      RouteDay.connection.select_all(RouteDay.sanitize_sql_array([ sql, { ids: @ids, latest_id: @latest_id } ])).map do |row|
+      @rows ||= RouteDay.connection.select_all(RouteDay.sanitize_sql_array([ sql, { ids: @ids, latest_id: @latest_id } ])).map do |row|
         Row.new(go_back: row["go_back"], stop_name: row["stop_name"], n_layovers: row["n_layovers"],
                 percentiles: PERCENTILE_LEVELS.each_index.map { row["p#{it}"]&.to_f },
                 short_share: row["short_share"])

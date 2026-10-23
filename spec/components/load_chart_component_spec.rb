@@ -29,6 +29,12 @@ RSpec.describe LoadChartComponent, type: :component do
 
   def points(rendered, band) = rendered.css("[data-direction='0'] [data-band='#{band}'] [data-seq]").map { [ it["data-seq"], it["data-median"] ] }
 
+  # Direction 0's rows for narrow screens in a band: sequence, median, how
+  # many bars and the row's text.
+  def rows(rendered, band)
+    rendered.css("[data-direction='0'] [data-row-band='#{band}'] [data-row-seq]").map { [ it["data-row-seq"], it["data-row-median"], it.css("[data-row-bar]").size, it.text.squish ] }
+  end
+
   let(:day) { route_day([ 900, 900, 400, 250, 450 ]).tap { trip(it, "morning_peak", 0 => 3, 1 => 8) }.tap { trip(it, "daytime", 0 => 5) } }
 
   it "每個時段一條線：早尖峰第 0、1 站是 3.0、8.0，日間只有第 0 站的 5.0" do
@@ -57,6 +63,34 @@ RSpec.describe LoadChartComponent, type: :component do
   it "站牌沒有距離時，照樣畫線但沒有底色帶" do
     rendered = render_chart(route_day([ nil, nil, nil, nil, nil ]).tap { trip(it, "morning_peak", 0 => 3) })
     expect([ rendered.css("[data-span-from]").size, points(rendered, "morning_peak") ]).to eq([ 0, [ %w[0 3.0] ] ])
+  end
+
+  describe "窄螢幕的每站一列" do
+    it "早尖峰第 0 站是 3.0、帶長條，第 1 站沒有人數，寫 —、沒有長條" do
+      rendered = render_chart(route_day([ 900, 900 ]).tap { trip(it, "morning_peak", 0 => 3) })
+      expect(rows(rendered, "morning_peak")).to match([ [ "0", "3.0", 1, end_with("3.0") ], [ "1", nil, 0, end_with("—") ] ])
+    end
+
+    it "長條的長度是中位數佔同一個方向刻度頂端的比例：頂端 10 時 3.0 是 30.0%、8.0 是 80.0%" do
+      expect(render_chart(day).css("[data-direction='0'] [data-row-band='morning_peak'] [data-row-bar]").map { it["style"] }).to eq([ "width: 30.0%", "width: 80.0%" ])
+    end
+
+    it "500 公尺內第 2 到 4 站的列帶底色，第 2 站那一列前面一行寫出兩端站名" do
+      group = render_chart(day).at_css("[data-direction='0'] [data-row-band='morning_peak']")
+      span = group.at_css("[data-row-span]")
+      expect([ group.css("[data-row-near]").map { it["data-row-seq"] }, span && [ span["data-first-stop"], span["data-last-stop"], span.next_element["data-row-seq"] ] ])
+        .to eq([ %w[2 3 4], [ "丙站", "戊站", "2" ] ])
+    end
+
+    it "站牌沒有距離時，沒有帶底色的列，也沒有路段標題" do
+      rendered = render_chart(route_day([ nil, nil, nil, nil, nil ]).tap { trip(it, "morning_peak", 0 => 3) })
+      expect(rendered.css("[data-row-near], [data-row-span]").size).to eq(0)
+    end
+
+    it "預設顯示早尖峰的列，其他時段在 Alpine 接手前藏起來" do
+      groups = render_chart(day).css("[data-direction='0'] [data-row-band]")
+      expect(groups.to_h { [ it["data-row-band"], it.key?("x-cloak") ] }).to eq("morning_peak" => false, "daytime" => true, "evening_peak" => true, "other" => true)
+    end
   end
 
   it "預設顯示早尖峰，其他時段在 Alpine 接手前藏起來" do

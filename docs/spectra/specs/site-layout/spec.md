@@ -151,3 +151,140 @@ tests:
   - spec/models/route_page/run_times_spec.rb
   - spec/components/route_coverage_component_spec.rb
 -->
+
+---
+### Requirement: Site name bar on every page
+
+Every HTML page SHALL begin, before the page's own content, with one bar that carries the site name from the locale file as a link to `/`. The bar SHALL be marked with `data-site-bar` and SHALL NOT carry or contain a `data-section` attribute, so that the block order of every page is unchanged.
+
+#### Scenario: Bar on the home page
+
+- **WHEN** `/` is requested
+- **THEN** exactly one `[data-site-bar]` is present before the `main` element, and its link points to `/` with the text 折返點 TurnAround
+
+#### Scenario: Bar on a route page
+
+- **WHEN** `/routes/9001` is requested and 9001 has no stored days
+- **THEN** the response is 200, exactly one `[data-site-bar]` is present, and no element with `data-section` is the bar or inside it
+
+<!-- @trace
+source: 02-route-page-mobile-first
+updated: 2026-10-23
+code:
+  - spec/fixtures/analysis/external/office-calendar/2026/2026-10-19.csv
+  - app/components/route_coverage_component.rb
+  - app/models/http_fetcher.rb
+  - app/components/load_chart_component.yml
+  - analysis/10_load.sql
+  - app/components/card_component.rb
+  - app/components/layover_chart_component.html.erb
+  - spec/fixtures/analysis/bus_event/2026-10-19/14.jsonl
+  - app/components/layover_chart_component.yml
+  - app/views/routes/show.html.erb
+  - app/models/route_day_loader.rb
+  - app/views/pages/home.html.erb
+  - app/components/route_summary_component.rb
+  - app/components/site_bar_component.rb
+  - analysis/30_layovers.sql
+  - app/components/load_profile_table_component.rb
+  - app/components/route_coverage_component.html.erb
+  - analysis/params.sql
+  - db/migrate/20261022231802_require_day_type_on_route_days.rb
+  - app/components/home_hero_component.html.erb
+  - analysis/README.md
+  - app/components/load_chart_component.html.erb
+  - app/components/route_summary_component.yml
+  - app/components/route_summary_component.html.erb
+  - app/components/buffer_trade_component.yml
+  - app/components/data_sources_component.html.erb
+  - lib/tasks/external.rake
+  - app/components/attribution_component.html.erb
+  - app/models/route_page/layover_stats.rb
+  - app/components/card_component.html.erb
+  - app/components/section_nav_component.html.erb
+  - app/components/buffer_trade_component.html.erb
+  - app/components/route_coverage_component.yml
+  - config/locales/tw.yml
+  - app/components/route_list_component.yml
+  - app/components/run_time_table_component.yml
+  - app/components/route_list_component.html.erb
+  - app/components/run_time_table_component.rb
+  - db/migrate/20261022230942_add_day_type_to_route_days.rb
+  - app/components/site_bar_component.html.erb
+  - spec/factories/route_days.rb
+  - app/models/route_day.rb
+  - app/components/run_time_table_component.html.erb
+  - config/locales/en.yml
+  - app/components/application_component.rb
+  - db/schema.rb
+  - app/components/data_limitations_component.html.erb
+  - spec/support/duckdb.rb
+  - app/components/mrt_overlap_component.rb
+  - bin/health-card
+  - app/models/office_calendar_snapshot.rb
+  - app/frontend/stylesheets/application.css
+  - app/models/route_page/coverage.rb
+  - spec/fixtures/analysis/README.md
+  - app/components/buffer_trade_component.rb
+  - app/components/load_profile_table_component.html.erb
+  - app/components/mrt_overlap_component.html.erb
+  - app/components/layover_table_component.rb
+  - app/components/layover_chart_component.rb
+  - app/components/load_chart_component.rb
+  - docs/data-sources.md
+  - app/components/layover_table_component.html.erb
+  - app/components/section_nav_component.yml
+  - app/components/load_profile_table_component.yml
+  - app/components/data_limitations_component.yml
+  - analysis/60_export.sql
+  - app/models/mrt_exits_snapshot.rb
+  - spec/fixtures/analysis/bus_event/2026-10-19/15.jsonl
+  - app/components/data_limitations_component.rb
+  - app/views/layouts/application.html.erb
+  - app/components/section_nav_component.rb
+  - app/components/layover_table_component.yml
+  - app/components/attribution_component.yml
+  - app/components/home_hero_component.rb
+tests:
+  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/card_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/system/route_page_layout_spec.rb
+  - spec/models/route_page/run_times_spec.rb
+  - spec/components/buffer_trade_component_spec.rb
+  - spec/models/http_fetcher_spec.rb
+  - spec/models/office_calendar_snapshot_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/analysis/layovers_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/route_page/coverage_spec.rb
+  - spec/components/layover_chart_component_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/components/run_time_table_component_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/analysis/chains_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/components/card_component_spec.rb
+  - spec/components/load_chart_component_spec.rb
+  - spec/models/home_page/route_list_spec.rb
+  - spec/components/mrt_overlap_component_spec.rb
+  - spec/system/route_page_mobile_spec.rb
+  - spec/components/data_limitations_component_spec.rb
+  - spec/analysis/load_spec.rb
+  - spec/components/layover_table_component_spec.rb
+  - spec/models/route_page/layover_stats_spec.rb
+  - spec/analysis/duckdb_helpers_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/models/route_page/layover_distribution_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/components/route_coverage_component_spec.rb
+  - spec/system/home_hero_spec.rb
+  - spec/components/load_profile_table_component_spec.rb
+  - spec/components/application_component_spec.rb
+  - spec/models/route_page/buffer_trade_spec.rb
+  - spec/components/route_summary_component_spec.rb
+-->

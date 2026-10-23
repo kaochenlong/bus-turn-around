@@ -26,6 +26,7 @@
   </head>
 
   <body class="<%= content_for(:body_class) %>">
+    <%= render SiteBarComponent.new %>
     <%= yield %>
     <%= render AttributionComponent.new %>
   </body>

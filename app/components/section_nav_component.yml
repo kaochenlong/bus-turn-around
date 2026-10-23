@@ -1,0 +1,21 @@
+---
+tw: &tw
+  label: 本頁區塊
+  sections:
+    layovers: 折返停留
+    buffer: 換休息試算
+    runtimes: 行駛時間
+    load: 載客剖面
+    mrt: 捷運重疊
+    limits: 資料限制
+zh-TW:
+  <<: *tw
+en:
+  label: On this page
+  sections:
+    layovers: Layovers
+    buffer: Rest trade-off
+    runtimes: Run time
+    load: Load profile
+    mrt: MRT overlap
+    limits: Data limitations

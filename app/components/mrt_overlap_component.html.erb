@@ -1,5 +1,7 @@
-<section data-section="mrt-overlap">
-  <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
+<%# 不是一張卡，但區塊導覽與重點數字也連到這裡，一樣讓出導覽的高度 %>
+<section id="mrt" data-section="mrt-overlap" class="scroll-mt-20">
+  <%# 跟沿線人數圖同一張卡，標題是卡內的小標題層級 %>
+  <h3 class="mb-2 text-subsection leading-snug font-bold text-slate-900"><%= t(".title") %></h3>
   <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
 
   <% if @mrt_overlap.needs_reload? %>
@@ -28,7 +30,7 @@
       </tbody>
     </table>
 
-    <h3 class="mt-7.5 mb-3 text-subsection font-semibold text-teal-800"><%= t(".stretches", meters: stretch_threshold) %></h3>
+    <h4 class="mt-7.5 mb-3 text-subsection font-semibold text-teal-800"><%= t(".stretches", meters: stretch_threshold) %></h4>
     <% if stretches.empty? %>
       <p class="text-slate-600"><%= t(".no_stretch") %></p>
     <% else %>

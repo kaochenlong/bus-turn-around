@@ -1,43 +1,55 @@
 <section data-section="load-profile">
-  <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
-  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
-  <div class="@container relative">
-    <div class="overflow-x-auto">
-      <table class="data-table min-w-[680px]">
-        <thead>
-          <tr>
-            <th><%= t(".seq") %></th>
-            <th class="text-left"><%= t(".stop") %></th>
-            <% BANDS.each do |band| %>
-              <th><%= t(".bands.#{band}") %></th>
-            <% end %>
-          </tr>
-        </thead>
-        <% directions.each do |go_back, stops| %>
-          <tbody data-direction="<%= go_back %>">
-            <tr>
-              <th scope="rowgroup" colspan="<%= BANDS.size + 2 %>" class="border-slate-100 pt-3.5 text-left text-note font-semibold text-teal-800 sm:pt-4 sm:text-table">
-                <%= t(".directions.#{go_back}") %>
-              </th>
-            </tr>
-            <% stops.each do |(seq, stop_name), by_band| %>
+  <%# 預設收起：每一站的列都在伺服器輸出裡，點標題列展開，不需要 JS %>
+  <details data-load-profile class="group rounded-xl border border-slate-200 bg-slate-50">
+    <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">
+      <span class="flex flex-col sm:block">
+        <span class="text-body font-semibold text-slate-900 sm:text-lead"><%= t(".summary") %></span>
+        <span data-stop-rows="<%= stop_rows %>" class="text-label text-slate-500 sm:ml-3 sm:text-note"><%= t(".summary_note", count: stop_rows, bands: BANDS.size) %></span>
+      </span>
+      <svg aria-hidden="true" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"
+           class="size-5.5 shrink-0 fill-none stroke-slate-600 stroke-2 group-open:rotate-180"><path d="M6 9l6 6 6-6" /></svg>
+    </summary>
+    <div class="px-4 pb-4 sm:px-5 sm:pb-5">
+      <p class="mb-3 text-note text-slate-500"><%= t(".note") %></p>
+      <div class="@container relative">
+        <div class="overflow-x-auto">
+          <table class="data-table min-w-[680px]">
+            <thead>
               <tr>
-                <td><%= seq %></td>
-                <td class="text-left"><%= stop_name %></td>
+                <th><%= t(".seq") %></th>
+                <th class="text-left"><%= t(".stop") %></th>
                 <% BANDS.each do |band| %>
-                  <% if (row = by_band[band]) %>
-                    <td><span class="font-semibold text-slate-900"><%= decimal(row.median) %></span><span class="text-slate-600"> / <%= decimal(row.p90) %></span><span class="text-label text-slate-500">（<%= row.n_trips %>）</span></td>
-                  <% else %>
-                    <td><%= NONE %></td>
-                  <% end %>
+                  <th><%= t(".bands.#{band}") %></th>
                 <% end %>
               </tr>
+            </thead>
+            <% directions.each do |go_back, stops| %>
+              <tbody data-direction="<%= go_back %>">
+                <tr>
+                  <th scope="rowgroup" colspan="<%= BANDS.size + 2 %>" class="border-slate-100 pt-3.5 text-left text-note font-semibold text-teal-800 sm:pt-4 sm:text-table">
+                    <%= t(".directions.#{go_back}") %>
+                  </th>
+                </tr>
+                <% stops.each do |(seq, stop_name), by_band| %>
+                  <tr>
+                    <td><%= seq %></td>
+                    <td class="text-left"><%= stop_name %></td>
+                    <% BANDS.each do |band| %>
+                      <% if (row = by_band[band]) %>
+                        <td><span class="font-semibold text-slate-900"><%= decimal(row.median) %></span><span class="text-slate-600"> / <%= decimal(row.p90) %></span><span class="text-label text-slate-500">（<%= row.n_trips %>）</span></td>
+                      <% else %>
+                        <td><%= NONE %></td>
+                      <% end %>
+                    <% end %>
+                  </tr>
+                <% end %>
+              </tbody>
             <% end %>
-          </tbody>
-        <% end %>
-      </table>
+          </table>
+        </div>
+        <%# 只在框比表格窄、需要橫向捲動時，才在右緣提示還有內容 %>
+        <div aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-0 w-9 bg-linear-to-r from-slate-50/0 to-slate-50 @min-[680px]:hidden"></div>
+      </div>
     </div>
-    <%# 只在框比表格窄、需要橫向捲動時，才在右緣提示還有內容 %>
-    <div aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-0 w-9 bg-linear-to-r from-white/0 to-white @min-[680px]:hidden"></div>
-  </div>
+  </details>
 </section>

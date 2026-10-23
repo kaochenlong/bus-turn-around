@@ -1,10 +1,60 @@
-<section data-section="summary" class="flex">
-  <div data-trips="<%= @summary.trips %>" class="flex-1 sm:flex-none sm:pr-9">
-    <div class="mb-1.5 text-note text-slate-600 sm:mb-2"><%= t(".trips") %></div>
-    <div class="font-route-figure text-stat-sm leading-none font-semibold text-slate-900 sm:text-stat"><%= @summary.trips %><span class="ml-1.5 font-route text-body font-medium text-slate-500"><%= t(".unit") %></span></div>
+<%# 四張卡共用的樣式：卡片、可點的卡片、標籤、每一行、數字、單位與說明 %>
+<% card = "flex flex-col gap-1 rounded-[14px] border border-slate-200 bg-white p-4 sm:gap-1.5 sm:px-5.5 sm:py-5" %>
+<% link = "#{card} hover:border-slate-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700" %>
+<% label = "flex justify-between gap-2 text-note leading-[1.4] text-slate-600 sm:leading-[1.65]" %>
+<% line = "flex flex-col gap-1 sm:gap-1.5" %>
+<% figure = "font-route-figure text-stat-sm leading-[1.1] font-semibold text-slate-900 sm:text-stat sm:leading-[1.05]" %>
+<% unit = "ml-1 font-route text-table font-medium text-slate-500 sm:ml-1.5 sm:text-body" %>
+<% note = "text-note leading-[1.4] text-slate-500 sm:leading-[1.65]" %>
+<%# 可點的卡右上角的向下箭頭，手機上不畫 %>
+<% arrow = capture do %>
+  <svg aria-hidden="true" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"
+       class="hidden size-4.5 shrink-0 fill-none stroke-teal-700 stroke-2 sm:block"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+<% end %>
+
+<section data-section="summary" class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+  <div data-trips="<%= trips %>" class="<%= card %>">
+    <span class="<%= label %>"><%= t(".trips") %></span>
+    <span class="<%= line %>">
+      <span class="<%= figure %>"><span data-number><%= trips %></span><span class="<%= unit %>"><%= t(".unit") %></span></span>
+      <span data-complete-trips="<%= complete_trips %>" class="<%= note %>"><%= t(".complete_trips", count: complete_trips) %></span>
+    </span>
   </div>
-  <div data-complete-trips="<%= @summary.complete_trips %>" class="flex-1 border-l border-slate-200 pl-5 sm:flex-none sm:pl-9">
-    <div class="mb-1.5 text-note text-slate-600 sm:mb-2"><%= t(".complete_trips") %></div>
-    <div class="font-route-figure text-stat-sm leading-none font-semibold text-slate-900 sm:text-stat"><%= @summary.complete_trips %><span class="ml-1.5 font-route text-body font-medium text-slate-500"><%= t(".unit") %></span></div>
-  </div>
+
+  <% if stopping_end? %>
+    <a href="#layovers" data-key-number="layover-p50" class="<%= link %>">
+      <span class="<%= label %>"><%= t(".layover_p50") %><%= arrow %></span>
+      <span class="flex flex-col gap-3">
+        <% stopping_rows.each do |row| %>
+          <span data-end="<%= row.go_back %>" class="<%= line %>">
+            <span class="<%= figure %>"><span data-number><%= minutes(p50(row)) %></span><% if p50(row) %><span data-unit class="<%= unit %>"><%= t(".minutes") %></span><% end %></span>
+            <span class="<%= note %>"><%= t(".rest_bound", stop: row.stop_name) %></span>
+          </span>
+        <% end %>
+      </span>
+    </a>
+    <a href="#layovers" data-key-number="short-share" class="<%= link %>">
+      <span class="<%= label %>"><%= t(".short_share", minutes: short_minutes) %><%= arrow %></span>
+      <span class="flex flex-col gap-3">
+        <% stopping_rows.each do |row| %>
+          <span data-end="<%= row.go_back %>" class="<%= line %>">
+            <span class="<%= figure %>"><span data-number><%= share(row.short_share) %></span></span>
+            <span class="<%= note %>"><%= t(".short_count", stop: row.stop_name, count: row.n_layovers) %></span>
+          </span>
+        <% end %>
+      </span>
+    </a>
+  <% else %>
+    <a href="#layovers" data-no-stopping-end class="<%= link %> lg:col-span-2">
+      <span class="<%= label %>"><%= t(".no_stopping_end") %><%= arrow %></span>
+    </a>
+  <% end %>
+
+  <a href="#mrt" data-key-number="mrt-share" class="<%= link %>">
+    <span class="<%= label %>"><%= t(".mrt_share", meters: mrt_meters) %><%= arrow %></span>
+    <span class="<%= line %>">
+      <span data-direction="0" class="<%= figure %>"><span data-number><%= share(mrt_share(0)) %></span><span class="<%= unit %>"><%= t(".outbound") %></span></span>
+      <span data-direction="1" class="<%= note %>"><%= t(".inbound_html", share: tag.span(share(mrt_share(1)), data: { number: true })) %></span>
+    </span>
+  </a>
 </section>

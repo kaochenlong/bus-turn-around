@@ -1,41 +1,53 @@
+<%# 640px 以下同一份 HTML 換成卡片：每一列是一張卡，前三格（方向、末站、折返方式）是卡頭，
+    後五格三欄排開，欄名用 data-label 的偽元素寫出來，格子本身的文字不變 %>
+<% head = "max-sm:border-0 max-sm:p-0" %>
+<% number = "max-sm:mt-3 max-sm:border-0 max-sm:p-0 max-sm:text-left max-sm:font-route-figure max-sm:text-figure-card max-sm:leading-[1.2] max-sm:font-semibold max-sm:text-slate-900 " \
+            "max-sm:before:block max-sm:before:font-route max-sm:before:text-label max-sm:before:leading-normal max-sm:before:font-normal max-sm:before:text-slate-500 max-sm:before:content-[attr(data-label)] " \
+            "max-sm:after:ml-0.5 max-sm:after:font-route max-sm:after:text-label max-sm:after:font-medium max-sm:after:text-slate-500 max-sm:after:content-[attr(data-unit)]" %>
 <section data-section="layovers">
-  <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
-  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
   <div class="@container relative">
     <div class="overflow-x-auto">
-      <table class="data-table min-w-[660px]">
-        <thead>
+      <table class="data-table max-sm:block sm:min-w-[660px]">
+        <%# 說明併進上面分佈圖的那一段，表格不另外下標題；螢幕報讀仍要知道這是哪一張表 %>
+        <caption class="sr-only"><%= t(".caption") %></caption>
+        <thead class="max-sm:hidden">
           <tr>
             <th class="text-left"><%= t(".direction") %></th>
             <th class="text-left"><%= t(".last_stop") %></th>
             <th class="text-left"><%= t(".nature") %></th>
             <th><%= t(".count") %></th>
-            <th>p10</th>
-            <th>p50</th>
-            <th>p90</th>
+            <% percentile_labels.each do |label| %>
+              <th><%= label %></th>
+            <% end %>
             <th><%= t(".short", minutes: short_minutes) %></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="max-sm:flex max-sm:flex-col max-sm:gap-3">
           <% rows.each do |row| %>
-            <tr data-direction="<%= row.go_back %>" data-end-nature="<%= nature(row) %>">
-              <td class="text-left"><%= t(".directions.#{row.go_back}") %></td>
-              <td class="text-left"><%= row.stop_name %></td>
-              <td class="text-left"><%= nature_tag(t(".natures.#{nature(row)}")) %></td>
-              <td><%= row.n_layovers %></td>
-              <% row.percentiles.each do |value| %>
-                <td><%= minutes(value) %></td>
+            <tr data-direction="<%= row.go_back %>" data-end-nature="<%= nature(row) %>"
+                class="max-sm:grid max-sm:grid-cols-3 max-sm:gap-x-2 max-sm:rounded-xl max-sm:border max-sm:border-slate-200 max-sm:p-4">
+              <td class="text-left <%= head %> max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-1 max-sm:text-note max-sm:text-slate-500"><%= t(".directions.#{row.go_back}") %></td>
+              <td class="text-left <%= head %> max-sm:col-span-3 max-sm:col-start-1 max-sm:row-start-2 max-sm:text-lead max-sm:leading-[1.4] max-sm:font-semibold max-sm:whitespace-normal max-sm:text-slate-900"><%= row.stop_name %></td>
+              <td class="text-left <%= head %> max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end"><%= nature_tag(t(".natures.#{nature(row)}")) %></td>
+              <td data-label="<%= t(".count") %>" class="<%= number %>"><%= row.n_layovers %></td>
+              <% row.percentiles.each_with_index do |value, index| %>
+                <%= tag.td minutes(value), data: { label: percentile_labels[index], unit: (t(".minute_unit") if value) },
+                                           class: class_names(number, (key_cell_class(row) if index == P50)) %>
               <% end %>
-              <td><%= share(row.short_share) %></td>
+              <%= tag.td share(row.short_share), data: { label: t(".short", minutes: short_minutes) }, class: class_names(number, "max-sm:col-span-2", key_cell_class(row)) %>
             </tr>
           <% end %>
         </tbody>
       </table>
     </div>
-    <%# 只在框比表格窄、需要橫向捲動時，才在右緣提示還有內容 %>
-    <div aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-0 w-9 bg-linear-to-r from-white/0 to-white @min-[660px]:hidden"></div>
+    <%# 只在框比表格窄、需要橫向捲動時，才在右緣提示還有內容；手機上是卡片，不會溢出 %>
+    <div aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-0 w-9 bg-linear-to-r from-white/0 to-white max-sm:hidden @min-[660px]:hidden"></div>
   </div>
-  <% if pass_through? %>
-    <p data-pass-through-note class="mt-3 max-w-[46em] text-note text-slate-500 sm:mt-3.5"><%= t(".pass_through_note") %></p>
-  <% end %>
+  <p class="mt-3 max-w-[46em] text-note text-slate-500 sm:mt-3.5">
+    <% if pass_through? %>
+      <%= t(".note_with_pass_through_html", note: t(".note"), pass_through: tag.span(t(".pass_through_note"), data: { pass_through_note: true })) %>
+    <% else %>
+      <%= t(".note") %>
+    <% end %>
+  </p>
 </section>

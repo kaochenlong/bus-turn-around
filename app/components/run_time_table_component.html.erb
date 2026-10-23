@@ -1,12 +1,30 @@
-<section data-section="run-times">
+<section data-section="run-times" x-data="{ direction: 0 }">
+  <%= eyebrow(t(".eyebrow")) %>
   <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
-  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <p class="max-w-[46em] text-slate-600 <%= scale ? "mb-6 sm:mb-2" : "mb-6" %>"><%= t(".note") %></p>
+  <% if scale %>
+    <%# 橫條在 640px 以下不畫，說明也跟著藏 %>
+    <p data-bar-legend class="mb-6 hidden text-note text-slate-500 sm:block"><%= t(".bar_legend", from: scale.from, to: scale.to) %></p>
+  <% end %>
+  <%# 640px 以下一次只看一個方向，預設去程；方向只是頁面上的狀態，不改網址。沒有 JS 時切換按鈕藏著（x-cloak），
+      兩個方向都在，伺服器輸出的 class 裡沒有藏起來的樣式 %>
+  <div x-cloak data-direction-switch role="group" aria-label="<%= t(".direction_picker") %>"
+       class="mb-3.5 flex gap-0.5 rounded-[10px] border border-slate-200 bg-slate-100 p-0.75 sm:hidden">
+    <% directions.each do |go_back| %>
+      <button type="button" value="<%= go_back %>" x-on:click="direction = <%= go_back %>" x-bind:aria-pressed="direction === <%= go_back %>"
+              x-bind:class="direction === <%= go_back %> ? 'bg-white font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.14)]' : 'font-medium text-slate-600 hover:text-slate-900'"
+              class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+        <%= t(".directions.#{go_back}") %>
+      </button>
+    <% end %>
+  </div>
   <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
     <% directions.each do |go_back| %>
-      <div data-direction="<%= go_back %>" class="min-w-0">
-        <h3 class="mb-2 text-subsection font-semibold text-teal-800"><%= t(".directions.#{go_back}") %></h3>
+      <div data-direction="<%= go_back %>" x-bind:class="direction === <%= go_back %> ? '' : 'max-sm:hidden'" class="min-w-0">
+        <%# 手機上有切換按鈕時，方向的標題只留給螢幕報讀；沒有 JS 時照常顯示 %>
+        <h3 x-bind:class="'max-sm:sr-only'" class="mb-2 text-subsection font-semibold text-teal-800"><%= t(".directions.#{go_back}") %></h3>
         <% if rows_for(go_back).any? %>
-          <table class="data-table">
+          <table class="data-table" data-scale-from="<%= scale.from %>" data-scale-to="<%= scale.to %>">
             <thead>
               <tr>
                 <th class="text-left"><%= t(".hour") %></th>
@@ -14,6 +32,9 @@
                 <th>p50</th>
                 <th class="font-semibold text-slate-900">p85</th>
                 <th>p95</th>
+                <th class="hidden w-37.5 sm:table-cell sm:pl-4.5">
+                  <div data-scale-ticks class="flex justify-between text-tick"><span><%= scale.from %></span><span><%= scale.mid %></span><span><%= scale.to %></span></div>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -25,12 +46,18 @@
                   <td><%= minutes(p50) %></td>
                   <td class="font-semibold <%= "text-slate-900" unless row.small_sample %>"><%= minutes(p85) %></td>
                   <td><%= minutes(p95) %></td>
+                  <td data-bar-from="<%= minutes(p50) %>" data-bar-to="<%= minutes(p95) %>" data-bar-mark="<%= minutes(p85) %>" class="hidden w-37.5 sm:table-cell sm:pl-4.5">
+                    <div class="relative h-3 rounded-[3px] bg-slate-100">
+                      <div class="absolute inset-y-0 min-w-px rounded-[3px] <%= row.small_sample ? "bg-slate-300" : "bg-teal-300" %>" style="<%= range_style(p50, p95) %>"></div>
+                      <div class="absolute -inset-y-1 -ml-px w-0.5 <%= row.small_sample ? "bg-slate-500" : "bg-teal-800" %>" style="<%= mark_style(p85) %>"></div>
+                    </div>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
           </table>
         <% else %>
-          <p class="text-note text-slate-500"><%= t(".none") %></p>
+          <p data-no-trips class="text-note text-slate-500"><%= t(".none") %></p>
         <% end %>
         <p data-excluded-for="<%= go_back %>" data-excluded-count="<%= excluded.fetch(go_back) %>" class="mt-2.5 text-note text-slate-500 sm:mt-3">
           <%= t(".excluded", count: excluded.fetch(go_back)) %>

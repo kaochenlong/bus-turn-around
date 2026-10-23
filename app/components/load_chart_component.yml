@@ -1,7 +1,8 @@
 ---
 tw: &tw
+  eyebrow: 載客剖面
   title: 靠近捷運的那一段，車上有多少人？
-  note: 線是每一站車上人數的中位數，依趟次起點的小時分時段；底色是 500 公尺內有捷運出入口的連續站。靠近捷運不等於可以被捷運取代。有一站在這個時段沒有人數時，線在那裡斷開。精確數字在下面的載客剖面表。
+  note: 圖上是每一站車上人數的中位數，依趟次起點的小時分時段；底色是 500 公尺內有捷運出入口的連續站。靠近捷運不等於可以被捷運取代。一站在這個時段沒有人數時，那一站留空。精確數字在下面的逐站表。
   directions:
     "0": 去程
     "1": 返程
@@ -11,14 +12,18 @@ tw: &tw
     evening_peak: 晚尖峰
     other: 其餘
   band_picker: 時段
+  direction_picker: 方向
   span: 靠近捷運：%{first}–%{last}
   people: 人
+  rows_stop: 站名
+  rows_note: 同一個方向四個時段用同一個刻度。
   aria: "%{direction}沿線每站車上人數的中位數，%{first} 到 %{last}"
 zh-TW:
   <<: *tw
 en:
+  eyebrow: Load profile
   title: How many people are on board along the stretch near the MRT?
-  note: The line is the median on-board count at each stop, by the band of the trip's start hour; shading marks consecutive stops within 500 metres of an MRT entrance. Being near the MRT does not mean the MRT can replace the bus. The line breaks where a stop has no count in the band. Exact numbers are in the load profile table below.
+  note: The chart shows the median on-board count at each stop, by the band of the trip's start hour; shading marks consecutive stops within 500 metres of an MRT entrance. Being near the MRT does not mean the MRT can replace the bus. A stop without a count in the band is left blank. Exact numbers are in the stop-by-stop table below.
   directions:
     "0": Outbound
     "1": Inbound
@@ -28,6 +33,9 @@ en:
     evening_peak: Evening peak
     other: Other
   band_picker: Time band
+  direction_picker: Direction
   span: "Near the MRT: %{first}–%{last}"
   people: riders
+  rows_stop: Stop
+  rows_note: All four time bands of a direction share one scale.
   aria: "%{direction}: median on-board count at each stop, %{first} to %{last}"

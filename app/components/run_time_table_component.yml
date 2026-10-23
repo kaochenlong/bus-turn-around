@@ -1,7 +1,10 @@
 ---
 tw: &tw
-  title: 行駛時間
+  eyebrow: 行駛時間
+  title: 一趟從起站到末站要跑多久？
   note: 完整趟次從起站離站到末站到站的分鐘數，依發車的小時分組。趟數少於 5 的列標「樣本少」。
+  bar_legend: 每列右邊的橫條從 p50 畫到 p95，中間的直線是 p85，刻度 %{from} 到 %{to} 分鐘。
+  direction_picker: 方向
   directions:
     "0": 去程
     "1": 返程
@@ -13,8 +16,11 @@ tw: &tw
 zh-TW:
   <<: *tw
 en:
-  title: Run time
+  eyebrow: Run time
+  title: How long does a trip from the first stop to the last take?
   note: Minutes from leaving the first stop to reaching the last stop, complete trips only, by departure hour. Rows with fewer than 5 trips are marked as small samples.
+  bar_legend: The bar on the right of each row runs from p50 to p95, with a line at p85, on a scale of %{from} to %{to} minutes.
+  direction_picker: Direction
   directions:
     "0": Outbound
     "1": Inbound

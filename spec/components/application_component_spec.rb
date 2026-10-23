@@ -5,6 +5,27 @@ require "rails_helper"
 RSpec.describe ApplicationComponent, type: :component do
   def label(day_type) = described_class.new.day_type_label(day_type)
 
+  # Every key of a translation tree, as dotted paths.
+  def translation_keys(tree, prefix = "") = tree.flat_map { |key, value| value.is_a?(Hash) ? translation_keys(value, "#{prefix}#{key}.") : [ "#{prefix}#{key}" ] }.sort
+
+  # Sidecar translations are only looked up when a component renders, and the
+  # tests render in tw; a key missing from en would only show in production.
+  it "每個元件的翻譯檔裡，tw、zh-TW、en 三份的鍵都一樣" do
+    mismatched = Rails.root.glob("app/components/*.yml").reject do |path|
+      YAML.load_file(path, aliases: true).values_at("tw", "zh-TW", "en").map { translation_keys(it) }.uniq.size == 1
+    end
+    expect(mismatched.map { it.basename.to_s }).to eq([])
+  end
+
+  # The number formats the tables and the key numbers share.
+  it "分鐘數留一位小數，沒有值時是 —" do
+    expect([ described_class.new.minutes(20.0), described_class.new.minutes(nil) ]).to eq([ "20.0", "—" ])
+  end
+
+  it "比例寫成留一位小數的百分比，沒有值時是 —" do
+    expect([ described_class.new.share(1.0 / 3), described_class.new.share(nil) ]).to eq([ "33.3%", "—" ])
+  end
+
   it "weekday 與 holiday 各用 day_types 底下自己的翻譯" do
     expect([ label("weekday"), label("holiday") ]).to eq([ I18n.t("day_types.weekday"), I18n.t("day_types.holiday") ])
   end

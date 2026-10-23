@@ -7,44 +7,38 @@
 <% content_for :body_class, "bg-slate-50" %>
 
 <main class="page-column flex flex-col gap-4 py-8 font-route text-body text-slate-800 [font-variant-numeric:tabular-nums] sm:gap-6">
-  <%= render CardComponent.new do %>
-    <div class="flex flex-col gap-4.5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-x-12 sm:gap-y-7">
-      <div class="min-w-0 sm:grow sm:basis-130"><%= render RouteCoverageComponent.new(coverage: @coverage) %></div>
-      <% if @coverage.data? %>
-        <div class="border-t border-slate-100 pt-4.5 sm:shrink-0 sm:border-t-0 sm:pt-0">
-          <%= render RouteSummaryComponent.new(summary: RoutePage::Summary.new(@coverage.route_days)) %>
-        </div>
-      <% end %>
-    </div>
-  <% end %>
+  <%= render RouteCoverageComponent.new(coverage: @coverage) %>
 
   <% if @coverage.data? %>
     <% route_days = @coverage.route_days %>
+    <%# 摘要的重點數字與折返停留表、捷運重疊表用同一個物件，數字只算一次 %>
+    <% layover_stats = RoutePage::LayoverStats.new(route_days) %>
     <% load_profile = RoutePage::LoadProfile.new(route_days) %>
     <% mrt_overlap = RoutePage::MrtOverlap.new(route_days) %>
-    <%= render CardComponent.new do %>
+    <%# 同一張卡裡的區塊之間用這條分隔線 %>
+    <% divider = tag.hr(class: "mt-7 mb-5 border-slate-200 sm:mt-8 sm:mb-6") %>
+    <%= render RouteSummaryComponent.new(summary: RoutePage::Summary.new(route_days), layover_stats:, ends: @ends, mrt_overlap:) %>
+    <%= render SectionNavComponent.new %>
+    <%= render CardComponent.new(id: "layovers") do %>
       <%= render LayoverChartComponent.new(layover_distribution: RoutePage::LayoverDistribution.new(route_days), ends: @ends) %>
-    <% end %>
-    <%= render CardComponent.new do %>
-      <%= render LoadChartComponent.new(load_profile:, mrt_overlap:) %>
-    <% end %>
-    <%= render CardComponent.new do %>
-      <%= render RunTimeTableComponent.new(run_times: RoutePage::RunTimes.new(route_days)) %>
-    <% end %>
-    <%= render CardComponent.new do %>
-      <%= render LayoverTableComponent.new(layover_stats: RoutePage::LayoverStats.new(route_days), ends: @ends) %>
+      <%= divider %>
+      <%= render LayoverTableComponent.new(layover_stats:, ends: @ends) %>
     <% end %>
     <%# 卡片在 turbo-frame 外面：拉桿只重新載入卡片裡的這一塊 %>
-    <%= render CardComponent.new do %>
+    <%= render CardComponent.new(id: "buffer") do %>
       <%= render BufferTradeComponent.new(buffer_trade: RoutePage::BufferTrade.new(route_days, minutes: @buffer_minutes, ends: @ends), coverage: @coverage) %>
     <% end %>
-    <%= render CardComponent.new do %>
-      <%= render MrtOverlapComponent.new(mrt_overlap:) %>
+    <%= render CardComponent.new(id: "runtimes") do %>
+      <%= render RunTimeTableComponent.new(run_times: RoutePage::RunTimes.new(route_days)) %>
     <% end %>
-    <%= render CardComponent.new do %>
+    <%= render CardComponent.new(id: "load") do %>
+      <%= render LoadChartComponent.new(load_profile:, mrt_overlap:) %>
+      <%= divider %>
+      <%= render MrtOverlapComponent.new(mrt_overlap:) %>
+      <%= divider %>
       <%= render LoadProfileTableComponent.new(load_profile:) %>
     <% end %>
-    <%= render CardComponent.new do %>
+    <%= render CardComponent.new(id: "limits") do %>
       <%= render DataLimitationsComponent.new %>
     <% end %>
   <% end %>

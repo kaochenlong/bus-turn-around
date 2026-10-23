@@ -12,6 +12,18 @@ RSpec.describe "Routes", type: :request do
   # The last stop of each direction, so the layover table has a row per direction.
   def add_last_stops(route_day) = route_day.stops.create!([ { go_back: 0, seq: 4, stop_name: "戊站" }, { go_back: 1, seq: 9, stop_name: "甲站" } ])
 
+  # One morning-peak trip per direction, with an on-board count at each of the
+  # given sequence numbers.
+  def add_counts(route_day, seqs_by_direction)
+    seqs_by_direction.each do |go_back, seqs|
+      start_time = Time.zone.parse("2026-10-19 07:00") + go_back.hours
+      trip = route_day.trips.create!(bus_id: "TEST-0001", path_attribute_id: 9001, go_back:, band: "morning_peak", start_time:,
+                                     end_time: start_time + 50.minutes, first_seq: 0, last_seq: 9, n_events: 10, n_stops_observed: 5,
+                                     completeness: "complete", start_from_arrival: false, end_from_departure: false)
+      seqs.each { trip.trip_stop_counts.create!(seq: it, on_board: 5) }
+    end
+  end
+
   def page = response.parsed_body
 
   def buffer_minutes = page.at_css("[data-section=buffer-trade] [data-value=minutes]")&.text
@@ -28,6 +40,23 @@ RSpec.describe "Routes", type: :request do
   def layover_natures = page.css("[data-section=layovers] tr[data-direction]").map { it["data-end-nature"] }
 
   def pass_through_layovers = page.css("[data-section=buffer-trade] [data-value=pass-through-layovers]")
+
+  # The data-section of every block inside the element a fragment names, that
+  # element included; nil when the page has no such element.
+  def sections_at(fragment) = page.at_css(fragment)&.xpath("descendant-or-self::*[@data-section]")&.map { it["data-section"] }
+
+  def key_number_targets = page.css("[data-key-number]").to_h { [ it["data-key-number"], sections_at(it["href"]) ] }
+
+  def section_links = page.css("nav[data-section-nav] a").map { [ it["href"], sections_at(it["href"]) ] }
+
+  # What would hide an element, or one of its ancestors in main, before any
+  # script runs: a hiding class, an inline display: none, or x-cloak.
+  def hidden_marks(node)
+    [ node, *node.ancestors.take_while { it.name != "main" } ].flat_map do |element|
+      [ *(element.classes & %w[hidden max-sm:hidden]), *("display: none" if element["style"].to_s.delete(" ").include?("display:none")),
+        *("x-cloak" if element.key?("x-cloak")) ]
+    end
+  end
 
   it "路線不在路線清單裡回 404" do
     get route_path(9999)
@@ -88,11 +117,75 @@ RSpec.describe "Routes", type: :request do
     )
   end
 
-  it "有資料的那一天，頁面依序是摘要、折返停留分佈圖、沿線人數圖、行駛時間、折返停留、試算、捷運重疊、載客剖面、資料限制" do
+  it "有資料的那一天，頁面依序是摘要、折返停留分佈圖、折返停留、試算、行駛時間、沿線人數圖、捷運重疊、載客剖面、資料限制" do
     store_days("2026-10-19")
     get route_path(9001), params: { day: "2026-10-19" }
     expect(page.css("[data-section]").map { it["data-section"] })
-      .to eq(%w[summary layover-chart load-chart run-times layovers buffer-trade mrt-overlap load-profile limitations])
+      .to eq(%w[summary layover-chart layovers buffer-trade run-times load-chart mrt-overlap load-profile limitations])
+  end
+
+  it "重點數字連到的區塊：兩個折返停留的數字連到折返停留那張卡，捷運重疊連到捷運重疊那一區" do
+    store_days("2026-10-19")
+    get route_path(9001), params: { day: "2026-10-19" }
+    expect(key_number_targets).to eq("layover-p50" => %w[layover-chart layovers], "short-share" => %w[layover-chart layovers], "mrt-share" => %w[mrt-overlap])
+  end
+
+  it "摘要後面的區塊導覽依頁面順序連到六個區塊，每個 fragment 都對得到包住那一區的元素" do
+    store_days("2026-10-19")
+    get route_path(9001), params: { day: "2026-10-19" }
+    expect(section_links).to eq([ [ "#layovers", %w[layover-chart layovers] ], [ "#buffer", %w[buffer-trade] ], [ "#runtimes", %w[run-times] ],
+                                  [ "#load", %w[load-chart mrt-overlap load-profile] ], [ "#mrt", %w[mrt-overlap] ], [ "#limits", %w[limitations] ] ])
+  end
+
+  it "逐站的載客剖面表收在預設關閉的 details 裡，每一站有人數的列都在回應裡" do
+    store_days("2026-10-19").then { add_counts(RouteDay.sole, 0 => [ 1, 2 ], 1 => [ 6 ]) }
+    get route_path(9001), params: { day: "2026-10-19" }
+    details = page.at_css("[data-section=load-profile] details[data-load-profile]")
+    expect([ details&.key?("open"), details&.css("tbody tr")&.count { it.at_css("td") } ]).to eq([ false, 3 ])
+  end
+
+  it "沒有 JS 時，兩個方向的行駛時間表都在回應裡、都沒有標成藏起來，方向切換藏著" do
+    store_days("2026-10-19").then { add_counts(RouteDay.sole, 0 => [], 1 => []) }
+    get route_path(9001), params: { day: "2026-10-19" }
+    directions = page.css("[data-section=run-times] [data-direction]").map { [ it["data-direction"], it.css("table").size, hidden_marks(it) ] }
+    expect([ directions, page.at_css("[data-section=run-times] [data-direction-switch]")&.key?("x-cloak") ]).to eq([ [ [ "0", 1, [] ], [ "1", 1, [] ] ], true ])
+  end
+
+  it "沒有 JS 時，兩個方向的每站一列都在回應裡、預設時段那一組沒有標成藏起來，方向切換藏著" do
+    store_days("2026-10-19").then { add_last_stops(RouteDay.sole) }
+    get route_path(9001), params: { day: "2026-10-19" }
+    groups = page.css("[data-section=load-chart] [data-row-band=morning_peak]").map { [ it.css("[data-row-seq]").size, hidden_marks(it) ] }
+    expect([ groups, page.at_css("[data-section=load-chart] [data-direction-switch]")&.key?("x-cloak") ]).to eq([ [ [ 1, [] ], [ 1, [] ] ], true ])
+  end
+
+  it "那一天沒有資料時回 200，沒有區塊導覽" do
+    store_days("2026-10-19")
+    get route_path(9001), params: { day: "2026-10-25" }
+    expect([ response.status, page.css("nav[data-section-nav]").size ]).to eq([ 200, 0 ])
+  end
+
+  describe "fixture 寫入的 9001（兩端都停車）", :duckdb do
+    before do
+      RouteDayLoader.new(route_id: 9001, day: Date.new(2026, 10, 19), data_root: DuckdbHelpers::FIXTURE_DATA, duckdb: "duckdb").call
+      get route_path(9001), params: { day: "2026-10-19" }
+    end
+
+    # The number of each line of a key number, by end or direction.
+    def key_numbers(key, by) = page.css("[data-key-number=#{key}] [#{by}]").map { [ it[by], it.at_css("[data-number]").text ] }
+
+    # The text of the cell at `index` in each row, by direction.
+    def cells(rows, index) = page.css(rows).map { [ it["data-direction"], it.css("td")[index].text.squish ] }
+
+    it "停車端折返停留 p50 與不到 15 分鐘，每一端的數字跟折返停留表那一列的格子一字不差，而且都是數字" do
+      table = [ 5, 7 ].map { cells("[data-section=layovers] tr[data-direction]", it) }
+      expect([ key_numbers("layover-p50", "data-end"), key_numbers("short-share", "data-end"), table.flatten(1).count { it.last.match?(/\d/) } ])
+        .to eq([ *table, 4 ])
+    end
+
+    it "捷運重疊兩個方向的數字跟捷運重疊表 500 公尺那一欄一字不差，而且都是數字" do
+      table = cells("[data-shares] tr[data-direction]", 3)
+      expect([ key_numbers("mrt-share", "data-direction"), table.count { it.last.match?(/\d/) } ]).to eq([ table, 2 ])
+    end
   end
 
   it "兩端都停車的 9001，折返停留兩列都標停車" do

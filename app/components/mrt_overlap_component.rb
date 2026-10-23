@@ -18,8 +18,6 @@ class MrtOverlapComponent < ApplicationComponent
 
   def stretches = @stretches ||= @mrt_overlap.stretches
 
-  def share(value) = format("%.1f%%", value * 100)
-
   def decimal(value) = format("%.1f", value)
 
   def stretch_key(stretch) = "#{stretch.go_back}:#{stretch.first_seq}-#{stretch.last_seq}"
