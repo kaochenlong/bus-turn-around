@@ -9,9 +9,9 @@ RSpec.describe "Pages", type: :request do
 
   def page = response.parsed_body
 
-  it "首頁回 200，區塊依序是 hero、路線清單、資料限制、資料來源" do
+  it "首頁回 200，區塊依序是 hero、起點、路線清單、資料限制、資料來源" do
     get root_path
-    expect([ response.status, page.css("[data-section]").map { it["data-section"] } ]).to eq([ 200, %w[hero routes limitations sources] ])
+    expect([ response.status, page.css("[data-section]").map { it["data-section"] } ]).to eq([ 200, %w[hero origin routes limitations sources] ])
   end
 
   it "站名在 body 的文字裡只出現一次，就在網站名稱列裡" do
@@ -20,12 +20,12 @@ RSpec.describe "Pages", type: :request do
     expect([ page.at_css("body").text.scan(name).size, page.at_css("[data-site-bar]")&.text&.include?(name) ]).to eq([ 1, true ])
   end
 
-  it "9001 存了 2026-10-20 時，不跑任何 script 拿到的 HTML 已經有插圖、9001 的最新一天、四條資料限制與三個資料集連結" do
+  it "9001 存了 2026-10-20 時，不跑任何 script 拿到的 HTML 已經有插圖、起點區塊連到原文的連結、9001 的最新一天、四條資料限制與三個資料集連結" do
     store_days("2026-10-20")
     get root_path
-    selectors = [ "[data-section=hero] picture", "[data-route='9001'][data-latest-day='2026-10-20']",
-                  "[data-section=limitations] li", "[data-section=sources] a[href]" ]
-    expect(selectors.map { page.css(it).size }).to eq([ 1, 1, 4, 3 ])
+    selectors = [ "[data-section=hero] picture", "[data-section=origin] a[href='#{OriginStoryComponent::ARTICLE_URL}']",
+                  "[data-route='9001'][data-latest-day='2026-10-20']", "[data-section=limitations] li", "[data-section=sources] a[href]" ]
+    expect(selectors.map { page.css(it).size }).to eq([ 1, 1, 1, 4, 3 ])
   end
 
   it "照設定的順序：15373 沒有資料、不是連結，接著是連到路線頁的 9001" do

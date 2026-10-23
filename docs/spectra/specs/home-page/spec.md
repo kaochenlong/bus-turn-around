@@ -8,17 +8,17 @@ The root page of the site, `GET /`: what the site is, which routes have a route 
 
 ### Requirement: Home page content and order
 
-The system SHALL serve `GET /` with these blocks in this order: a hero block with a one-question heading, one sentence naming the two numbers the site measures per route, and the hero picture; the route list; the data limitations; the data sources. The site name SHALL appear in the page body only in the site name bar of `site-layout`, not in the hero. Every block SHALL be present in the server response without JavaScript. The only page-specific script SHALL be the hero animation, which the home page alone loads on demand. The page SHALL NOT show any metric: no trip count, percentile, share or estimate. Every date on the page SHALL come from stored route days, and the copy SHALL NOT promise an update cadence.
+The system SHALL serve `GET /` with these blocks in this order: a hero block with a one-question heading, one sentence naming the two numbers the site measures per route, and the hero picture; the origin story block; the route list; the data limitations; the data sources. The site name SHALL appear in the page body only in the site name bar of `site-layout`, not in the hero. Every block SHALL be present in the server response without JavaScript. The only page-specific script SHALL be the hero animation, which the home page alone loads on demand. The page SHALL NOT show any metric: no trip count, percentile, share or estimate. Figures quoted from the article that the origin story block cites, namely its times, its dates and the interval between two of its times, are not metrics; the page SHALL show them only inside the origin story block, next to the article's citation. Every date on the page SHALL come from stored route days, except the dates quoted from that article and its publication date, and the copy SHALL NOT promise an update cadence.
 
 #### Scenario: Blocks in order
 
 - **WHEN** a visitor requests `/`
-- **THEN** the response is 200 and the blocks appear in the order hero, routes, limitations, sources
+- **THEN** the response is 200 and the blocks appear in the order hero, origin, routes, limitations, sources
 
 #### Scenario: Complete without JavaScript
 
 - **WHEN** route 9001 has the stored day 2026-10-20 and a visitor fetches `/` without running any script
-- **THEN** the response already contains the hero picture, the 9001 entry with its latest day, the four limitations and the dataset links
+- **THEN** the response already contains the hero picture, the origin story block with its link to the article, the 9001 entry with its latest day, the four limitations and the dataset links
 
 #### Scenario: Site name once
 
@@ -27,125 +27,17 @@ The system SHALL serve `GET /` with these blocks in this order: a hero block wit
 
 
 <!-- @trace
-source: 02-route-page-mobile-first
+source: home-origin-story
 updated: 2026-10-23
 code:
-  - spec/fixtures/analysis/external/office-calendar/2026/2026-10-19.csv
-  - app/components/route_coverage_component.rb
-  - app/models/http_fetcher.rb
-  - app/components/load_chart_component.yml
-  - analysis/10_load.sql
-  - app/components/card_component.rb
-  - app/components/layover_chart_component.html.erb
-  - spec/fixtures/analysis/bus_event/2026-10-19/14.jsonl
-  - app/components/layover_chart_component.yml
-  - app/views/routes/show.html.erb
-  - app/models/route_day_loader.rb
+  - app/components/origin_story_component.yml
   - app/views/pages/home.html.erb
-  - app/components/route_summary_component.rb
-  - app/components/site_bar_component.rb
-  - analysis/30_layovers.sql
-  - app/components/load_profile_table_component.rb
-  - app/components/route_coverage_component.html.erb
-  - analysis/params.sql
-  - db/migrate/20261022231802_require_day_type_on_route_days.rb
-  - app/components/home_hero_component.html.erb
-  - analysis/README.md
-  - app/components/load_chart_component.html.erb
-  - app/components/route_summary_component.yml
-  - app/components/route_summary_component.html.erb
-  - app/components/buffer_trade_component.yml
-  - app/components/data_sources_component.html.erb
-  - lib/tasks/external.rake
-  - app/components/attribution_component.html.erb
-  - app/models/route_page/layover_stats.rb
-  - app/components/card_component.html.erb
-  - app/components/section_nav_component.html.erb
-  - app/components/buffer_trade_component.html.erb
-  - app/components/route_coverage_component.yml
-  - config/locales/tw.yml
-  - app/components/route_list_component.yml
-  - app/components/run_time_table_component.yml
-  - app/components/route_list_component.html.erb
-  - app/components/run_time_table_component.rb
-  - db/migrate/20261022230942_add_day_type_to_route_days.rb
-  - app/components/site_bar_component.html.erb
-  - spec/factories/route_days.rb
-  - app/models/route_day.rb
-  - app/components/run_time_table_component.html.erb
-  - config/locales/en.yml
-  - app/components/application_component.rb
-  - db/schema.rb
-  - app/components/data_limitations_component.html.erb
-  - spec/support/duckdb.rb
-  - app/components/mrt_overlap_component.rb
-  - bin/health-card
-  - app/models/office_calendar_snapshot.rb
-  - app/frontend/stylesheets/application.css
-  - app/models/route_page/coverage.rb
-  - spec/fixtures/analysis/README.md
-  - app/components/buffer_trade_component.rb
-  - app/components/load_profile_table_component.html.erb
-  - app/components/mrt_overlap_component.html.erb
-  - app/components/layover_table_component.rb
-  - app/components/layover_chart_component.rb
-  - app/components/load_chart_component.rb
-  - docs/data-sources.md
-  - app/components/layover_table_component.html.erb
-  - app/components/section_nav_component.yml
-  - app/components/load_profile_table_component.yml
-  - app/components/data_limitations_component.yml
-  - analysis/60_export.sql
-  - app/models/mrt_exits_snapshot.rb
-  - spec/fixtures/analysis/bus_event/2026-10-19/15.jsonl
-  - app/components/data_limitations_component.rb
-  - app/views/layouts/application.html.erb
-  - app/components/section_nav_component.rb
-  - app/components/layover_table_component.yml
-  - app/components/attribution_component.yml
-  - app/components/home_hero_component.rb
+  - docs/background.md
+  - app/components/origin_story_component.rb
+  - app/components/origin_story_component.html.erb
 tests:
-  - spec/models/route_day_loader_spec.rb
-  - spec/analysis/card_spec.rb
-  - spec/models/route_page/load_profile_spec.rb
-  - spec/system/route_page_layout_spec.rb
-  - spec/models/route_page/run_times_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/models/http_fetcher_spec.rb
-  - spec/models/office_calendar_snapshot_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/analysis/cli_spec.rb
   - spec/requests/pages_spec.rb
-  - spec/analysis/layovers_spec.rb
-  - spec/analysis/derived_export_spec.rb
-  - spec/models/route_page/coverage_spec.rb
-  - spec/components/layover_chart_component_spec.rb
-  - spec/models/route_page/mrt_overlap_spec.rb
-  - spec/requests/site_layout_spec.rb
-  - spec/components/run_time_table_component_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/analysis/chains_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/components/card_component_spec.rb
-  - spec/components/load_chart_component_spec.rb
-  - spec/models/home_page/route_list_spec.rb
-  - spec/components/mrt_overlap_component_spec.rb
-  - spec/system/route_page_mobile_spec.rb
-  - spec/components/data_limitations_component_spec.rb
-  - spec/analysis/load_spec.rb
-  - spec/components/layover_table_component_spec.rb
-  - spec/models/route_page/layover_stats_spec.rb
-  - spec/analysis/duckdb_helpers_spec.rb
-  - spec/components/route_list_component_spec.rb
-  - spec/models/route_page/layover_distribution_spec.rb
-  - spec/analysis/fixtures_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/components/route_coverage_component_spec.rb
-  - spec/system/home_hero_spec.rb
-  - spec/components/load_profile_table_component_spec.rb
-  - spec/components/application_component_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/components/route_summary_component_spec.rb
+  - spec/components/origin_story_component_spec.rb
 -->
 
 ---
@@ -501,4 +393,59 @@ tests:
   - spec/models/home_page/route_list_spec.rb
   - spec/assets/home_hero_images_spec.rb
   - spec/components/route_list_component_spec.rb
+-->
+
+---
+### Requirement: Origin story block
+
+The home page SHALL show, between the hero and the route list, a block that tells where the site started: the article 〈「我也開始搶黃燈了！」陽明交大碩士生開公車60天，把駕駛掙扎寫進論文推動排班改革〉, published by 《未來城市》 on 2026-07-31. The block SHALL contain a heading that quotes the title phrase 「我也開始搶黃燈了！」; one paragraph that names the driver, the route 中山幹線 and the operator 光華巴士, states that the schedule gives less time than a trip takes so that the driver makes up the difference by driving faster or resting less, and states that the site measures how long each bus actually stops at the end of the line before it leaves again; a list of the article's times in time order, each in a `time` element carrying its `datetime`: the 06:50 departure, the return to the station at 09:50 and the 10:00 departure, with the 10-minute interval between 09:50 and 10:00 marked as its own entry between those two, together with the article's quote 「幾乎只能跑步去上廁所」; a caption of the list that gives the start of the day at 06:30 and its end at 20:30; and the citation, made of the outlet, the title as a link to `https://futurecity.cw.com.tw/article/4090` and the publication date 2026-07-31 in a `time` element.
+
+When route 15373 is in the route list configuration, the block SHALL link to `/routes/15373#layovers` and `/routes/15373#buffer`. When it is not, the block SHALL contain neither link and every other part of the block SHALL stay as it is. The block SHALL NOT read the database and SHALL NOT contain any figure computed by the site.
+
+#### Scenario: Times in order with the interval between 09:50 and 10:00
+
+- **WHEN** the origin story block is rendered
+- **THEN** its list holds the departure at 06:50, the return at 09:50, the interval entry and the departure at 10:00, in that order
+
+##### Example: entries of the list
+
+| Position | Entry | `datetime` |
+| -------- | ----- | ---------- |
+| 1 | departure | 06:50 |
+| 2 | return to the station | 09:50 |
+| 3 | interval of 10 minutes with the quote 「幾乎只能跑步去上廁所」 | none |
+| 4 | departure | 10:00 |
+
+#### Scenario: Citation links to the article
+
+- **WHEN** the origin story block is rendered
+- **THEN** it contains exactly one link to `https://futurecity.cw.com.tw/article/4090` and a `time` element whose `datetime` is 2026-07-31
+
+#### Scenario: Route links when 15373 has a route page
+
+- **WHEN** the route list configuration contains 15373 and the origin story block is rendered
+- **THEN** the block links to `/routes/15373#layovers` and to `/routes/15373#buffer`
+
+#### Scenario: No route links without 15373
+
+- **WHEN** the route list configuration contains only 9001 and the origin story block is rendered
+- **THEN** the block contains no link to `/routes/15373`, and it still contains the list of times and the link to the article
+
+#### Scenario: No database read
+
+- **WHEN** the origin story block is rendered
+- **THEN** no SQL query is issued
+
+<!-- @trace
+source: home-origin-story
+updated: 2026-10-23
+code:
+  - app/components/origin_story_component.yml
+  - app/views/pages/home.html.erb
+  - docs/background.md
+  - app/components/origin_story_component.rb
+  - app/components/origin_story_component.html.erb
+tests:
+  - spec/requests/pages_spec.rb
+  - spec/components/origin_story_component_spec.rb
 -->
