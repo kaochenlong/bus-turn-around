@@ -71,3 +71,13 @@
 - `README.md`：給人看的入口。`docs/spectra/config.yaml` 的 `context`：給 AI 看的初衷，每次 propose 都會被餵進去。`docs/`：長文參考。
 - 實作計畫不放 docs，用 Spectra change。n-gear 是獨立 repo、沒有 Spectra，繼續用 IMPLEMENTATION_PLAN.md，並且加進 gitignore。
 - 主機、路徑、PID 這類營運細節不進公開 repo。
+
+## 12. 網站部署在 DigitalOcean 新加坡的一台 Droplet
+
+- 2026-10-24 定的。網站用 Kamal 部署到 sgp1 的一台 Droplet（Ubuntu 24.04、1 vCPU、2 GiB），kamal-proxy 終止 TLS、向 Let's Encrypt 簽證書；Cloudflare 只做 DNS，不開代理。
+- Postgres 以 Kamal accessory 跟網站跑在同一台（postgres:16，對齊開發用的版本），資料庫的埠只綁主機的 127.0.0.1。不用 Managed PostgreSQL、不開備份：衍生表隨時能從原始檔重算（第 2 條），資料庫壞掉的代價是重灌一次。
+- 主機不裝 DuckDB、不放原始檔。衍生表由筆電算好（`derived:load`）再推上去，第一次是把開發資料庫的五張表 pg_dump 再 pg_restore；每晚自動跑要在哪裡算，另開 change 決定。
+- 採集器 n-gear 留在 Mac mini（第 8 條照舊），不跟網站同機。
+- image 在筆電建、從 git HEAD 的乾淨 clone 建、推到 Kamal 的本機 registry，不用外部 registry；每個 image 對應一個 commit。
+- 密碼只在 production credentials：`.kamal/secrets` 用 `config/credentials/production.key` 當 RAILS_MASTER_KEY，資料庫密碼從 credentials 的 `database.password` 讀。這個專案是 per-environment credentials，`config/master.key` 只解共用那份。
+- IP 與網域寫在 `config/deploy.yml`：reserved IP 同時是 DNS 與部署目標，換機器只搬 IP。兩者從 DNS 就查得到，不是秘密。第 11 條「主機、路徑、PID 這類營運細節不進公開 repo」照舊適用於採集器那邊。
