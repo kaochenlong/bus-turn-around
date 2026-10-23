@@ -19,11 +19,13 @@ RSpec.describe HomePage::RouteList, type: :model do
   end
 
   it "照設定的順序：15373 沒有資料是 nil，接著是 9001 最新的 2026-10-20" do
+    allow(RoutePage).to receive(:route_ids).and_return([ 15373, 9001 ])
     store_days(9001, "2026-10-19", "2026-10-20")
     expect(summary(described_class.new.entries)).to eq([ [ 15373, nil ], [ 9001, "2026-10-20" ] ])
   end
 
   it "兩條路線各三天：只對 route_days 發一次 SELECT，15373 帶 2026-10-21、9001 帶 2026-10-20" do
+    allow(RoutePage).to receive(:route_ids).and_return([ 15373, 9001 ])
     store_days(15373, "2026-10-19", "2026-10-20", "2026-10-21")
     store_days(9001, "2026-10-18", "2026-10-19", "2026-10-20")
     expect(summary_and_route_days_selects).to eq([ [ [ 15373, "2026-10-21" ], [ 9001, "2026-10-20" ] ], 1 ])

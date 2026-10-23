@@ -38,7 +38,17 @@ RSpec.describe RoutePage::Ends, type: :model do
     expect([ ends.nature(0), ends.nature(1) ]).to eq(%i[pass_through stop])
   end
 
-  it "有路線頁的路線就是設定裡的路線：test 環境是 15373 與 9001" do
-    expect(RoutePage.route_ids).to contain_exactly(15373, 9001)
+  it "251 去程結束的臺北車站(開封) 那一端開過去就走，返程結束的福安居一那一端停車" do
+    ends = RoutePage.ends(10712)
+    expect([ ends.nature(0), ends.nature(1) ]).to eq(%i[pass_through stop])
+  end
+
+  it "251區 去程結束的捷運公館站那一端開過去就走，返程結束的福安居一那一端停車" do
+    ends = RoutePage.ends(11764)
+    expect([ ends.nature(0), ends.nature(1) ]).to eq(%i[pass_through stop])
+  end
+
+  it "有路線頁的路線就是設定裡的路線：test 環境是 15373、10712、11764 與 9001" do
+    expect(RoutePage.route_ids).to contain_exactly(15373, 10712, 11764, 9001)
   end
 end

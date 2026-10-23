@@ -2,19 +2,19 @@
 tw: &tw
   title: 資料限制
   items:
-    - 車不等於人：資料認的是車牌，不是駕駛。折返停留是駕駛休息的上限；雙班制下一台車由兩個人開，這些數字對不回單一駕駛。
-    - 車上人數是票證推出來的值，不是點人頭，準確度看下車刷卡率；實測它不會在趟次之間歸零。
-    - 10 秒輪詢一定會漏站；漏了起站或末站的趟次不算行駛時間。
-    - 平日與假日照人事行政總處的辦公日曆分；颱風停班不在日曆裡，那幾天照日曆算。
-    - 站牌靠近捷運出入口，不等於這一段可以被捷運取代：公車橫越捷運線時，路口附近的站也會算進去。距離是直線距離，不是步行距離；捷運出入口資料不定期更新。
-    - 換休息試算算的是車時，不是駕駛工時；只用停車端量到的折返停留，沒量到的趟次不推算。多幾台車是按小時平均的估計，不是排班結果。
-    - 哪一端停車是逐路線查證後寫進設定的，不是從資料算的；業者改折返方式時，這個設定就會過期。開過去就走那一端的折返停留不是休息機會，試算不補它。
-  home_title: 這些數字能信到哪
+    - 車不等於人：資料只認得車牌，認不出是哪個駕駛。折返停留只是駕駛休息時間的上限，而且雙班制下一台車由兩個人開，這些數字沒辦法對應到某一個駕駛。
+    - 車上人數是從票證資料推算出來的，不是真的去點人頭，準不準要看乘客下車有沒有刷卡。實際量到的人數，在一趟跑完到下一趟開始之間也不會歸零。
+    - 每 10 秒抓一次資料，一定會漏掉一些站。漏了起站或末站的趟次，不算進行駛時間。
+    - 平日跟假日是照人事行政總處的辦公日曆分的。颱風停班不在日曆裡，那幾天還是照日曆算。
+    - 站牌靠近捷運出入口，不代表這一段可以被捷運取代，像是公車橫越捷運線的時候，路口附近的站也會被算進去。距離是直線距離，不是實際走路的距離，捷運出入口的資料也不是定期更新。
+    - 換休息試算算的是車的時數，不能直接當成駕駛的工時。試算只用停車那一端量到的折返停留，沒量到的趟次不會另外推估。多幾台車是按小時平均估出來的，實際排班可能會不一樣。
+    - 哪一端會停車，是一條一條路線人工查證之後寫進設定的，不是從資料算出來的，所以業者改了折返的方式，這個設定就會過期。開過去就走那一端的折返停留不算休息的機會，試算不會替那一端補緩衝。
+  home_title: 資料限制
   home_items:
-    - 車不等於人：資料認的是車牌，不是駕駛，折返停留是駕駛休息的上限。
-    - 車上人數是票證推出來的值，不是點人頭，準確度看下車刷卡率。
-    - 每 10 秒抓一次，一定會漏站。
-    - 跨小時檔的事件可能重複，分析前會再去重一次。
+    - 車不等於人：資料只認得車牌，認不出是哪個駕駛，折返停留也只是駕駛休息時間的上限。
+    - 車上人數是從票證資料推算出來的，不是真的去點人頭，準不準要看乘客下車有沒有刷卡。
+    - 每 10 秒抓一次資料，一定會漏掉一些站。
+    - 同一筆事件可能出現在不同小時的檔案裡，分析之前會再把重複的拿掉。
 zh-TW:
   <<: *tw
 en:
@@ -27,7 +27,7 @@ en:
     - A stop near an MRT entrance does not mean the bus segment can be replaced by the MRT: stops near a crossing count too. Distances are straight-line, not walking distances, and the entrance data is updated irregularly.
     - The rest trade-off counts vehicle-hours, not driver hours, and uses only layovers measured at the ends where buses stop, without extrapolating to other trips. Added vehicles are an hourly average, not a schedule.
     - Which end buses stop at is verified route by route and written into the configuration, not computed from the data; it goes stale when the operator changes how the route turns around. Layovers at an end where buses drive on are not rest opportunities, and the rest trade-off does not count them.
-  home_title: What these numbers can and cannot tell
+  home_title: Data limitations
   home_items:
     - "A vehicle is not a driver: the data identifies plates, not drivers, and a layover is an upper bound on rest."
     - On-board counts are derived from fare-card taps, not head counts, and depend on how many riders tap off.

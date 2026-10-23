@@ -29,6 +29,7 @@ RSpec.describe "Pages", type: :request do
   end
 
   it "照設定的順序：15373 沒有資料、不是連結，接著是連到路線頁的 9001" do
+    allow(RoutePage).to receive(:route_ids).and_return([ 15373, 9001 ])
     store_days("2026-10-19", "2026-10-20")
     get root_path
     expect(page.css("[data-route]").map { [ it["data-route"], it.key?("data-no-data"), it["href"] ] })

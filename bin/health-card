@@ -58,12 +58,12 @@ module HealthCard
       @parser ||= OptionParser.new do |opts|
         opts.banner = "用法：bin/health-card --data DIR --route ID --day YYYY-MM-DD [選項]"
         opts.separator ""
-        opts.on("--data DIR", "原始檔的資料根目錄；省略時用環境變數 TURNAROUND_DATA")
+        opts.on("--data DIR", "原始檔的資料根目錄，省略時用環境變數 TURNAROUND_DATA")
         opts.on("--route ID", ROUTE_ID, "路線 Id，例如 15373")
         opts.on("--day YYYY-MM-DD", ISO_DATE, "台北日")
-        opts.on("--static-day YYYY-MM-DD", ISO_DATE, "靜態快照日；省略時等於 --day")
-        opts.on("--out PATH", "卡寫到這個檔；省略時寫到標準輸出")
-        opts.on("--inspect-dir DIR", "逐趟 CSV 寫到這個目錄；省略時是 tmp/health-card/<路線 Id>-<台北日>")
+        opts.on("--static-day YYYY-MM-DD", ISO_DATE, "靜態快照日，省略時等於 --day")
+        opts.on("--out PATH", "卡寫到這個檔，省略時寫到標準輸出")
+        opts.on("--inspect-dir DIR", "逐趟 CSV 寫到這個目錄，省略時是 tmp/health-card/<路線 Id>-<台北日>")
       end
     end
 
@@ -178,10 +178,10 @@ module HealthCard
     LIMITATIONS = <<~MARKDOWN.chomp.freeze
       ## 資料限制
 
-      - 車不等於人：資料認的是車牌，不是駕駛。折返停留包含回場、加油、等發車在內的一切，是駕駛休息的上限；雙班制下一台車由兩個人開，這些數字對不回單一駕駛。
-      - 車上人數是票證推出來的值，不是點人頭，準確度看下車刷卡率與系統的歸零邏輯。
-      - 10 秒輪詢一定會漏站。完整趟次的判定與漏站率是這張卡要量的東西，不是已知。
-      - 同一車同一秒的進站與離站只會留一筆：去重的鍵是 (BusID, DataTime)，採集端用的也是這個鍵。跨小時檔的重複在壓縮時沒有處理，讀檔時一律再去重一次。
+      - 車不等於人：資料只認得車牌，認不出是哪個駕駛。折返停留包含回場、加油、等發車在內的一切，只是駕駛休息時間的上限，而且雙班制下一台車由兩個人開，這些數字沒辦法對應到某一個駕駛。
+      - 車上人數是從票證資料推算出來的值，不是真的點人頭，準不準要看乘客下車有沒有刷卡，以及系統怎麼歸零。
+      - 10 秒輪詢一定會漏站。完整趟次怎麼判定、漏站率多少，正是這張卡要量的東西，事先並不知道。
+      - 同一車同一秒的進站與離站只會留一筆，因為去重的鍵是 (BusID, DataTime)，採集端用的也是這個鍵。跨小時檔的重複在壓縮時沒有處理，讀檔時一律再去重一次。
       - 只用了一個台北日，離峰時段一個方向只有幾趟。所有百分位數都只用來看定義對不對，不可引用。
     MARKDOWN
 
@@ -215,7 +215,7 @@ module HealthCard
       <<~MARKDOWN.chomp
         # #{route['name']} 路線健檢卡（一天版）
 
-        > 一天版，驗定義用，不可引用：只用了一個台北日的資料，所有數字都只拿來看趟次、折返停留與車上人數的定義對不對。
+        > 一天版，只拿來驗證定義，不可引用。這張卡只用了一個台北日的資料，所有數字都只拿來看趟次、折返停留與車上人數的定義對不對。
 
         - 路線：#{route['name']}（路線 Id #{route['route_id']}）
         - 起迄：#{route['departure']}－#{route['destination']}
@@ -235,13 +235,13 @@ module HealthCard
         "- 對不到站序的到離站事件：#{count(quality['unknown_stop_events'])} 筆",
         "附屬路線併回路線一起切趟。每次執行都比對每條附屬路線在 GetPathDetail 依序的站牌，是否等於路線在 GetStop 對應方向依 seqNo 排的站牌，只比順序：",
         table(%w[附屬路線 pathAttributeId 站序比對 比對的方向 趟數 佔趟次 當天第一趟 當天最後一趟], sub_route_rows(quality), "lrllrrrr"),
-        "當天第一趟與最後一趟：把同一台車在這條路線、起點落在資料日的趟次依起點排序，最早的一趟與最晚的一趟，不分完整性；" \
+        "當天第一趟與最後一趟，是把同一台車在這條路線、起點落在資料日的趟次依起點排序之後，最早的一趟與最晚的一趟，不分完整性。" \
         "只有一趟的車兩欄都算。同一台車跑別的路線的趟次不在這張卡讀的資料裡。",
-        "趟次依觀測到的第一站與最後一站是不是該方向的起站與末站分類：complete 兩端都有，missing_start 漏起站，missing_end 漏末站，missing_both 兩端都漏。",
+        "趟次依觀測到的第一站與最後一站是不是該方向的起站與末站，分成四類：complete 兩端都有，missing_start 漏起站，missing_end 漏末站，missing_both 兩端都漏。",
         table(%w[完整性 趟數], completeness_rows(quality), "lr"),
         missing_stops(quality.fetch("missing_stop_rate")),
-        "完整趟次的末站在終點後 #{@data.dig('profile', 'reset_record_minutes')} 分鐘內有沒有離站事件；" \
-        "沒有離站事件的趟次，載客剖面一節的末站下客後就量不到：",
+        "完整趟次的末站在終點後 #{@data.dig('profile', 'reset_record_minutes')} 分鐘內有沒有離站事件。" \
+        "沒有離站事件的趟次，載客剖面一節的「末站下客後」就量不到：",
         table(%w[方向 末站 完整趟次 終點後有離站事件], last_stop_departure_rows(quality), "llrr"),
         "當天趟次裡到離站事件的 DutyStatus：",
         table(%w[DutyStatus 筆數], Array(quality["duty_status"]).map { [ count(it["duty_status"]), count(it["n_events"]) ] }, "rr"),
@@ -306,9 +306,9 @@ module HealthCard
       chains = @data.fetch("chains")
       distribution = Array(layovers["distribution"])
       [ "## 折返停留",
-        "同一車牌相鄰兩趟，本趟有到末站、下一趟從起站出發，而且兩趟之間沒有去跑別的路線，下一趟起點減本趟終點，單位分鐘；另一端漏站不影響，每台車當天最後一趟沒有折返停留。" \
+        "同一車牌相鄰兩趟，本趟有到末站、下一趟從起站出發，而且兩趟之間沒有去跑別的路線，下一趟起點減本趟終點，單位分鐘。另一端漏站不影響，每台車當天最後一趟沒有折返停留。" \
         "兩趟之間跑了別的路線，指這台車在兩趟之間有 RouteID 不是 0、也不是這條路線附屬路線的到離站事件，經過至少 #{layovers['other_route_min_stops']} 個站。" \
-        "它包含回場、加油、等發車在內的一切，是駕駛休息的上限。百分位數在順序統計量之間線性內插。",
+        "折返停留包含回場、加油、等發車在內的一切，只是駕駛休息時間的上限。百分位數在順序統計量之間線性內插。",
         table([ "範圍", "筆數", *Array(layovers["percentile_levels"]).map { "p#{(it * 100).round}" }, "不到 #{layovers['short_layover_minutes']} 分鐘" ],
               distribution.map { [ layover_scope(it), count(it["n_layovers"]), *percentiles(it["percentiles"], layovers), percent(it["short_share"]) ] }, "lrrrrr"),
         "分箱的分鐘數含下界、不含上界：",
@@ -335,7 +335,7 @@ module HealthCard
     def chains_text(chains)
       summary = chains.fetch("summary")
       report = Array(chains["report"])
-      text = [ "班次串對照汽車運輸業管理規則第 19 條之 2：任何連續 #{chains['rest_window_minutes']} 分鐘內，每段至少 #{chains['rest_min_minutes']} 分鐘的折返停留累計不到 #{chains['rest_credit_minutes']} 分鐘，就標為不合規；同一車牌重疊的不合規視窗併成一串。只用相鄰完整趟次接成的序列，遇到不完整趟次、或兩趟之間跑了別的路線，就切斷。",
+      text = [ "班次串對照汽車運輸業管理規則第 19 條之 2，只要任何連續 #{chains['rest_window_minutes']} 分鐘內，每段至少 #{chains['rest_min_minutes']} 分鐘的折返停留累計不到 #{chains['rest_credit_minutes']} 分鐘，就標為不合規，同一車牌重疊的不合規視窗併成一串。只用相鄰的完整趟次接成序列，遇到不完整的趟次，或是兩趟之間跑了別的路線，就切斷。",
                "- 班次串：#{count(summary['n_chains'])} 串，涉及 #{count(summary['n_vehicles'])} 台車" ]
       return text.join("\n\n") if report.empty?
 
@@ -348,21 +348,22 @@ module HealthCard
       coverage = profile.fetch("coverage")
       upper = "p#{(profile['upper_level'] * 100).round}"
       [ "## 載客剖面",
-        "車上人數取 bus_seat_event 的 RemainingNum，接到同一車牌、同一路線與方向、DataTime 落在趟次起訖之間的趟次；每站取離站記錄，沒有離站記錄時取到站記錄。",
+        "車上人數取 bus_seat_event 的 RemainingNum，接到同一車牌、同一路線與方向、DataTime 落在趟次起訖之間的趟次。每站用離站記錄，沒有離站記錄才用到站記錄。",
         <<~MARKDOWN.chomp,
           - 有車上人數的趟次：#{ratio(coverage['trips_with_count'], coverage['n_trips'], coverage['trip_share'], '趟')}
           - 有車上人數的觀測站：#{ratio(coverage['stops_with_count'], coverage['n_trip_stops'], coverage['stop_share'], '站')}
         MARKDOWN
-        "歸零檢查看車上本來不該有人的兩個時刻，這兩筆記錄落在趟次起訖之外，不進上面的涵蓋率與下面的剖面：" \
+        "歸零檢查看車上本來不該有人的兩個時刻：" \
         "完整趟次起點前 #{profile['reset_record_minutes']} 分鐘內、在起站的最後一筆到站記錄（上客前），" \
-        "以及終點後 #{profile['reset_record_minutes']} 分鐘內、在末站的第一筆離站記錄（下客後）。比例只算有記錄的趟次。",
+        "以及終點後 #{profile['reset_record_minutes']} 分鐘內、在末站的第一筆離站記錄（下客後）。" \
+        "這兩筆記錄落在趟次起訖之外，不算進上面的涵蓋率與下面的剖面。比例只算有記錄的趟次。",
         table([ "端點", "方向", "站名", "有記錄", "沒有記錄", "等於 0", "不超過 #{profile['reset_near_zero']} 人", "最大值" ],
               reset_rows(profile["reset"]), "lllrrrrr"),
         <<~MARKDOWN.chomp,
           - 負值：#{count(profile.dig('anomalies', 'negative_counts'))} 筆
           - 相鄰兩個有人數的站相差超過 #{profile['jump_threshold']} 人：#{count(profile.dig('anomalies', 'jumps'))} 次
         MARKDOWN
-        "剖面依方向、時段與站序。每格是車上人數的中位數 / #{upper}，括號裡是那一站有人數的趟數；#{NONE} 是那個時段沒有人數。時段依趟次起點的小時。",
+        "剖面依方向、時段與站序。每格是車上人數的中位數 / #{upper}，括號裡是那一站有人數的趟數。#{NONE} 表示那個時段沒有人數。時段依趟次起點的小時。",
         table([ "方向", "seq", "站名", *BANDS.map { |band, *| band_labels.fetch(band) } ], profile_rows(profile["rows"]), "lrl#{'r' * BANDS.size}") ]
         .join("\n\n")
     end

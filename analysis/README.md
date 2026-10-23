@@ -21,7 +21,7 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 `--data` 底下的目錄結構照 n-gear 的輸出：`bus_event/<台北日>/<HH>.jsonl` 或 `.jsonl.gz`、`bus_seat_event/` 同、`static/<台北日>/GetRoute.gz`、`GetStop.gz`、`GetPathDetail.gz`。
 
-卡上只有路線層級的彙總，沒有車牌，也沒有檔案路徑。逐趟、逐折返、逐站的明細寫到 `--inspect-dir` 的五個 CSV：`trips.csv`、`layovers.csv`、`chains.csv`、`profile.csv`、`quality.csv`。只有這五個檔有車牌，留在本機檢查用；預設位置在 `.gitignore` 的 `/tmp/*` 底下，不進版本控制。同樣的輸入連跑兩次，卡只有產出時刻那一行不同，CSV 逐位元組相同。
+卡上只有路線層級的彙總，沒有車牌，也沒有檔案路徑。逐趟、逐折返、逐站的明細寫到 `--inspect-dir` 的五個 CSV：`trips.csv`、`layovers.csv`、`chains.csv`、`profile.csv`、`quality.csv`。只有這五個檔有車牌，留在本機檢查用。預設位置在 `.gitignore` 的 `/tmp/*` 底下，不進版本控制。同樣的輸入連跑兩次，卡只有產出時刻那一行不同，CSV 逐位元組相同。
 
 ## 結束碼
 
@@ -35,7 +35,7 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 前三種在執行任何 SQL 之前就擋下。不會自動改用別天的快照。`bus_seat_event` 整個讀檔視窗都沒有檔時，由 DuckDB 報錯，以結束碼 4 透傳。
 
-失敗時不寫任何輸出檔：DuckDB 先把 CSV 寫到暫存目錄，整段成功之後才搬進 `--inspect-dir`，卡也在這之後才寫。
+失敗時不寫任何輸出檔，因為 DuckDB 先把 CSV 寫到暫存目錄，整段成功之後才搬進 `--inspect-dir`，卡也在這之後才寫。
 
 ## 讀檔視窗
 
@@ -49,17 +49,17 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 | 檔案 | 讀 | 建立 |
 | --- | --- | --- |
-| `params.sql` | | 定義用的常數，全部是變數；`minutes_between` macro |
-| `10_load.sql` | 變數 `data_root`、`route_id`、`day`、`static_day`；原始檔 | `input_files`、`routes`、`bus_events`、`seat_events`、`other_route_events`、`load_counts`、`stops`、`path_stops`、`stop_events`、`unknown_stop_events`、`sequence_check` |
+| `params.sql` | | 定義用的常數，全部是變數，另外還有 `minutes_between` macro |
+| `10_load.sql` | 變數 `data_root`、`route_id`、`day`、`static_day`，以及原始檔 | `input_files`、`routes`、`bus_events`、`seat_events`、`other_route_events`、`load_counts`、`stops`、`path_stops`、`stop_events`、`unknown_stop_events`、`sequence_check` |
 | `20_trips.sql` | `stop_events`、`stops`、`routes` | `trip_events`、`segmented_trips`、`trips`、`path_trip_counts` |
 | `30_layovers.sql` | `trips`、`stops`、`other_route_events` | `layover_pairs`、`layovers`、`layover_exclusions`、`layover_distribution`、`rest_runs`、`rest_windows`、`chains`、`chain_report`、`chain_summary` |
 | `40_load_profile.sql` | `seat_events`、`routes`、`stops`、`trips`、`trip_events` | `seat_stop_events`、`trip_seat_records`、`trip_stop_counts`、`net_boarding`、`count_coverage`、`trip_bands`、`load_profile`、`reset_counts`、`reset_check`、`count_anomalies` |
 | `50_quality.sql` | `load_counts`、`unknown_stop_events`、`sequence_check`、`routes`、`stops`、`trips`、`trip_events`、`path_trip_counts` | `completeness_counts`、`path_trip_shares`、`vehicle_day_ends`、`last_stop_departures`、`missing_stop_rate`、`duty_status_counts`、`duty_status_trip_ends`、`quality` |
-| `60_export.sql` | 前面各階段的名字、變數 `inspect_dir` | 檢查目錄的五個 CSV；最後印出一列 `card`，是卡上所有數字的 JSON，也是整段唯一會印東西的敘述 |
+| `60_export.sql` | 前面各階段的名字、變數 `inspect_dir` | 檢查目錄的五個 CSV，最後印出一列 `card`，是卡上所有數字的 JSON，也是整段唯一會印東西的敘述 |
 
-`layover_pairs` 把每台車相鄰兩趟配成一組。本趟有到末站（`complete` 或 `missing_start`）、下一趟從起站出發（`complete` 或 `missing_end`）、兩趟之間沒有去跑別的路線、差值不為負，才進 `layovers`；另一端漏站不影響，因為折返停留只用本趟的末站到站與下一趟的起站離站。不成立的配對在 `layover_exclusions` 分四類計數，一組只算在第一個符合的類別：`no_last_stop`（本趟沒有到末站）、`no_first_stop`（下一趟不是從起站出發）、`other_route`（兩趟之間跑了別的路線）、`negative`。量不到的配對只計數：前兩類的時間差是拿中途某一站代替端點量的，`other_route` 的時間差包含別條路線上的行駛，都不代表停留。
+`layover_pairs` 把每台車相鄰兩趟配成一組。本趟有到末站（`complete` 或 `missing_start`）、下一趟從起站出發（`complete` 或 `missing_end`）、兩趟之間沒有去跑別的路線、差值不為負，才進 `layovers`。另一端漏站不影響，因為折返停留只用本趟的末站到站與下一趟的起站離站。不成立的配對在 `layover_exclusions` 分四類計數，一組只算在第一個符合的類別：`no_last_stop`（本趟沒有到末站）、`no_first_stop`（下一趟不是從起站出發）、`other_route`（兩趟之間跑了別的路線）、`negative`。量不到的配對只計數，因為前兩類的時間差是拿中途某一站代替端點量的，`other_route` 的時間差包含別條路線上的行駛，都不代表停留。
 
-兩趟之間跑了別的路線，看的是 `other_route_events`：第 10 階段從同一批 `bus_event` 小時檔另外讀出這條路線的車、`RouteID` 不是 0 也不是這條路線附屬路線的記錄，照 `(BusID, DataTime)` 去重。這台車在本趟終點之後、下一趟起點之前（兩端都不含）的這些記錄，經過至少 `params.sql` 的 `other_route_min_stops` 個不同的站牌，`layover_pairs` 的 `ran_other_route` 就是 true。`RouteID` 0 是末站勤務結束這類非營運記錄，不算別條路線；不到門檻的是在末站切了路線碼，車沒有離開。
+兩趟之間跑了別的路線，看的是 `other_route_events`。它是第 10 階段從同一批 `bus_event` 小時檔另外讀出來的，內容是這條路線的車、`RouteID` 不是 0 也不是這條路線附屬路線的記錄，照 `(BusID, DataTime)` 去重。這台車在本趟終點之後、下一趟起點之前（兩端都不含）的這些記錄，經過至少 `params.sql` 的 `other_route_min_stops` 個不同的站牌，`layover_pairs` 的 `ran_other_route` 就是 true。`RouteID` 0 是末站勤務結束這類非營運記錄，不算別條路線。不到門檻的是在末站切了路線碼，車沒有離開。
 
 班次串的 `rest_runs` 只用相鄰完整趟次接成的序列，遇到不完整趟次、或兩趟之間跑了別的路線（同一組配對的 `ran_other_route`），就開始新的序列。
 
@@ -67,7 +67,7 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 `vehicle_day_ends` 給每條附屬路線有幾趟是那台車當天在這條路線的第一趟（`n_first`）與最後一趟（`n_last`），寫進 `quality.csv` 的 metric 是 `first_trips` 與 `last_trips`，subject 是 `pathAttributeId`。
 
-`last_stop_departures` 給每個方向的末站站名、完整趟次數 `complete_trips`，以及其中末站在終點後 `reset_record_minutes` 分鐘內有 `bus_event` 離站事件的趟數 `with_departure`；沒有離站事件的趟次，歸零檢查的末站下客後量不到。寫進 `quality.csv` 的 metric 是 `complete_trips` 與 `last_stop_departures`，subject 是方向 0 或 1。
+`last_stop_departures` 給每個方向的末站站名、完整趟次數 `complete_trips`，以及其中末站在終點後 `reset_record_minutes` 分鐘內有 `bus_event` 離站事件的趟數 `with_departure`。沒有離站事件的趟次，歸零檢查的「末站下客後」就量不到。寫進 `quality.csv` 的 metric 是 `complete_trips` 與 `last_stop_departures`，subject 是方向 0 或 1。
 
 每個檔案開頭的註解列出它建立的每個名字。改定義只改 `params.sql`，其他檔案不寫那些常數的字面數字。
 
@@ -77,16 +77,16 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 ## 衍生表的匯出
 
-`mrt_overlap.sql` 與 `derived_export.sql` 都不以數字開頭，`bin/health-card` 不會執行它們。`bin/rails derived:load ROUTE=15373 DAY=2026-10-19`（或 `FROM=… TO=…`，資料根目錄給環境變數 `TURNAROUND_DATA`）對每一天先跑 `params.sql`、全部編號階段檔，再接 `mrt_overlap.sql`、最後 `derived_export.sql`，多三個變數 `mrt_exits_path`、`mrt_exits_day`、`derived_dir`；再把寫出的 CSV 在一個交易裡替換進 PostgreSQL 的衍生表。一天要等讀檔視窗結束（隔天的 01 時檔出現）才能算，資料根目錄的 `external/taipei-mrt-exits/` 也要至少有一份捷運出入口快照。
+`mrt_overlap.sql` 與 `derived_export.sql` 都不以數字開頭，`bin/health-card` 不會執行它們。`bin/rails derived:load ROUTE=15373 DAY=2026-10-19`（或 `FROM=… TO=…`，資料根目錄給環境變數 `TURNAROUND_DATA`）對每一天先跑 `params.sql`、全部編號階段檔，再接 `mrt_overlap.sql`、最後 `derived_export.sql`，多了三個變數 `mrt_exits_path`、`mrt_exits_day`、`derived_dir`，接著把寫出的 CSV 在一個交易裡替換進 PostgreSQL 的衍生表。一天要等讀檔視窗結束（隔天的 01 時檔出現）才能算，資料根目錄的 `external/taipei-mrt-exits/` 也要至少有一份捷運出入口快照。
 
 | 檔案 | 讀 | 建立或寫出 |
 | --- | --- | --- |
 | `mrt_overlap.sql` | `stops`（含經緯度），變數 `mrt_exits_path` | `mrt_exits`、`stop_mrt_distances`：每站最近的捷運出入口與直線距離（haversine，地球半徑 6,371,000 公尺，一位小數） |
 | `derived_export.sql` | `routes`、`stops`、`stop_mrt_distances`、`trips`、`trip_bands`、`layovers`、`trip_stop_counts`，變數 `route_id`、`day`、`static_day`、`mrt_exits_day` | 寫到 `derived_dir`：`route_day.csv`（含 `mrt_exits_day`）、`stops.csv`（含經緯度、最近出入口與距離）、`trips.csv`（含時段 `band`）、`layovers.csv`（本趟終點與下一趟起點，不寫分鐘數）、`trip_stop_counts.csv`（以 `bus_id` 加 `start_time` 指回趟次） |
 
-捷運出入口快照由 `bin/rails external:mrt_exits` 下載：北捷的檔是 Big5，存檔前轉成 UTF-8，表頭、資料列與經緯度不對就不寫檔。`derived:load` 用檔名日期最新的那一份，日期存進 `route_days.mrt_exits_day`。哪些站算「靠近捷運」不在這裡決定：300、500、800 公尺三種門檻在路線頁的 `RoutePage::MrtOverlap` 套用。
+捷運出入口快照由 `bin/rails external:mrt_exits` 下載，北捷的檔是 Big5，存檔前轉成 UTF-8，表頭、資料列與經緯度不對就不寫檔。`derived:load` 用檔名日期最新的那一份，日期存進 `route_days.mrt_exits_day`。哪些站算「靠近捷運」不在這裡決定，300、500、800 公尺三種門檻是在路線頁的 `RoutePage::MrtOverlap` 套用的。
 
-時刻帶 `+08:00` 寫出；每個檔的欄位順序與列的排序固定，同樣的輸入連跑兩次位元組相同。
+時刻帶 `+08:00` 寫出。每個檔的欄位順序與列的排序都固定，同樣的輸入連跑兩次，位元組會完全相同。
 
 ## 測試
 
@@ -116,7 +116,7 @@ v1.5.6 (Variegata) 069cc9f9b5
 
 - 參數用變數傳。`read_json(getvariable('p'), ...)` 可以直接把變數當路徑，所以採用變數方案，不用 design 寫的字串模板退路。
 - 檔案清單也用變數傳。`SET VARIABLE files = (SELECT list(file) FROM glob(...))` 再交給 `read_json`。同一份清單混著 `.jsonl` 與 `.jsonl.gz` 時兩種都讀得到，壓縮格式依副檔名逐檔判斷。
-- glob 沒有命中任何檔案時，`list()` 得到 NULL，`read_json` 回 `read_json cannot take NULL list as parameter`。空清單則回 `read_json needs at least one file to read`。所以執行檔在執行前先確認當天有 `bus_event` 的小時檔；`bus_seat_event` 整個視窗都沒有檔時，就是這個錯誤以結束碼 4 透傳。
+- glob 沒有命中任何檔案時，`list()` 得到 NULL，`read_json` 回 `read_json cannot take NULL list as parameter`。空清單則回 `read_json needs at least one file to read`。所以執行檔在執行前先確認當天有 `bus_event` 的小時檔。`bus_seat_event` 整個視窗都沒有檔時，就是這個錯誤以結束碼 4 透傳。
 - 靜態快照是單一 JSON 物件，外層是 `EssentialInfo` 與 `BusInfo`，資料列在 `BusInfo` 陣列裡，要先 `read_json` 整個檔再 `unnest(BusInfo)`。2026-10-19 的 `GetStop.gz` 解壓後約 9.4 MB，低於 `read_json` 預設的單一物件上限 16 MB。上限仍要明確設大，不靠預設值。
 - `COPY ... TO` 的目標可以是用 `getvariable()` 組出來的運算式，檢查目錄因此也用變數傳。
 - `-json` 模式下，`SET`、`CREATE`、`COPY` 不印任何東西，只有查詢會印出一個 JSON 陣列。JSON 與 STRUCT 欄位以巢狀物件輸出，不是字串。

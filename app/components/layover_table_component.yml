@@ -1,7 +1,7 @@
 ---
 tw: &tw
   caption: 折返停留
-  note: 只算本趟有到末站、下一趟從起站出發，而且兩趟之間沒有去跑別的路線的配對，另一端漏站不影響。
+  note: 只算前一趟有到末站、下一趟從起站出發，而且兩趟之間沒有去跑別條路線的情況，另一端有沒有漏站不影響。
   directions:
     "0": 去程
     "1": 返程
@@ -14,7 +14,7 @@ tw: &tw
   count: 筆數
   short: 不到 %{minutes} 分鐘
   minute_unit: 分
-  pass_through_note: 標「開過去就走」的那一端，車到末站不停，直接開到下一趟的起站，所以這一端的折返停留不是休息機會。
+  pass_through_note: 標「開過去就走」的那一端，車到了末站不會停，直接開到下一趟的起站，所以這一端的折返停留不算休息的機會。
   note_with_pass_through_html: "%{note}%{pass_through}"
 zh-TW:
   <<: *tw
