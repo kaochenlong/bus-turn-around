@@ -1,13 +1,13 @@
 ---
 tw: &tw
   title: 有頁面的路線
-  latest: "最新資料 %{day}"
+  latest: "最新資料 %{day}%{day_type}"
   no_data: 還沒有資料
   note: 一條路線的定義在它自己的資料上核過，才會有頁面。
 zh-TW:
   <<: *tw
 en:
   title: Routes with a page
-  latest: "Latest data %{day}"
+  latest: "Latest data %{day} %{day_type}"
   no_data: No data yet
   note: A route gets a page only after its definitions have been checked on its own data.

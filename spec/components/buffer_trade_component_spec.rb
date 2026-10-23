@@ -8,8 +8,7 @@ RSpec.describe BufferTradeComponent, type: :component do
   # out. By default they end at 08:00 (5 minutes) and 08:20 (20 minutes): at
   # 15 minutes the shortfall is 10.
   def route_day(layovers: [ [ "08:00", 5 ], [ "08:20", 20 ] ])
-    RouteDay.create!(route_id: 9001, day: Date.new(2026, 10, 19), route_name: "測試幹線", departure: "甲站", destination: "戊站",
-                     static_day: Date.new(2026, 10, 19), loaded_at: Time.current).tap do |day|
+    create(:route_day).tap do |day|
       %w[A B].each { add_trip(day, it) }
       layovers.each do |time, minutes, go_back = 0|
         end_time = Time.zone.parse("2026-10-19 #{time}")

@@ -4,15 +4,18 @@ require "rails_helper"
 #
 # Table name: route_days
 #
-#  id            :bigint           not null, primary key
-#  day           :date             not null
-#  departure     :string           not null
-#  destination   :string           not null
-#  loaded_at     :timestamptz      not null
-#  mrt_exits_day :date
-#  route_name    :string           not null
-#  static_day    :date             not null
-#  route_id      :integer          not null
+#  id                  :bigint           not null, primary key
+#  day                 :date             not null
+#  day_note            :string
+#  day_type            :string           not null
+#  departure           :string           not null
+#  destination         :string           not null
+#  loaded_at           :timestamptz      not null
+#  mrt_exits_day       :date
+#  office_calendar_day :date             not null
+#  route_name          :string           not null
+#  static_day          :date             not null
+#  route_id            :integer          not null
 #
 # Indexes
 #
@@ -20,8 +23,7 @@ require "rails_helper"
 #
 RSpec.describe RouteDay, type: :model do
   def create_route_day(day: Date.new(2026, 10, 19))
-    described_class.create!(route_id: 9001, day:, route_name: "測試幹線", departure: "甲站", destination: "戊站",
-                            static_day: day, loaded_at: Time.current)
+    create(:route_day, day:)
   end
 
   # One stop, one trip with one count, and one layover on the route day.
@@ -45,5 +47,11 @@ RSpec.describe RouteDay, type: :model do
   it "同一路線同一天只能有一列" do
     create_route_day
     expect { create_route_day }.to raise_error(ActiveRecord::RecordNotUnique)
+  end
+
+  %w[day_type office_calendar_day].each do |column|
+    it "#{column} 是空的路線日，資料庫不收" do
+      expect { create(:route_day, column => nil) }.to raise_error(ActiveRecord::NotNullViolation)
+    end
   end
 end

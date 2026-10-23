@@ -51,7 +51,7 @@
 | 資料 | 用途 | 來源 | 狀態 |
 |---|---|---|---|
 | 上面的靜態 feed | 把事件串成趟要知道起訖站序；算脫班要班表；推調度站位置要車輛對應 | 同一個 blob | 待做每日快照 |
-| 辦公日曆（平日、假日、補班） | 分平假日、對應班表日型別 | data.gov.tw 人事行政總處 | 一年一個 CSV |
+| 辦公日曆（平日、假日、補班） | 分平假日、對應班表日型別 | [data.gov.tw/dataset/14718](https://data.gov.tw/dataset/14718)，行政院人事行政總處，同一授權 | 已抓：一年一個 CSV，原檔是 UTF-8 帶 BOM、CRLF 換行，每年的檔案網址都不同；`bin/rails external:office_calendar YEAR=<年>` 檢查整年的日期、星期與「是否放假」之後，去掉 BOM、換成 LF，存到資料根目錄的 `external/office-calendar/<年>/<台北日>.csv`；日曆會在年中改版，改版的檔案有自己的網址，要先把 `OfficeCalendarSnapshot::DOWNLOAD_URLS` 裡那一年換成新網址，再下載、重跑受影響的日子 |
 | 捷運車站出入口座標 | 站牌到出口距離 | [data.gov.tw/dataset/128428](https://data.gov.tw/dataset/128428)，北捷，同一授權 | 已抓：Big5 編碼的 CSV，`bin/rails external:mrt_exits` 轉成 UTF-8 存到資料根目錄的 `external/taipei-mrt-exits/<台北日>.csv`；不定期更新 |
 | 捷運站間行駛時間、班距 | 門到門競爭力 | TDX（免費帳號，有審核）；北捷另有「相鄰兩站間之行駛時間、停靠站時間」資料集，正式頁面待確認；[轉乘步行時間](https://data.gov.tw/dataset/128417) | 要申請帳號 |
 | 捷運分時 OD 月檔 | 重疊走廊的捷運實際流量 | [data.gov.tw/dataset/128506](https://data.gov.tw/dataset/128506) | 每月 CSV |

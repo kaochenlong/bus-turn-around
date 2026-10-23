@@ -3,9 +3,10 @@ require "tmpdir"
 # Writes one route on one Taipei day into the derived tables. DuckDB runs the
 # stages of analysis/, analysis/mrt_overlap.sql with the newest MRT entrance
 # snapshot, and analysis/derived_export.sql into CSV files; then, in
-# one transaction, the stored day is deleted and the files are copied in. A
-# failure anywhere leaves the stored day as it was, and loading the same input
-# again leaves the same rows.
+# one transaction, the stored day is deleted and the files are copied in,
+# together with the day type of the newest office calendar snapshot of the
+# day's year. A failure anywhere leaves the stored day as it was, and loading
+# the same input again leaves the same rows.
 class RouteDayLoader
   # The day could not be written; the message says why.
   class Error < StandardError; end
@@ -39,16 +40,17 @@ class RouteDayLoader
 
   # Returns the numbers of trips, layovers and trip stop counts written.
   def call
+    mrt_exits = newest_mrt_exits
+    calendar = office_calendar_entry
     Dir.mktmpdir("route-day") do |dir|
-      export(dir)
-      RouteDay.transaction(requires_new: true) { replace(dir) }
+      export(dir, *mrt_exits)
+      RouteDay.transaction(requires_new: true) { replace(dir, calendar) }
     end
   end
 
   private
 
-  def export(dir)
-    mrt_exits_path, mrt_exits_day = newest_mrt_exits
+  def export(dir, mrt_exits_path, mrt_exits_day)
     variables = { data_root: @data_root, route_id: @route_id, day: @day, static_day: @day,
                   inspect_dir: dir, derived_dir: dir, mrt_exits_path:, mrt_exits_day: }
     AnalysisRun.run(@duckdb, variables, extra_files: %w[mrt_overlap.sql derived_export.sql])
@@ -66,10 +68,19 @@ class RouteDayLoader
     [ File.join(directory, name), Date.iso8601(File.basename(name, ".csv")) ]
   end
 
-  def replace(dir)
+  # The day as the newest office calendar snapshot of its year has it. It is
+  # looked up after the entrance snapshot, so a data root missing both is told
+  # about the entrance snapshot first.
+  def office_calendar_entry
+    OfficeCalendarSnapshot.entry(data_root: @data_root, day: @day)
+  rescue OfficeCalendarSnapshot::Error => e
+    raise Error, e.message
+  end
+
+  def replace(dir, calendar)
     RouteDay.where(route_id: @route_id, day: @day).delete_all
     STAGING.each_key { stage(it, File.join(dir, "#{it}.csv")) }
-    route_day_id = insert_route_day
+    route_day_id = insert_route_day(calendar)
     insert_stops(route_day_id)
     { trips: insert_trips(route_day_id), layovers: insert_layovers(route_day_id),
       trip_stop_counts: insert_trip_stop_counts(route_day_id) }
@@ -86,10 +97,13 @@ class RouteDayLoader
     end
   end
 
-  def insert_route_day
-    connection.select_value(<<~SQL)
-      INSERT INTO route_days (route_id, day, route_name, departure, destination, static_day, mrt_exits_day, loaded_at)
-      SELECT route_id, day, route_name, departure, destination, static_day, mrt_exits_day, now() FROM staging_route_day
+  def insert_route_day(calendar)
+    connection.select_value(RouteDay.sanitize_sql_array([ <<~SQL, calendar.to_h ]))
+      INSERT INTO route_days (route_id, day, route_name, departure, destination, static_day, mrt_exits_day, day_type,
+                              day_note, office_calendar_day, loaded_at)
+      SELECT route_id, day, route_name, departure, destination, static_day, mrt_exits_day, :day_type, :note,
+             CAST(:snapshot_day AS date), now()
+      FROM staging_route_day
       RETURNING id
     SQL
   end

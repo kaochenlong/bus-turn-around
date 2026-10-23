@@ -4,8 +4,7 @@ RSpec.describe RoutePage::LayoverDistribution, type: :model do
   # A stored day whose direction 0 runs 甲站 to 戊站 and direction 1 己站 to
   # 甲站, with layovers of the given minutes ending in direction 0.
   def route_day(day, layover_minutes)
-    RouteDay.create!(route_id: 9001, day:, route_name: "測試幹線", departure: "甲站", destination: "戊站",
-                     static_day: day, loaded_at: Time.current).tap do |route_day|
+    create(:route_day, day:).tap do |route_day|
       route_day.stops.create!([ { go_back: 0, seq: 0, stop_name: "甲站" }, { go_back: 0, seq: 4, stop_name: "戊站" },
                                 { go_back: 1, seq: 5, stop_name: "己站" }, { go_back: 1, seq: 9, stop_name: "甲站" } ])
       end_time = Time.zone.parse("#{day} 08:00")

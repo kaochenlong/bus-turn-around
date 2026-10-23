@@ -3,8 +3,7 @@ require "rails_helper"
 RSpec.describe HomePage::RouteList, type: :model do
   def store_days(route_id, *days)
     days.each do |day|
-      RouteDay.create!(route_id:, day: Date.iso8601(day), route_name: "測試幹線", departure: "甲站",
-                       destination: "戊站", static_day: Date.iso8601(day), loaded_at: Time.current)
+      create(:route_day, route_id:, day: Date.iso8601(day))
     end
   end
 

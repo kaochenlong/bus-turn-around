@@ -75,7 +75,7 @@ tests:
 ---
 ### Requirement: Route list
 
-The route list SHALL contain one entry per route Id in the route list configuration, in configuration order, built from one query for the latest stored day of every configured route. An entry whose route has stored days SHALL show the route name, the Id, the departure and destination of the latest stored day, and that day with its weekday in the format the route page uses for covered days, and SHALL link to `/routes/<Id>`. An entry whose route has no stored days SHALL show only the Id, SHALL state that the route has no data yet, and SHALL NOT link anywhere.
+The route list SHALL contain one entry per route Id in the route list configuration, in configuration order, built from one query for the latest stored day of every configured route. An entry whose route has stored days SHALL show the route name, the Id, the departure and destination of the latest stored day, and that day with its weekday in the format the route page uses for covered days, followed by its day type as defined by `day-types`, and SHALL link to `/routes/<Id>`. An entry whose route has no stored days SHALL show only the Id, SHALL state that the route has no data yet, and SHALL NOT link anywhere.
 
 #### Scenario: Entries in configuration order
 
@@ -84,9 +84,14 @@ The route list SHALL contain one entry per route Id in the route list configurat
 
 ##### Example: entry of a route with data
 
-- **GIVEN** route 9001 has stored days 2026-10-19 and 2026-10-20 whose latest row has route name 測試幹線, departure 甲站 and destination 戊站
+- **GIVEN** route 9001 has the stored weekdays 2026-10-19 and 2026-10-20 whose latest row has route name 測試幹線, departure 甲站 and destination 戊站
 - **WHEN** `/` is requested
-- **THEN** the 9001 entry shows 測試幹線, 9001, 甲站－戊站 and 2026-10-20（二）
+- **THEN** the 9001 entry shows 測試幹線, 9001, 甲站－戊站 and 2026-10-20（二）平日
+
+#### Scenario: Latest day is a holiday
+
+- **WHEN** route 9001's latest stored day is the holiday 2026-10-26
+- **THEN** the 9001 entry shows 2026-10-26（一）假日
 
 #### Scenario: Latest day of every route in one query
 
@@ -101,54 +106,63 @@ The route list SHALL contain one entry per route Id in the route list configurat
 
 
 <!-- @trace
-source: home-page
+source: day-types
 updated: 2026-10-23
 code:
-  - app/assets/images/home-hero-tall.webp
-  - app/components/route_coverage_component.rb
-  - app/components/route_list_component.yml
-  - app/controllers/pages_controller.rb
-  - app/assets/images/home-hero-wide.webp
-  - app/components/data_limitations_component.rb
-  - config/locales/en.yml
+  - lib/tasks/external.rake
+  - app/models/office_calendar_snapshot.rb
+  - docs/data-sources.md
   - config/locales/tw.yml
-  - app/frontend/hero/scene.js
-  - app/components/route_list_component.html.erb
-  - app/components/attribution_component.yml
-  - app/components/data_limitations_component.html.erb
-  - app/frontend/hero/runtime.js
-  - .dockerignore
-  - app/frontend/entrypoints/application.js
-  - app/views/pages/home.html.erb
-  - spec/support/system.rb
-  - package.json
-  - tools/hero/export.js
-  - app/frontend/stylesheets/application.css
-  - tools/hero/index.html
-  - app/components/home_hero_component.yml
-  - app/components/route_list_component.rb
-  - app/components/attribution_component.rb
-  - app/components/attribution_component.html.erb
-  - app/components/data_sources_component.yml
-  - app/components/home_hero_component.html.erb
+  - app/models/route_day_loader.rb
   - app/components/data_limitations_component.yml
-  - .rubocop.yml
-  - app/models/home_page/route_list.rb
-  - app/components/data_sources_component.html.erb
-  - app/views/layouts/application.html.erb
+  - app/components/route_coverage_component.rb
+  - app/components/route_coverage_component.yml
+  - app/models/mrt_exits_snapshot.rb
+  - app/components/route_coverage_component.html.erb
+  - db/schema.rb
+  - app/components/route_list_component.html.erb
+  - db/migrate/20261022230942_add_day_type_to_route_days.rb
+  - spec/factories/route_days.rb
+  - app/components/attribution_component.html.erb
+  - app/components/attribution_component.yml
+  - config/locales/en.yml
+  - spec/fixtures/analysis/README.md
+  - app/models/route_page/coverage.rb
   - app/components/application_component.rb
-  - app/components/data_sources_component.rb
-  - app/components/home_hero_component.rb
+  - app/components/route_list_component.yml
+  - app/models/http_fetcher.rb
+  - spec/fixtures/analysis/external/office-calendar/2026/2026-10-19.csv
+  - app/models/route_day.rb
+  - db/migrate/20261022231802_require_day_type_on_route_days.rb
 tests:
-  - spec/requests/site_layout_spec.rb
-  - spec/components/home_hero_component_spec.rb
-  - spec/components/data_sources_component_spec.rb
-  - spec/requests/pages_spec.rb
+  - spec/components/mrt_overlap_component_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/components/route_summary_component_spec.rb
+  - spec/models/route_page/buffer_trade_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/components/load_profile_table_component_spec.rb
+  - spec/components/run_time_table_component_spec.rb
   - spec/system/home_hero_spec.rb
-  - spec/components/data_limitations_component_spec.rb
-  - spec/models/home_page/route_list_spec.rb
-  - spec/assets/home_hero_images_spec.rb
+  - spec/models/http_fetcher_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/components/buffer_trade_component_spec.rb
+  - spec/components/layover_chart_component_spec.rb
+  - spec/components/load_chart_component_spec.rb
+  - spec/components/application_component_spec.rb
+  - spec/models/route_page/layover_stats_spec.rb
+  - spec/models/route_page/coverage_spec.rb
+  - spec/components/layover_table_component_spec.rb
   - spec/components/route_list_component_spec.rb
+  - spec/models/home_page/route_list_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/office_calendar_snapshot_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/models/route_page/layover_distribution_spec.rb
+  - spec/models/route_page/run_times_spec.rb
+  - spec/components/route_coverage_component_spec.rb
 -->
 
 ---

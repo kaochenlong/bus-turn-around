@@ -6,8 +6,7 @@ RSpec.describe MrtOverlapComponent, type: :component do
   # A stored day whose direction 0 stops have the given distances, with one
   # morning-peak trip counted at sequence 1 and 2.
   def route_day(distances)
-    RouteDay.create!(route_id: 9001, day: Date.new(2026, 10, 19), route_name: "測試幹線", departure: "甲站", destination: "戊站",
-                     static_day: Date.new(2026, 10, 19), mrt_exits_day: Date.new(2026, 10, 18), loaded_at: Time.current).tap do |day|
+    create(:route_day, mrt_exits_day: Date.new(2026, 10, 18)).tap do |day|
       distances.each_with_index { |meters, seq| day.stops.create!(go_back: 0, seq:, stop_name: "站#{seq}", nearest_exit_meters: meters) }
     end
   end

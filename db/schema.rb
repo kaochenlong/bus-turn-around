@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_193708) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_22_231802) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -44,6 +44,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_193708) do
     t.date "static_day", null: false
     t.timestamptz "loaded_at", null: false
     t.date "mrt_exits_day"
+    t.string "day_type", null: false
+    t.string "day_note"
+    t.date "office_calendar_day", null: false
     t.index ["route_id", "day"], name: "index_route_days_on_route_id_and_day", unique: true
   end
 

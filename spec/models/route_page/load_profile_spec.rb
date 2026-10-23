@@ -2,8 +2,7 @@ require "rails_helper"
 
 RSpec.describe RoutePage::LoadProfile, type: :model do
   def route_day(day, names)
-    RouteDay.create!(route_id: 9001, day:, route_name: "測試幹線", departure: "甲站", destination: "戊站",
-                     static_day: day, loaded_at: Time.current).tap do |route_day|
+    create(:route_day, day:).tap do |route_day|
       names.each { |(go_back, seq), stop_name| route_day.stops.create!(go_back:, seq:, stop_name:) }
     end
   end

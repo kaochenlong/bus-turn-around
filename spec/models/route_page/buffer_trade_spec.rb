@@ -5,8 +5,7 @@ RSpec.describe RoutePage::BufferTrade, type: :model do
   # ["HH:MM" end time, minutes, direction of the ending trip], the direction
   # 0 when left out.
   def route_day(day, vehicles: [], layovers: [])
-    RouteDay.create!(route_id: 9001, day:, route_name: "測試幹線", departure: "甲站", destination: "戊站",
-                     static_day: day, loaded_at: Time.current).tap do |route_day|
+    create(:route_day, day:).tap do |route_day|
       vehicles.each_with_index { |bus_id, index| add_trip(route_day, bus_id, Time.zone.parse("#{day} 06:00") + index.hours) }
       layovers.each { |time, minutes, go_back = 0| add_layover(route_day, Time.zone.parse("#{day} #{time}"), minutes, go_back) }
     end

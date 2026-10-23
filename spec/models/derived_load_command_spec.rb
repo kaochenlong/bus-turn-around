@@ -52,6 +52,21 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
     end
   end
 
+  describe "有捷運出入口快照、沒有辦公日曆快照時" do
+    # The fixture's raw files and entrance snapshot without its office calendar.
+    def data_root_without_calendar(dir)
+      %w[bus_event bus_seat_event static].each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, it), File.join(dir, it)) }
+      FileUtils.mkdir_p(File.join(dir, "external"))
+      File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, "external/taipei-mrt-exits"), File.join(dir, "external/taipei-mrt-exits"))
+      dir
+    end
+
+    it "那一天失敗，說要先跑 bin/rails external:office_calendar YEAR=2026，什麼都不寫" do
+      status, out = Dir.mktmpdir { run_command("DAY" => "2026-10-19", "TURNAROUND_DATA" => data_root_without_calendar(it)) }
+      expect([ status.zero?, out.lines.first.include?("bin/rails external:office_calendar YEAR=2026"), stored_days ]).to eq([ false, true, [] ])
+    end
+  end
+
   it "範圍回補停在第一個失敗的日子：10-19 寫入、10-20 失敗、10-21 不跑，最後列出寫入的日子" do
     status, out = run_command("FROM" => "2026-10-19", "TO" => "2026-10-21")
     expect([ status.zero?, out.lines.map { it[/\A[^：]+：/] }, stored_days ]).to eq(
