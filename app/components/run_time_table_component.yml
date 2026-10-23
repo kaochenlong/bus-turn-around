@@ -2,8 +2,8 @@
 tw: &tw
   eyebrow: 行駛時間
   title: 一趟從起站到末站要跑多久？
-  note: 完整趟次從起站離站到末站到站的分鐘數，依發車的小時分組。趟數少於 5 的列標「樣本少」。
-  bar_legend: 每列右邊的橫條從 p50 畫到 p95，中間的直線是 p85，刻度 %{from} 到 %{to} 分鐘。
+  note: 只算完整趟次，從起站離站算到末站到站，照發車的那個小時分組。一列的趟數少於 5 趟，就標「樣本少」。
+  bar_legend: 每列右邊的橫條從 p50 畫到 p95，中間那條直線是 p85，刻度從 %{from} 到 %{to} 分鐘。
   direction_picker: 方向
   directions:
     "0": 去程
@@ -12,7 +12,7 @@ tw: &tw
   trips: 趟數
   small_sample: 樣本少
   none: 沒有可算的趟次。
-  excluded: 起點或終點不是實測離站、到站時刻而排除的完整趟次：%{count} 趟
+  excluded: 另外有 %{count} 趟完整趟次沒算進來，因為起點或終點不是實際量到的離站、到站時刻。
 zh-TW:
   <<: *tw
 en:

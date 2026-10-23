@@ -1,6 +1,6 @@
 # Routes that have a route page. A route is added only after its definitions
-# have been checked on its own data; 15373 is 中山幹線. The tests use the
-# fixture route 9001.
+# have been checked on its own data; 15373 is 中山幹線, 10712 is 251 and
+# 11764 is 251區. The tests use the fixture route 9001.
 #
 # Each route gives the nature of both of its ends, keyed by the direction
 # (go_back) of the trips that end there: stop when buses stop there before
@@ -18,6 +18,35 @@ shared:
         # the GPS never left that stretch.
         0: pass_through
         1: stop # Inbound trips end at 職能發展學院二.
+    10712:
+      ends:
+        # Verified 2026-10-23 on the data of 2026-10-22: outbound trips end at
+        # 臺北車站(開封) and the next trip leaves 重慶南路一段, 88 m away. The
+        # 36 layovers there had a median of 2.3 minutes; in none of them did
+        # the GPS get more than 121 m from the nearer of the two stops, or the
+        # bus stand still for more than 2.0 minutes.
+        0: pass_through
+        # Verified 2026-10-23 on the data of 2026-10-22: inbound trips end at
+        # 福安居一 and the next trip leaves 福安居, 140 m away. The 30 layovers
+        # there had a median of 44.4 minutes; in nine of ten the GPS stayed
+        # within 136 m of the nearer stop, and the longest standstill in each
+        # had a median of 14.4 minutes.
+        1: stop
+    11764:
+      ends:
+        # Verified 2026-10-23 on the data of 2026-10-22: outbound trips end at
+        # 捷運公館站 and the next trip leaves 台電大樓, 616 m away. The 53
+        # layovers there had a median of 2.8 minutes; in none of them did the
+        # GPS get more than 139 m from the nearer of the two stops, or the bus
+        # stand still for more than 1.3 minutes. No point falls in the middle
+        # of the 616 m only because the GPS reports have a gap there.
+        0: pass_through
+        # Verified 2026-10-23 on the data of 2026-10-22: inbound trips end at
+        # 福安居一 and the next trip leaves 福安居, 140 m away. The 38 layovers
+        # there had a median of 19.7 minutes; in nine of ten the GPS stayed
+        # within 112 m of the nearer stop, and the longest standstill in each
+        # had a median of 3.5 minutes.
+        1: stop
 
 test:
   routes:
