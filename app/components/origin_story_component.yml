@@ -1,0 +1,29 @@
+---
+tw: &tw
+  eyebrow: 這個網站從一篇報導開始
+  heading: 「我也開始搶黃燈了！」
+  summary: 2025 年暑假，陽明交大碩士生鄭義穎到光華巴士開了兩個月的中山幹線。他原本主張慢慢開、安全第一，幾週後自己也開始搶黃燈：班表給的時間比實際要跑的少，差額只能由駕駛用開快或少休息來補。這個網站量的，就是每台車到了末站、再開出去之前，實際停了多久。
+  day: "他的一天：06:30 到站，20:30 下班"
+  depart: 發車
+  back: 回站
+  interval: 10 分鐘
+  interval_quote: 「幾乎只能跑步去上廁所」
+  layovers_link: 中山幹線的折返停留
+  buffer_link: 多留 15 分鐘要多幾台車
+  source_html: "出處：《未來城市》〈%{title}〉，%{date}。"
+  article_title: 「我也開始搶黃燈了！」陽明交大碩士生開公車60天，把駕駛掙扎寫進論文推動排班改革
+zh-TW:
+  <<: *tw
+en:
+  eyebrow: Where this site started
+  heading: "“I started running yellow lights too!”"
+  summary: In the summer of 2025, 鄭義穎, a master's student at National Yang Ming Chiao Tung University, drove 中山幹線 for 光華巴士 for two months. He had argued for driving slowly and putting safety first; within weeks he was running yellow lights himself. The schedule gives less time than a trip takes, and the driver can only make up the difference by driving faster or resting less. This site measures how long each bus actually stops at the end of the line before it leaves again.
+  day: "His day: at the station at 06:30, off at 20:30"
+  depart: Departs
+  back: Back at the station
+  interval: 10 minutes
+  interval_quote: "“Barely enough time to run to the toilet”"
+  layovers_link: Layovers on 中山幹線
+  buffer_link: Vehicles needed for 15 more minutes
+  source_html: "Source: 《未來城市》, 〈%{title}〉, %{date}. Quotes translated by us."
+  article_title: 「我也開始搶黃燈了！」陽明交大碩士生開公車60天，把駕駛掙扎寫進論文推動排班改革
