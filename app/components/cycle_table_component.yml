@@ -1,0 +1,39 @@
+---
+tw: &tw
+  eyebrow: 來回一趟與週期
+  title: 跑得完嗎？來回一趟要多久，週期給了多久
+  note_html: 來回一趟從%{first_stop}發車算到回到%{last_stop}，含另一端的停留；週期是這台車回到%{last_stop}，到下一次回到同一站的間隔，中間的休息都算在裡面。%{far_end_rest}兩者都照發車的那個小時分組，只算兩段都量到起站與末站、而且中間沒有去跑別條路線的車。一列的筆數少於 5 就標「樣本少」。
+  far_end_rest: 另一端的停留是休息，不是過站。
+  first_stop_fallback: 起站
+  last_stop_fallback: 末站
+  headline_html: 來回一趟有一半要 %{round_trip_p50} 分鐘以上、八成五在 %{round_trip_p85} 分鐘內跑完；週期最緊的一成只有 %{cycle_p10} 分鐘、一半在 %{cycle_p50} 分鐘內。
+  headline_round_trip_only_html: 來回一趟有一半要 %{round_trip_p50} 分鐘以上、八成五在 %{round_trip_p85} 分鐘內跑完。
+  no_round_trips: 這幾天沒有算得出來的來回。
+  measure_picker: 要看的表
+  measures:
+    round_trip: 來回一趟
+    cycle: 週期
+  hour: 發車時
+  count: 筆數
+  all_day: 全天
+  small_sample: 樣本少
+zh-TW:
+  <<: *tw
+en:
+  eyebrow: Round trips and cycles
+  title: Can they make it? How long a round trip takes, and how long a cycle allows
+  note_html: "A round trip runs from leaving %{first_stop} to getting back to %{last_stop}, including the stay at the other end; a cycle is the time from a vehicle getting back to %{last_stop} to its next return there, every break in between included.%{far_end_rest} Both are grouped by departure hour and count only vehicles whose two trips were observed at their first and last stops and that ran no other route in between. Rows with fewer than 5 values are marked as small samples."
+  far_end_rest: " The stay at the other end is a break, not a pass-through."
+  first_stop_fallback: the first stop
+  last_stop_fallback: the last stop
+  headline_html: "Half of the round trips take %{round_trip_p50} minutes or more and 85% are done within %{round_trip_p85} minutes; the tightest tenth of cycles allow only %{cycle_p10} minutes, and half fit within %{cycle_p50} minutes."
+  headline_round_trip_only_html: "Half of the round trips take %{round_trip_p50} minutes or more and 85% are done within %{round_trip_p85} minutes."
+  no_round_trips: No round trip could be computed for these days.
+  measure_picker: Table
+  measures:
+    round_trip: Round trip
+    cycle: Cycle
+  hour: Hour
+  count: Count
+  all_day: All day
+  small_sample: small sample

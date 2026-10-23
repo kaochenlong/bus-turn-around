@@ -1,0 +1,55 @@
+<section data-section="cycles" x-data="{ measure: 'round_trip' }">
+  <%= eyebrow(t(".eyebrow")) %>
+  <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
+  <%= tag.p note, data: note_data, class: "mb-6 max-w-[46em] text-slate-600" %>
+  <% if any_round_trips? %>
+    <p data-headline class="mb-6 max-w-[46em] font-medium text-slate-800"><%= headline %></p>
+    <%# 640px 以下一次只看一張表，預設來回一趟；看哪一張只是頁面上的狀態，不改網址。沒有 JS 時切換按鈕藏著（x-cloak），
+        兩張表都在，伺服器輸出的 class 裡沒有藏起來的樣式 %>
+    <div x-cloak data-measure-switch role="group" aria-label="<%= t(".measure_picker") %>"
+         class="mb-3.5 flex gap-0.5 rounded-[10px] border border-slate-200 bg-slate-100 p-0.75 sm:hidden">
+      <% measures.each do |measure| %>
+        <button type="button" value="<%= measure %>" x-on:click="measure = '<%= measure %>'" x-bind:aria-pressed="measure === '<%= measure %>'"
+                x-bind:class="measure === '<%= measure %>' ? 'bg-white font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.14)]' : 'font-medium text-slate-600 hover:text-slate-900'"
+                class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+          <%= t(".measures.#{measure}") %>
+        </button>
+      <% end %>
+    </div>
+    <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
+      <% measures.each do |measure| %>
+        <div data-measure="<%= measure %>" x-bind:class="measure === '<%= measure %>' ? '' : 'max-sm:hidden'" class="min-w-0">
+          <%# 手機上有切換按鈕時，表的標題只留給螢幕報讀；沒有 JS 時照常顯示 %>
+          <h3 x-bind:class="'max-sm:sr-only'" class="mb-2 text-subsection font-semibold text-teal-800"><%= t(".measures.#{measure}") %></h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="text-left"><%= t(".hour") %></th>
+                <th><%= t(".count") %></th>
+                <% percentile_labels(measure).each do |label| %>
+                  <th><%= label %></th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody>
+              <% table_rows(measure).each do |row| %>
+                <% small_sample = small_sample?(row, measure) %>
+                <% all_day = row.hour.nil? %>
+                <%= tag.tr data: { hour: row.hour, total: (true if all_day), small_sample: (true if small_sample) },
+                           class: class_names("font-semibold": all_day, "text-slate-500": small_sample, "text-slate-900": all_day && !small_sample).presence do %>
+                  <td class="text-left"><%= hour_label(row) %></td>
+                  <td><%= count(row, measure) %><% if small_sample %><span class="ml-1.5 inline-block rounded-[5px] bg-slate-100 px-1.5 align-[1px] text-label-sm leading-5 font-medium text-slate-600 sm:ml-2 sm:px-1.75"><%= t(".small_sample") %></span><% end %></td>
+                  <% percentiles(row, measure).each do |value| %>
+                    <td><%= minutes(value) %></td>
+                  <% end %>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p data-no-round-trips class="text-note text-slate-500"><%= t(".no_round_trips") %></p>
+  <% end %>
+</section>

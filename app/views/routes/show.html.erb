@@ -24,6 +24,9 @@
       <%= divider %>
       <%= render LayoverTableComponent.new(layover_stats:, ends: @ends) %>
     <% end %>
+    <%= render CardComponent.new(id: "cycles") do %>
+      <%= render CycleTableComponent.new(cycles: RoutePage::Cycles.new(route_days, ends: @ends)) %>
+    <% end %>
     <%# 卡片在 turbo-frame 外面：拉桿只重新載入卡片裡的這一塊 %>
     <%= render CardComponent.new(id: "buffer") do %>
       <%= render BufferTradeComponent.new(buffer_trade: RoutePage::BufferTrade.new(route_days, minutes: @buffer_minutes, ends: @ends), coverage: @coverage) %>

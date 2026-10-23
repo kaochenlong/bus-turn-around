@@ -20,4 +20,9 @@ RSpec.describe "路線頁（fixture 寫入後）", :duckdb, type: :request do
   it "摘要是 27 趟、完整 22 趟" do
     expect(%w[trips complete-trips].map { response.parsed_body.at_css("[data-#{it}]")["data-#{it}"] }).to eq(%w[27 22])
   end
+
+  it "來回與週期全天那一列：來回一趟 7 筆、週期 5 筆" do
+    counts = %w[round_trip cycle].map { response.parsed_body.at_css("[data-section=cycles] [data-measure=#{it}] tr[data-total]")&.css("td")&.[](1)&.text&.squish }
+    expect(counts).to eq(%w[7 5])
+  end
 end

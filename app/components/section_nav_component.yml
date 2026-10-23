@@ -3,6 +3,7 @@ tw: &tw
   label: 本頁區塊
   sections:
     layovers: 折返停留
+    cycles: 來回與週期
     buffer: 換休息試算
     runtimes: 行駛時間
     load: 載客剖面
@@ -14,6 +15,7 @@ en:
   label: On this page
   sections:
     layovers: Layovers
+    cycles: Round trips & cycles
     buffer: Rest trade-off
     runtimes: Run time
     load: Load profile
