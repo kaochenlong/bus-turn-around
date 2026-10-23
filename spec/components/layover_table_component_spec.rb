@@ -19,6 +19,11 @@ RSpec.describe LayoverTableComponent, type: :component do
 
   def cells(rendered) = rendered.css("tbody tr").map { |row| row.css("td").map { it.text.squish } }
 
+  # Which cells of each row are bold, by position: 5 is p50, 7 the share under 15 minutes.
+  def bold_cells(rendered)
+    rendered.css("tr[data-direction]").to_h { |row| [ row["data-direction"], row.css("td").each_with_index.filter_map { |cell, index| index if cell.classes.include?("font-semibold") } ] }
+  end
+
   it "每個方向一列：方向、末站、那一端停車或開過去就走、筆數、p10、p50、p90、不到 15 分鐘的比例；沒有折返停留的方向顯示 —" do
     end_time = Time.zone.parse("2026-10-19 08:00")
     [ 10, 20, 30 ].each { route_day.layovers.create!(bus_id: "TEST-0001", go_back: 0, end_time:, next_start_time: end_time + it.minutes) }
@@ -36,5 +41,16 @@ RSpec.describe LayoverTableComponent, type: :component do
 
   it "兩端都停車時沒有那句說明" do
     expect(render_table(route_ends("stop", "stop")).css("[data-pass-through-note]").size).to eq(0)
+  end
+
+  it "手機的卡片上，p10、p50、p90 有值的格子帶分鐘的單位，是 — 的格子不帶" do
+    end_time = Time.zone.parse("2026-10-19 08:00")
+    route_day.layovers.create!(bus_id: "TEST-0001", go_back: 0, end_time:, next_start_time: end_time + 10.minutes)
+    units = render_table(route_ends("stop", "stop")).css("tr[data-direction]").to_h { [ it["data-direction"], it.css("td[data-unit]").size ] }
+    expect(units).to eq("0" => 3, "1" => 0)
+  end
+
+  it "摘要的重點數字取自停車端那一列的 p50 與不到 15 分鐘，這兩格加粗；開過去就走那一列不加粗" do
+    expect(bold_cells(render_table(route_ends("pass_through", "stop")))).to eq("0" => [], "1" => [ 5, 7 ])
   end
 end

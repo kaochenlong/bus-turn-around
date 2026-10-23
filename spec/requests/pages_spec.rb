@@ -14,6 +14,12 @@ RSpec.describe "Pages", type: :request do
     expect([ response.status, page.css("[data-section]").map { it["data-section"] } ]).to eq([ 200, %w[hero routes limitations sources] ])
   end
 
+  it "站名在 body 的文字裡只出現一次，就在網站名稱列裡" do
+    get root_path
+    name = I18n.t("site.name")
+    expect([ page.at_css("body").text.scan(name).size, page.at_css("[data-site-bar]")&.text&.include?(name) ]).to eq([ 1, true ])
+  end
+
   it "9001 存了 2026-10-20 時，不跑任何 script 拿到的 HTML 已經有插圖、9001 的最新一天、四條資料限制與三個資料集連結" do
     store_days("2026-10-20")
     get root_path

@@ -18,6 +18,10 @@ class LoadChartComponent < ApplicationComponent
 
   Chart = Data.define(:go_back, :stops, :medians, :ranges)
 
+  # A stop's row for narrow screens: its median in the band (nil without a
+  # count), whether it lies in an overlap stretch, and the stretch it starts.
+  StopRow = Data.define(:seq, :stop_name, :median, :near, :span)
+
   def initialize(load_profile:, mrt_overlap:)
     @load_profile = load_profile
     @mrt_overlap = mrt_overlap
@@ -70,6 +74,19 @@ class LoadChartComponent < ApplicationComponent
   def span_width(chart, range) = (x(chart, range.last) - x(chart, range.first) + step(chart)).round(1)
 
   def stop_name(chart, seq) = chart.stops.find { it.seq == seq }&.stop_name
+
+  # The rows of a band in the stop order of the latest day, the same stops,
+  # medians and stretches the chart draws.
+  def stop_rows(chart, band)
+    chart.stops.map do |stop|
+      StopRow.new(seq: stop.seq, stop_name: stop.stop_name, median: chart.medians[[ band, stop.seq ]],
+                  near: chart.ranges.any? { it.cover?(stop.seq) }, span: chart.ranges.find { it.first == stop.seq })
+    end
+  end
+
+  # A row's bar: the median's share of the direction's scale top, the same
+  # scale every band of the chart uses.
+  def bar_style(chart, median) = "width: #{(median * 100.0 / scale_top(chart)).round(1)}%"
 
   def polyline(chart, segment) = segment.map { |seq, median| "#{x(chart, seq)},#{y(chart, median)}" }.join(" ")
 

@@ -22,4 +22,12 @@ RSpec.describe RoutePage::LayoverStats, type: :model do
     rows = described_class.new(RouteDay.where(id: days.map(&:id))).rows
     expect(rows.map { [ it.go_back, it.stop_name, it.n_layovers ] }).to eq([ [ 0, "戊站", 3 ], [ 1, "甲站", 0 ] ])
   end
+
+  it "同一個物件呼叫兩次 rows，只查一次 layovers：摘要與折返停留表共用一次查詢" do
+    stats = described_class.new(RouteDay.where(id: days.map(&:id)))
+    queries = []
+    count_layover_queries = ->(*, payload) { queries << payload[:sql] if payload[:sql].include?("FROM layovers") }
+    ActiveSupport::Notifications.subscribed(count_layover_queries, "sql.active_record") { 2.times { stats.rows } }
+    expect(queries.size).to eq(1)
+  end
 end

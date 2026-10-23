@@ -5,7 +5,8 @@
 # nature of that end: buses stop there, or drive on to the first stop of the
 # next trip, which makes its layovers no rest opportunity.
 class LayoverTableComponent < ApplicationComponent
-  NONE = "—"
+  # The position of p50 in a row's percentiles.
+  P50 = RoutePage::LayoverStats::PERCENTILE_LEVELS.index(0.5)
 
   def initialize(layover_stats:, ends:)
     @layover_stats = layover_stats
@@ -18,9 +19,12 @@ class LayoverTableComponent < ApplicationComponent
 
   def pass_through? = @ends.pass_through?
 
-  def minutes(value) = value.nil? ? NONE : format("%.1f", value)
-
-  def share(value) = value.nil? ? NONE : format("%.1f%%", value * 100)
+  # The summary's key numbers come from a stopping end's p50 and share under
+  # SHORT_MINUTES; those cells are bold, so readers find them in the table.
+  def key_cell_class(row) = ("font-semibold text-slate-900" if @ends.stopping?(row.go_back))
 
   def short_minutes = RoutePage::LayoverStats::SHORT_MINUTES
+
+  # p10, p50 and p90, the column names of a row's percentiles.
+  def percentile_labels = RoutePage::LayoverStats::PERCENTILE_LEVELS.map { "p#{(it * 100).round}" }
 end

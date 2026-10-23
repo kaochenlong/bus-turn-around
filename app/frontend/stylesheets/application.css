@@ -21,13 +21,25 @@
   --text-table: 16px;
   --text-label: 14px;
   --text-label-sm: 13px;
+  /* 行駛時間橫條的刻度 */
+  --text-tick: 12px;
+  /* 逐站表收合列的標題（640px 以上）、手機上折返停留卡的末站 */
+  --text-lead: 18px;
   --text-subsection: 20px;
   --text-section: 26px;
   --text-section-sm: 23px;
   --text-page: 40px;
   --text-page-sm: 30px;
-  --text-stat: 60px;
-  --text-stat-sm: 44px;
+  /* 路線頁摘要的趟次與重點數字 */
+  --text-stat: 44px;
+  --text-stat-sm: 36px;
+  /* 換休息試算：兩欄對照的數字、下面兩個小數字塊的數字 */
+  --text-figure: 36px;
+  --text-figure-sm: 32px;
+  --text-figure-minor: 30px;
+  --text-figure-minor-sm: 28px;
+  /* 手機上折返停留卡的數字 */
+  --text-figure-card: 26px;
 }
 
 /* 首頁與路線頁的 main、layout 輸出的顯名聲明 footer 共用的欄寬與左右內距：

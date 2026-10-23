@@ -19,5 +19,9 @@ class LoadProfileTableComponent < ApplicationComponent
     end
   end
 
+  # The stop rows of the table over both directions, written in the closed
+  # disclosure's summary.
+  def stop_rows = directions.sum { |_, stops| stops.size }
+
   def decimal(value) = format("%.1f", value)
 end

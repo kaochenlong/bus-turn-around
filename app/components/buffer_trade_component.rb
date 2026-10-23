@@ -5,6 +5,10 @@
 # reported apart, as not counted. Only numbers: nothing is marked as meeting a
 # rule or a target.
 class BufferTradeComponent < ApplicationComponent
+  # The grid column of each bound from 640 px wide, where every bound is a
+  # column; written out whole so Tailwind finds the classes.
+  COLUMNS = { "lower" => "sm:col-start-1", "upper" => "sm:col-start-2" }.freeze
+
   def initialize(buffer_trade:, coverage:)
     @buffer_trade = buffer_trade
     @coverage = coverage
@@ -21,6 +25,8 @@ class BufferTradeComponent < ApplicationComponent
   def decimal(value) = format("%.1f", value)
 
   def hour_span(hour) = format("%<from>02d:00–%<to>02d:00", from: hour, to: hour + 1)
+
+  def vehicle_hours = { "lower" => @buffer_trade.vehicle_hours.lower, "upper" => @buffer_trade.vehicle_hours.upper }
 
   def peaks = { "lower" => @buffer_trade.peak.lower, "upper" => @buffer_trade.peak.upper }
 end

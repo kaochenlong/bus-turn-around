@@ -1,6 +1,7 @@
 ---
 tw: &tw
-  title: 換休息試算：每趟加緩衝
+  eyebrow: 換休息試算
+  title: 每趟加緩衝
   note: 假設班表在停車那一端的每次折返都留一段緩衝，算要多花多少車時、多幾台車。只用停車端量到的折返停留，算的是車，不是駕駛。
   buffer_html: 每次折返留 %{minutes} 分鐘
   submit: 重算
@@ -17,7 +18,8 @@ tw: &tw
 zh-TW:
   <<: *tw
 en:
-  title: "Rest trade-off: a buffer at every layover"
+  eyebrow: Rest trade-off
+  title: A buffer at every layover
   note: Assume the schedule leaves a buffer at every layover at the ends where buses stop, and estimate the added vehicle-hours and vehicles. Only layovers measured at those ends count, and the figures are for vehicles, not drivers.
   buffer_html: Leave %{minutes} minutes at every layover
   submit: Recalculate

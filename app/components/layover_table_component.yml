@@ -1,7 +1,7 @@
 ---
 tw: &tw
-  title: 折返停留
-  note: 同一台車本趟末站到站到下一趟起站離站的分鐘數，只算本趟有到末站、下一趟從起站出發，而且兩趟之間沒有去跑別的路線的配對（另一端漏站不影響），依結束那趟的方向分列。它包含回場、加油、等發車在內的一切，是駕駛休息的上限。
+  caption: 折返停留
+  note: 只算本趟有到末站、下一趟從起站出發，而且兩趟之間沒有去跑別的路線的配對，另一端漏站不影響。
   directions:
     "0": 去程
     "1": 返程
@@ -13,12 +13,14 @@ tw: &tw
     pass_through: 開過去就走
   count: 筆數
   short: 不到 %{minutes} 分鐘
+  minute_unit: 分
   pass_through_note: 標「開過去就走」的那一端，車到末站不停，直接開到下一趟的起站，所以這一端的折返停留不是休息機會。
+  note_with_pass_through_html: "%{note}%{pass_through}"
 zh-TW:
   <<: *tw
 en:
-  title: Layovers
-  note: Minutes from a trip's arrival at its last stop to the same vehicle leaving the first stop of its next trip, for pairs where the trip reached its last stop, the next one left its first stop and the vehicle ran no other route in between (a missed stop at the other end does not matter), by the direction of the ending trip. It includes returning to the depot, refuelling and waiting, so it is an upper bound on rest.
+  caption: Layovers
+  note: Only pairs where the trip reached its last stop, the next one left its first stop and the vehicle ran no other route in between are counted; a missed stop at the other end does not matter.
   directions:
     "0": Outbound
     "1": Inbound
@@ -30,4 +32,6 @@ en:
     pass_through: Drives on
   count: Layovers
   short: Under %{minutes} min
+  minute_unit: min
   pass_through_note: At an end marked “Drives on”, buses do not stop at the last stop and drive straight on to the first stop of the next trip, so the layovers there are not rest opportunities.
+  note_with_pass_through_html: "%{note} %{pass_through}"

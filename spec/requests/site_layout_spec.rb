@@ -12,6 +12,23 @@ RSpec.describe "Site layout", type: :request do
 
   def body_classes = page.at_css("body")["class"].to_s.split
 
+  def site_bars = page.css("[data-site-bar]")
+
+  # The bar itself and everything inside it.
+  def sections_in_site_bar = page.css("[data-site-bar][data-section], [data-site-bar] [data-section]")
+
+  it "首頁的 body 第一個元素是唯一一條網站名稱列，在 main 之前，連回 / 、文字是站名" do
+    get root_path
+    link = site_bars.first&.at_css("a")
+    expect([ site_bars.size, page.at_css("body").element_children.first == site_bars.first, link&.[]("href"), link&.text&.squish ])
+      .to eq([ 1, true, "/", I18n.t("site.name") ])
+  end
+
+  it "9001 還沒有任何資料時，路線頁回 200，恰好一條網站名稱列，列本身與裡面都沒有 data-section" do
+    get route_path(9001)
+    expect([ response.status, site_bars.size, sections_in_site_bar.size ]).to eq([ 200, 1, 0 ])
+  end
+
   it "首頁沒有設自己的 title，title 與 application-name 都是站名" do
     get root_path
     expect([ title, page.at_css("meta[name=application-name]")["content"] ]).to eq([ I18n.t("site.name") ] * 2)
