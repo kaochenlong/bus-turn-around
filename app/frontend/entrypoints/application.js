@@ -5,6 +5,8 @@ import Alpine from "alpinejs"
 
 import "../stylesheets/application.css"
 
+import { installRestCommand } from "../rest_command.js"
+
 // The home page's hero animation. The page is complete without it: the
 // static picture stays when motion is reduced, WebGL is missing or the
 // animation, loaded on demand, fails.
@@ -116,3 +118,7 @@ document.addEventListener("turbo:before-render", (event) => {
 
 window.Alpine = Alpine
 Alpine.start()
+
+// The console's 休息() and its hint. A Turbo visit does not run this entry
+// again, so the hint is written once a full load, not on every page.
+installRestCommand()

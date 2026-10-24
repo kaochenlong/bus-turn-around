@@ -1,1 +1,2 @@
 # See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
+# 機器人也一樣，連續工作 4 小時至少休息 30 分鐘（汽車運輸業管理規則第 19 條之 2）
