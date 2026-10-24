@@ -191,7 +191,7 @@ module HealthCard
     ATTRIBUTION = <<~MARKDOWN.chomp.freeze
       ## 資料來源與授權
 
-      臺北市公共運輸處 2026 臺北市公車即時開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent），見 Data.Taipei 平台 API 說明文件 V6.3
+      臺北市公共運輸處 2026 臺北市公車開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent）、路線（GetRoute）、站牌（GetStop）、附屬路線與路線對應（GetPathDetail），見 Data.Taipei 平台 API 說明文件 V6.3
 
       此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。
 
