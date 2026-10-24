@@ -77,7 +77,7 @@ RSpec.describe StopSequenceComponent, type: :component do
                                                                [ [ "己站", true, false ], [ "丁站", false, false ], [ "甲站", false, true ] ] ])
   end
 
-  it "清單之後是那一端的折返：去程開過去就走、下一趟從己站出發，返程停車、下一趟從甲站出發" do
+  it "清單之後是那一端的折返：去程直接折返、下一趟從己站出發，返程停車、下一趟從甲站出發" do
     rendered = render_both_directions
     rows = [ 0, 1 ].map { turnaround(rendered, it) }
     expect(rows.map { [ it&.[]("data-end-nature"), it&.[]("data-next-first-stop"), it&.text ] })

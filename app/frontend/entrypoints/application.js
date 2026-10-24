@@ -118,6 +118,86 @@ Alpine.data("endMap", () => lazyMap(() => import("../end_map/runtime.js")))
 // The route map of the stop sequence block; every stop is in the list below it.
 Alpine.data("routeMap", () => lazyMap(() => import("../route_map/runtime.js")))
 
+// The buffer estimate's rest and lateness sliders. The server writes every
+// point of the cost curve into the block, with the strings the block shows and
+// the marker's coordinates; moving a slider copies the point at rest plus
+// lateness into the block and puts the two values in the address, without a
+// request. It computes nothing. The block is complete without it: the form
+// sends every value to the server.
+Alpine.data("bufferTrade", () => ({
+  curve: null,
+
+  init() {
+    const data = this.$root.querySelector("script[data-buffer-trade-curve]")
+    this.curve = data ? JSON.parse(data.textContent) : null
+    // Back from Turbo's cache the sliders carry the moved values: show their
+    // point, so the figures and the address agree.
+    this.show()
+  },
+
+  // A slider's input: the new values on the page, on the sliders themselves
+  // for Turbo's cache, and in the address without a history entry.
+  move() {
+    this.show()
+    for (const slider of this.$root.querySelectorAll("input[type=range]")) slider.setAttribute("value", slider.value)
+    const url = new URL(window.location.href)
+    url.searchParams.set("buffer", this.slider("buffer"))
+    url.searchParams.set("late", this.slider("late"))
+    window.history.replaceState(window.history.state, "", url)
+  },
+
+  slider(name) {
+    return Number(this.$root.querySelector(`input[name="${name}"]`).value)
+  },
+
+  show() {
+    const rest = this.slider("buffer")
+    const late = this.slider("late")
+    const hold = rest + late
+    this.text("minutes", rest)
+    this.text("late", late)
+    this.text("hold", hold)
+    const achievedLate = this.$root.querySelector("[data-achieved-late]")
+    if (achievedLate) achievedLate.hidden = late === 0
+    if (!this.curve) return
+
+    const point = this.curve.points[hold]
+    this.text("vehicle-hours-lower", point.vehicle_hours[0])
+    this.text("vehicle-hours-upper", point.vehicle_hours[1])
+    this.text("next-minute-lower", point.next_minute[0])
+    this.text("next-minute-upper", point.next_minute[1])
+    this.text("achieved", this.curve.points[rest].achieved)
+    this.text("achieved-late", point.achieved)
+    ;["lower", "upper"].forEach((bound, index) => {
+      const peak = this.$root.querySelector(`[data-peak="${bound}"]`)
+      peak.querySelector("[data-peak-hour]").textContent = point.peak[index][0]
+      peak.querySelector("[data-vehicles]").textContent = point.peak[index][1]
+    })
+    this.$root.querySelectorAll("details[data-hourly] tr[data-hour]").forEach((row, index) => {
+      row.querySelector('[data-hourly-bound="lower"]').textContent = point.hourly[index][0]
+      row.querySelector('[data-hourly-bound="upper"]').textContent = point.hourly[index][1]
+    })
+    this.mark(point.marker)
+  },
+
+  // Every element of the block showing the named figure.
+  text(name, value) {
+    for (const node of this.$root.querySelectorAll(`[data-value="${name}"]`)) node.textContent = value
+  },
+
+  mark({ x, lower_y: lowerY, upper_y: upperY }) {
+    const line = this.$root.querySelector("[data-marker-line]")
+    line.setAttribute("x1", x)
+    line.setAttribute("x2", x)
+    line.setAttribute("y2", upperY)
+    for (const [bound, y] of [["lower", lowerY], ["upper", upperY]]) {
+      const dot = this.$root.querySelector(`[data-marker-dot="${bound}"]`)
+      dot.setAttribute("cx", x)
+      dot.setAttribute("cy", y)
+    }
+  },
+}))
+
 // Turbo replaces the whole <body> when it renders a new page, and Alpine only
 // cleans up a removed node it initialised itself, never <body>; without this
 // the components of the old page are never destroyed. Morph renders are the

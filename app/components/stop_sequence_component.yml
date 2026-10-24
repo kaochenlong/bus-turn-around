@@ -9,13 +9,13 @@ tw: &tw
     "1": 返程
   first_stop: 起站
   last_stop: 末站
-  turnaround_html: "折返 %{nature}，下一趟從 %{next_first_stop} 出發"
-  turnaround_only_html: "折返 %{nature}"
+  turnaround_html: "這一端 %{nature}，下一趟從 %{next_first_stop} 出發"
+  turnaround_only_html: "這一端 %{nature}"
   member_note: "%{name}（路線 Id %{route_id}）在這個方向不停 %{skipped}，改停 %{added}。"
   stop_list_separator: "、"
   natures:
     stop: 停車
-    pass_through: 開過去就走
+    pass_through: 直接折返
   snapshot: "站序是 %{day} 從公運處抓的資料；涵蓋好幾天時，只列最新那一天的。"
   no_stops: 這幾天沒有站序。
 zh-TW:

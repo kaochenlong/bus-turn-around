@@ -194,7 +194,7 @@ RSpec.describe "折返點的地圖", :duckdb, :js, type: :system do
     end
   end
 
-  it "開過去就走的那一端只畫末站，沒有另外的位置標記" do
+  it "直接折返的那一端只畫末站，沒有另外的位置標記" do
     allow(RoutePage).to receive(:ends).and_return(RoutePage::Ends.from_config({ 0 => "pass_through", 1 => "stop" }, route_id: 9001))
     store_fixture_day
     visit_fixture_day

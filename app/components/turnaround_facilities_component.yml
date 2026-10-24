@@ -2,7 +2,7 @@
 tw: &tw
   eyebrow: 折返點設施
   title: 車在哪裡折返？附近有幾處公廁？
-  note: 停車那一端的位置，是那一天車停著等的時候，GPS 顯示最常停的地方；開過去就走的那一端車不停，就用末站的位置。公廁資料來自環境部的全國公廁建檔資料，同一個地址的廁所算一處，距離取最近那一間的直線距離。
+  note: 停車那一端的位置，是那一天車停著等的時候，GPS 顯示最常停的地方；直接折返的那一端車不停下來等，就用末站的位置。公廁資料來自環境部的全國公廁建檔資料，同一個地址的廁所算一處，距離取最近那一間的直線距離。
   needs_reload: 這幾天的資料還沒有折返點的位置與公廁，重新執行 bin/rails derived:load 後就會出現。
   directions:
     "0": 去程
@@ -10,9 +10,9 @@ tw: &tw
   end_title: "%{direction}在%{stop}結束"
   natures:
     stop: 停車
-    pass_through: 開過去就走
+    pass_through: 直接折返
   standstill_html: 車停著等的時候最常停在這裡，離末站 %{meters} 公尺。%{layovers} 次折返裡，有 %{located} 次車曾停在這個位置 %{radius} 公尺內。
-  end_stop: 車在這一端不停，位置就用末站。
+  end_stop: 車在這一端不停下來等，位置就用末站。
   within_html: "%{meters} 公尺內 %{count} 處"
   nearest_html: 最近一處是%{name}（%{category}），%{meters} 公尺，這一處有 %{rooms} 間。
   no_places: "%{meters} 公尺內的建檔資料裡沒有公廁。"
@@ -42,7 +42,7 @@ zh-TW:
 en:
   eyebrow: Turnaround facilities
   title: Where do buses turn around, and how many toilet places are near?
-  note: At an end where buses stop, the location is where vehicles reported speed 0 most densely during that day's layovers; at an end where buses drive on, they do not stop and the location is the last stop. Toilets come from the national registry of the Ministry of Environment; toilets at one address count as one place, as far away as its nearest toilet in a straight line.
+  note: At an end where buses stop, the location is where vehicles reported speed 0 most densely during that day's layovers; at an end where buses drive on, they do not wait and the location is the last stop. Toilets come from the national registry of the Ministry of Environment; toilets at one address count as one place, as far away as its nearest toilet in a straight line.
   needs_reload: These days have no turnaround locations or toilets yet; run bin/rails derived:load again to add them.
   directions:
     "0": Outbound
@@ -52,7 +52,7 @@ en:
     stop: Stops
     pass_through: Drives on
   standstill_html: The location is where vehicles stood still most densely during the layovers, %{meters} m from the last stop; %{located} of %{layovers} layovers had a standstill report within %{radius} m of it.
-  end_stop: Buses do not stop at this end; the location is the last stop.
+  end_stop: Buses do not wait at this end; the location is the last stop.
   within_html: "%{count} places within %{meters} m"
   nearest_html: "Nearest place: %{name} (%{category}), %{meters} m, %{rooms} toilets there."
   no_places: The registry has no toilet within %{meters} m.

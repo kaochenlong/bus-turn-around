@@ -1,32 +1,82 @@
 <turbo-frame id="buffer-trade" data-turbo-action="advance">
-  <section data-section="buffer-trade">
+  <section data-section="buffer-trade" data-rendered="<%= rendered_mark %>" x-data="bufferTrade">
     <%= eyebrow(t(".eyebrow")) %>
     <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
-    <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+    <p class="mb-6 text-slate-600"><%= t(".note") %></p>
 
+    <%# 沒有 JS 時整張表單一起送出；有 JS 時拉桿不送請求，只換成曲線資料裡那一點的數字，小時與端點一改就送出 %>
+    <% select = "min-h-11 rounded-lg border border-slate-300 bg-white px-2.5 text-table text-slate-900 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700" %>
     <form action="<%= helpers.route_path(@coverage.route_id) %>" method="get"
-          class="mb-5 flex max-w-[680px] flex-col gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4.5 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-3 sm:px-5.5 sm:py-4.5"
-          x-data="{ minutes: <%= @buffer_trade.minutes %> }">
+          class="mb-5 flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4.5 py-4 sm:px-5.5 sm:py-4.5">
       <input type="hidden" name="day" value="<%= @coverage.day.iso8601 %>">
       <input type="hidden" name="range" value="<%= @coverage.range %>">
-      <label for="buffer-minutes" class="font-semibold text-slate-900">
-        <%= t(".buffer_html", minutes: tag.span(@buffer_trade.minutes, "data-value": "minutes", "x-text": "minutes")) %>
-      </label>
-      <input id="buffer-minutes" type="range" name="buffer" min="<%= minutes_range.min %>" max="<%= minutes_range.max %>" step="1"
-             value="<%= @buffer_trade.minutes %>" x-model.number="minutes" x-on:change="$el.form.requestSubmit()"
-             class="w-full accent-teal-700 sm:w-auto sm:grow sm:basis-60">
-      <button type="submit" x-init="$el.hidden = true" class="self-start rounded border border-slate-300 bg-white px-3 py-1 text-note"><%= t(".submit") %></button>
+      <div class="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1.5">
+          <label for="buffer-minutes" class="font-semibold text-slate-900">
+            <%= t(".buffer_html", minutes: tag.span(@buffer_trade.minutes, "data-value": "minutes")) %>
+          </label>
+          <input id="buffer-minutes" type="range" name="buffer" min="<%= minutes_range.min %>" max="<%= minutes_range.max %>" step="1"
+                 value="<%= @buffer_trade.minutes %>" x-on:input="move" class="w-full accent-teal-700">
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="buffer-late" class="font-semibold text-slate-900">
+            <%= t(".late_html", minutes: tag.span(@buffer_trade.late, "data-value": "late")) %>
+          </label>
+          <input id="buffer-late" type="range" name="late" min="<%= late_range.min %>" max="<%= late_range.max %>" step="1"
+                 value="<%= @buffer_trade.late %>" x-on:input="move" class="w-full accent-teal-700">
+          <p class="text-note text-slate-500"><%= t(".late_hint") %></p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <fieldset class="flex flex-wrap items-center gap-2">
+          <legend class="float-left mr-1 text-slate-700 select-none"><%= t(".hours_label") %></legend>
+          <%# 兩個選單與中間、後面的字不拆開換行 %>
+          <span class="inline-flex items-center gap-2 whitespace-nowrap">
+            <select name="from" aria-label="<%= t(".hours_from") %>" x-on:change="$el.form.requestSubmit()" class="<%= select %>">
+              <% first_hours.each do |hour| %>
+                <%= tag.option hour, value: hour, selected: hour == @buffer_trade.hour_range.begin %>
+              <% end %>
+            </select>
+            <span class="text-slate-700 select-none"><%= t(".hours_between") %></span>
+            <select name="to" aria-label="<%= t(".hours_to") %>" x-on:change="$el.form.requestSubmit()" class="<%= select %>">
+              <% last_hours.each do |hour| %>
+                <%= tag.option hour, value: hour, selected: hour == @buffer_trade.hour_range.end %>
+              <% end %>
+            </select>
+            <span class="text-slate-700 select-none"><%= t(".hours_after") %></span>
+          </span>
+        </fieldset>
+        <% if end_choice? %>
+          <label class="flex items-center gap-2 text-slate-700 select-none">
+            <%= t(".end_label") %>
+            <select name="end" x-on:change="$el.form.requestSubmit()" class="<%= select %>">
+              <%= tag.option t(".end_both"), value: "", selected: @buffer_trade.end_go_back.nil? %>
+              <% end_options.each do |go_back, name| %>
+                <%= tag.option name, value: go_back, selected: go_back == @buffer_trade.end_go_back %>
+              <% end %>
+            </select>
+          </label>
+        <% end %>
+        <button type="submit" x-init="$el.hidden = true" class="rounded border border-slate-300 bg-white px-3 py-1 text-note select-none"><%= t(".submit") %></button>
+      </div>
     </form>
 
-    <div class="mb-5.5 max-w-[46em] space-y-1 text-slate-600">
+    <p data-hold class="mb-3 font-semibold text-slate-800">
+      <%= t(".hold_html", hold: value_span(@buffer_trade.hold, "hold"), minutes: value_span(@buffer_trade.minutes, "minutes"),
+                          late: value_span(@buffer_trade.late, "late")) %>
+    </p>
+
+    <div class="mb-5.5 space-y-1 text-slate-600">
       <p>
-        <%= t(".coverage_html", days: tag.span(@buffer_trade.n_days, "data-value": "days"),
-                                layovers: tag.span(@buffer_trade.n_layovers, "data-value": "layovers"),
-                                trips: tag.span(@buffer_trade.n_trips, "data-value": "trips")) %>
+        <%= t(".coverage_html", days: value_span(@buffer_trade.n_days, "days"), layovers: value_span(@buffer_trade.n_stopping_layovers, "layovers"),
+                                trips: value_span(@buffer_trade.n_trips, "trips")) %>
+        <% if @buffer_trade.filtered? && layovers? %>
+          <%= t(".coverage_used_html", condition:, used: value_span(@buffer_trade.n_layovers, "used-layovers")) %>
+        <% end %>
       </p>
       <% if pass_through? %>
         <p data-pass-through>
-          <%= t(".pass_through_html", layovers: tag.span(@buffer_trade.n_pass_through_layovers, "data-value": "pass-through-layovers")) %>
+          <%= t(".pass_through_html", layovers: value_span(@buffer_trade.n_pass_through_layovers, "pass-through-layovers")) %>
         </p>
       <% end %>
     </div>
@@ -37,44 +87,122 @@
       <% bound_label = "text-label text-slate-500 sm:hidden" %>
       <% metric_label = "hidden text-table text-slate-600 sm:col-start-1 sm:row-start-1 sm:block" %>
       <% figure = "font-route-figure text-figure-sm leading-[1.15] font-semibold text-slate-900 sm:col-start-2 sm:row-start-1 sm:text-figure sm:leading-none" %>
-      <%# 一份 HTML 兩種排法：640px 以上每個做法一欄，欄的外框是另外放進格線、跨三列的框；手機上依指標分兩組，每組兩格並排 %>
+      <%# 一份 HTML 兩種排法：640px 以上每個做法一欄，欄的外框是另外放進格線、跨四列的框；手機上依指標分三組，每組兩格並排 %>
       <div class="grid max-w-[760px] grid-cols-2 gap-x-3 sm:gap-x-4">
         <% COLUMNS.each do |bound, column| %>
-          <div aria-hidden="true" class="hidden rounded-xl border border-slate-200 sm:row-span-3 sm:row-start-1 sm:block <%= column %>"></div>
-          <p class="hidden px-5.5 pt-5 pb-3 text-table font-semibold text-slate-700 sm:row-start-1 sm:block <%= column %>"><%= t(".#{bound}", minutes: @buffer_trade.minutes) %></p>
+          <div aria-hidden="true" class="hidden rounded-xl border border-slate-200 sm:row-span-4 sm:row-start-1 sm:block <%= column %>"></div>
+          <p class="hidden px-5.5 pt-5 pb-3 text-table font-semibold text-slate-700 sm:row-start-1 sm:block <%= column %>"><%= bound_name(bound) %></p>
         <% end %>
 
         <p class="col-span-2 mb-2 font-semibold text-slate-700 sm:hidden"><%= t(".vehicle_hours") %></p>
         <% vehicle_hours.each do |bound, value| %>
           <div class="<%= cell %> sm:row-start-2 sm:border-b sm:border-slate-100 sm:pb-3 <%= COLUMNS.fetch(bound) %>">
-            <span class="<%= bound_label %>"><%= t(".#{bound}", minutes: @buffer_trade.minutes) %></span>
+            <span class="<%= bound_label %>"><%= bound_name(bound) %></span>
             <span class="<%= metric_label %>"><%= t(".vehicle_hours") %></span>
             <span data-value="vehicle-hours-<%= bound %>" class="<%= figure %>"><%= decimal(value) %></span>
           </div>
         <% end %>
 
+        <p class="col-span-2 mt-4.5 mb-2 font-semibold text-slate-700 sm:hidden"><%= t(".next_minute") %></p>
+        <% next_minutes.each do |bound, value| %>
+          <div class="<%= cell %> sm:row-start-3 sm:border-b sm:border-slate-100 sm:py-3 <%= COLUMNS.fetch(bound) %>">
+            <span class="<%= bound_label %>"><%= bound_name(bound) %></span>
+            <span class="<%= metric_label %>"><%= t(".next_minute") %></span>
+            <span data-value="next-minute-<%= bound %>" class="<%= figure %>"><%= decimal(value) %></span>
+          </div>
+        <% end %>
+
         <p class="col-span-2 mt-4.5 mb-2 font-semibold text-slate-700 sm:hidden"><%= t(".peak_vehicles") %></p>
         <% peaks.each do |bound, peak| %>
-          <div data-peak="<%= bound %>" data-hour="<%= peak.hour %>" class="<%= cell %> sm:row-start-3 sm:pt-3 sm:pb-5 <%= COLUMNS.fetch(bound) %>">
-            <span class="<%= bound_label %>"><%= t(".#{bound}", minutes: @buffer_trade.minutes) %></span>
+          <div data-peak="<%= bound %>" data-hour="<%= peak.hour %>" class="<%= cell %> sm:row-start-4 sm:pt-3 sm:pb-5 <%= COLUMNS.fetch(bound) %>">
+            <span class="<%= bound_label %>"><%= bound_name(bound) %></span>
             <span class="<%= metric_label %>"><%= t(".peak_vehicles") %></span>
             <span data-vehicles class="<%= figure %>"><%= decimal(peak.vehicles) %></span>
-            <span class="text-label text-slate-500 sm:col-start-1 sm:row-start-2"><%= hour_span(peak.hour) %></span>
+            <span data-peak-hour class="text-label text-slate-500 sm:col-start-1 sm:row-start-2"><%= hour_span(peak.hour) %></span>
           </div>
         <% end %>
       </div>
-      <p class="mt-3.5 max-w-[46em] text-note text-slate-500 sm:mt-3"><%= t(".bounds_note") %></p>
+      <p class="mt-3.5 text-note text-slate-500 sm:mt-3"><%= t(".bounds_note") %></p>
 
-      <dl class="mt-5 grid grid-cols-2 gap-3 sm:mt-5.5 sm:flex sm:flex-wrap sm:gap-4">
-        <div class="rounded-[10px] bg-slate-50 px-3.5 py-3 sm:flex-[0_1_300px] sm:rounded-xl sm:px-4.5 sm:py-3.5">
-          <dt class="text-label leading-[1.45] text-slate-600 sm:text-note sm:leading-[1.65]"><%= t(".achieved", minutes: @buffer_trade.minutes) %></dt>
-          <dd data-value="achieved" class="font-route-figure text-figure-minor-sm leading-[1.2] font-semibold text-slate-900 sm:text-figure-minor"><%= share(@buffer_trade.achieved_share) %></dd>
+      <%# 曲線由伺服器畫好；有 JS 時拉桿只把目前的點移到曲線資料裡那一點的座標 %>
+      <figure class="mt-6">
+        <figcaption class="mb-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-label text-slate-600">
+          <span><%= t(".chart_y") %></span>
+          <span class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="inline-block h-0.5 w-5 bg-teal-700"></span><%= t(".lower_short") %></span>
+          <span class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="inline-block h-0.5 w-5 bg-slate-500"></span><%= t(".upper_short") %></span>
+        </figcaption>
+        <svg data-chart="buffer-curve" viewBox="0 0 320 180" class="h-auto w-full max-w-[400px]" role="img" aria-label="<%= chart_aria %>">
+          <line x1="<%= CHART_LEFT %>" x2="<%= chart_right %>" y1="<%= CHART_BOTTOM %>" y2="<%= CHART_BOTTOM %>" class="stroke-slate-300" />
+          <line x1="<%= CHART_LEFT %>" x2="<%= CHART_LEFT %>" y1="<%= CHART_BOTTOM - CHART_HEIGHT %>" y2="<%= CHART_BOTTOM %>" class="stroke-slate-300" />
+          <% CHART_TICKS.each do |hold| %>
+            <text x="<%= chart_x(hold) %>" y="<%= CHART_BOTTOM + 16 %>" text-anchor="middle" class="fill-slate-500 text-tick"><%= hold %></text>
+          <% end %>
+          <text x="<%= CHART_LEFT - 6 %>" y="<%= CHART_BOTTOM + 4 %>" text-anchor="end" class="fill-slate-500 text-tick">0</text>
+          <text x="<%= CHART_LEFT - 6 %>" y="<%= CHART_BOTTOM - CHART_HEIGHT + 4 %>" text-anchor="end" class="fill-slate-500 text-tick"><%= decimal(curve.last.vehicle_hours.upper) %></text>
+          <polygon data-band points="<%= band_points %>" class="fill-teal-50" />
+          <polyline data-bound="lower" points="<%= line_points("lower") %>" fill="none" stroke-width="2" class="stroke-teal-700" />
+          <polyline data-bound="upper" points="<%= line_points("upper") %>" fill="none" stroke-width="2" class="stroke-slate-500" />
+          <% current = marker(@buffer_trade.point) %>
+          <g data-marker>
+            <line data-marker-line x1="<%= current[:x] %>" x2="<%= current[:x] %>" y1="<%= CHART_BOTTOM %>" y2="<%= current[:upper_y] %>"
+                  stroke-dasharray="3 3" class="stroke-slate-400" />
+            <circle data-marker-dot="lower" cx="<%= current[:x] %>" cy="<%= current[:lower_y] %>" r="3.5" class="fill-teal-700" />
+            <circle data-marker-dot="upper" cx="<%= current[:x] %>" cy="<%= current[:upper_y] %>" r="3.5" class="fill-slate-500" />
+          </g>
+        </svg>
+        <p class="mt-1 text-label text-slate-600"><%= t(".chart_x") %></p>
+        <script type="application/json" data-buffer-trade-curve><%= curve_json.html_safe %></script>
+      </figure>
+
+      <%# 預設收起：手機上十幾列的表不佔掉畫面；列跟曲線資料的 hours 一一對應 %>
+      <details data-hourly class="group mt-5 rounded-xl border border-slate-200 bg-slate-50">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">
+          <span class="font-semibold text-slate-900"><%= t(".hourly_summary") %></span>
+          <svg aria-hidden="true" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"
+               class="size-5.5 shrink-0 fill-none stroke-slate-600 stroke-2 group-open:rotate-180"><path d="M6 9l6 6 6-6" /></svg>
+        </summary>
+        <div class="px-4 pb-4 sm:px-5 sm:pb-5">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="text-left"><%= t(".hourly_hour") %></th>
+                <th><%= t(".lower_short") %></th>
+                <th><%= t(".upper_short") %></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @buffer_trade.point.hourly.each do |hour| %>
+                <tr data-hour="<%= hour.hour %>">
+                  <td class="text-left"><%= hour_span(hour.hour) %></td>
+                  <td data-hourly-bound="lower"><%= decimal(hour.lower) %></td>
+                  <td data-hourly-bound="upper"><%= decimal(hour.upper) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
         </div>
-        <div class="rounded-[10px] bg-slate-50 px-3.5 py-3 sm:flex-[0_1_300px] sm:rounded-xl sm:px-4.5 sm:py-3.5">
-          <dt class="text-label leading-[1.45] text-slate-600 sm:text-note sm:leading-[1.65]"><%= t(".vehicles_per_day") %></dt>
-          <dd data-value="vehicles-per-day" class="font-route-figure text-figure-minor-sm leading-[1.2] font-semibold text-slate-900 sm:text-figure-minor"><%= decimal(@buffer_trade.vehicles_per_day) %></dd>
+      </details>
+
+      <% box = "rounded-[10px] bg-slate-50 px-3.5 py-3 sm:flex-[0_1_300px] sm:rounded-xl sm:px-4.5 sm:py-3.5" %>
+      <% term = "text-label leading-[1.45] text-slate-600 sm:text-note sm:leading-[1.65]" %>
+      <% number = "font-route-figure text-figure-minor-sm leading-[1.2] font-semibold text-slate-900 sm:text-figure-minor" %>
+      <dl class="mt-5 grid grid-cols-2 gap-3 sm:mt-5.5 sm:flex sm:flex-wrap sm:gap-4">
+        <div class="<%= box %>">
+          <dt class="<%= term %>"><%= t(".achieved_html", minutes: value_span(@buffer_trade.minutes, "minutes")) %></dt>
+          <dd data-value="achieved" class="<%= number %>"><%= share(@buffer_trade.achieved_share) %></dd>
+        </div>
+        <%# 晚到是 0 時藏起來；有 JS 時晚到的拉桿移到大於 0 就顯示 %>
+        <%= tag.div class: box, data: { achieved_late: true }, hidden: !late? do %>
+          <dt class="<%= term %>"><%= t(".achieved_late_html", late: value_span(@buffer_trade.late, "late"), minutes: value_span(@buffer_trade.minutes, "minutes")) %></dt>
+          <dd data-value="achieved-late" class="<%= number %>"><%= share(@buffer_trade.achieved_share_late) %></dd>
+        <% end %>
+        <div class="<%= box %>">
+          <dt class="<%= term %>"><%= t(".vehicles_per_day") %></dt>
+          <dd data-value="vehicles-per-day" class="<%= number %>"><%= decimal(@buffer_trade.vehicles_per_day) %></dd>
         </div>
       </dl>
+    <% elsif filtered_out? %>
+      <p data-no-layover class="rounded border border-amber-300 bg-amber-50 p-4"><%= t(".no_layover_filtered", condition:) %></p>
     <% else %>
       <p data-no-layover class="rounded border border-amber-300 bg-amber-50 p-4"><%= t(".no_layover") %></p>
     <% end %>

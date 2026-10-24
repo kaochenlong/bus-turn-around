@@ -24,10 +24,10 @@ RSpec.describe LayoverTableComponent, type: :component do
     rendered.css("tr[data-direction]").to_h { |row| [ row["data-direction"], row.css("td").each_with_index.filter_map { |cell, index| index if cell.classes.include?("font-semibold") } ] }
   end
 
-  it "每個方向一列：方向、末站、那一端停車或開過去就走、筆數、p10、p50、p90、不到 15 分鐘的比例；沒有折返停留的方向顯示 —" do
+  it "每個方向一列：方向、末站、那一端停車或直接折返、筆數、p10、p50、p90、不到 15 分鐘的比例；沒有折返停留的方向顯示 —" do
     end_time = Time.zone.parse("2026-10-19 08:00")
     [ 10, 20, 30 ].each { route_day.layovers.create!(bus_id: "TEST-0001", go_back: 0, end_time:, next_start_time: end_time + it.minutes) }
-    expect(cells(render_table(route_ends("pass_through", "stop")))).to eq([ %w[去程 戊站 開過去就走 3 12.0 20.0 28.0 33.3%], %w[返程 甲站 停車 0 — — — —] ])
+    expect(cells(render_table(route_ends("pass_through", "stop")))).to eq([ %w[去程 戊站 直接折返 3 12.0 20.0 28.0 33.3%], %w[返程 甲站 停車 0 — — — —] ])
   end
 
   it "每一列標出那一端的性質" do
@@ -35,7 +35,7 @@ RSpec.describe LayoverTableComponent, type: :component do
     expect(natures).to eq([ %w[0 pass_through], %w[1 stop] ])
   end
 
-  it "有開過去就走的一端時，表下說明那一端的折返停留不是休息機會" do
+  it "有直接折返的一端時，表下說明那一端的折返停留不是休息機會" do
     expect(render_table(route_ends("pass_through", "stop")).css("[data-pass-through-note]").size).to eq(1)
   end
 
@@ -50,7 +50,7 @@ RSpec.describe LayoverTableComponent, type: :component do
     expect(units).to eq("0" => 3, "1" => 0)
   end
 
-  it "摘要的重點數字取自停車端那一列的 p50 與不到 15 分鐘，這兩格加粗；開過去就走那一列不加粗" do
+  it "摘要的重點數字取自停車端那一列的 p50 與不到 15 分鐘，這兩格加粗；直接折返那一列不加粗" do
     expect(bold_cells(render_table(route_ends("pass_through", "stop")))).to eq("0" => [], "1" => [ 5, 7 ])
   end
 end

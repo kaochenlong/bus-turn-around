@@ -2,7 +2,7 @@
 <section id="mrt" data-section="mrt-overlap" class="scroll-mt-20">
   <%# 跟沿線人數圖同一張卡，標題是卡內的小標題層級 %>
   <h3 class="mb-2 text-subsection leading-snug font-bold text-slate-900"><%= t(".title") %></h3>
-  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <p class="mb-6 text-slate-600"><%= t(".note") %></p>
 
   <% if @mrt_overlap.needs_reload? %>
     <p data-needs-reload class="rounded border border-amber-300 bg-amber-50 p-4"><%= t(".needs_reload") %></p>

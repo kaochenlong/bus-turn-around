@@ -20,6 +20,10 @@ RSpec.describe LayoverChartComponent, type: :component do
 
   def bars(rendered, go_back) = rendered.css("[data-direction='#{go_back}'] [data-bin]")
 
+  # The top and bottom of direction 0's divider label: it is centred on its y
+  # and set in text-label-sm, 13 user units tall.
+  def label_band(rendered) = rendered.at_css("[data-direction='0'] [data-divider-label]")["y"].to_f.then { [ it - 6.5, it + 6.5 ] }
+
   it "每個方向每組一根長條，帶下界與筆數" do
     bars = bars(render_chart([ 2, 3, 12, 40 ]), 0)
     expect(bars.map { [ it["data-bin"], it["data-count"] ] }).to eq([ %w[0 2], %w[5 0], %w[10 1], %w[15 0], %w[30 1], %w[60 0] ])
@@ -36,7 +40,7 @@ RSpec.describe LayoverChartComponent, type: :component do
       .to eq([ "戊站", "己站", true ])
   end
 
-  it "每個方向的標題標出那一端是停車還是開過去就走" do
+  it "每個方向的標題標出那一端是停車還是直接折返" do
     figures = render_chart([ 10 ], ends: route_ends("pass_through", "stop")).css("figure[data-direction]")
     expect(figures.map { [ it["data-direction"], it.at_css("figcaption")["data-end-nature"] ] }).to eq([ %w[0 pass_through], %w[1 stop] ])
   end
@@ -48,5 +52,12 @@ RSpec.describe LayoverChartComponent, type: :component do
 
   it "15 分鐘處有一條分隔線" do
     expect(render_chart([ 10 ]).css("[data-direction='0'] [data-divider='15']").size).to eq(1)
+  end
+
+  it "10–15 最多時，分隔線的字整個落在 10–15 與 15–30 兩根長條之間的空白裡，不跟筆數同一列" do
+    rendered = render_chart([ 2, 7, 12, 12, 20 ])
+    top, bottom = label_band(rendered)
+    bar = bars(rendered, 0).to_h { [ it["data-bin"], it ] }
+    expect([ top >= bar["10"]["y"].to_f + bar["10"]["height"].to_f, bottom <= bar["15"]["y"].to_f ]).to eq([ true, true ])
   end
 end

@@ -43,7 +43,7 @@
     <%# 只在框比表格窄、需要橫向捲動時，才在右緣提示還有內容；手機上是卡片，不會溢出 %>
     <div aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-0 w-9 bg-linear-to-r from-white/0 to-white max-sm:hidden @min-[660px]:hidden"></div>
   </div>
-  <p class="mt-3 max-w-[46em] text-note text-slate-500 sm:mt-3.5">
+  <p class="mt-3 text-note text-slate-500 sm:mt-3.5">
     <% if pass_through? %>
       <%= t(".note_with_pass_through_html", note: t(".note"), pass_through: tag.span(t(".pass_through_note"), data: { pass_through_note: true })) %>
     <% else %>

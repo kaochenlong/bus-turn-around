@@ -9,10 +9,10 @@ tw: &tw
   stops_html: "%{direction}：%{last_stop} 到站 → 下一趟從 %{next_first_stop} 出發 %{nature}"
   natures:
     stop: 停車
-    pass_through: 開過去就走
+    pass_through: 直接折返
   minutes: 分鐘
   divider: "%{minutes} 分鐘"
-  no_layover: 這段期間沒有量到折返停留。
+  no_layover: 這段期間的資料裡，這一端沒有折返停留。
   bin_count: "%{bin} 分鐘 %{count} 筆"
   aria: "%{direction}的折返停留分佈：%{bins}"
 zh-TW:
@@ -30,6 +30,6 @@ en:
     pass_through: buses drive straight on
   minutes: min
   divider: "%{minutes} min"
-  no_layover: No layovers were measured in this period.
+  no_layover: This end has no layovers in the data for this period.
   bin_count: "%{bin} min: %{count}"
   aria: "Layover distribution, %{direction}: %{bins}"

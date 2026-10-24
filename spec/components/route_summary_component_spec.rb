@@ -59,7 +59,7 @@ RSpec.describe RouteSummaryComponent, type: :component do
     )
   end
 
-  it "兩端都是開過去就走時，寫明沒有停車的一端，不放折返停留的數字" do
+  it "兩端都是直接折返時，寫明沒有停車的一端，不放折返停留的數字" do
     rendered = render_summary(route_ends("pass_through", "pass_through"))
     expect([ rendered.css("[data-no-stopping-end]").size, rendered.css("[data-key-number=layover-p50], [data-key-number=short-share]").size ]).to eq([ 1, 0 ])
   end

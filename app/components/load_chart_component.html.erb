@@ -1,14 +1,14 @@
 <section data-section="load-chart" x-data="{ band: '<%= DEFAULT_BAND %>', direction: 0 }">
   <%= eyebrow(t(".eyebrow")) %>
   <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
-  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <p class="mb-6 text-slate-600"><%= t(".note") %></p>
 
   <div x-cloak data-band-switch role="group" aria-label="<%= t(".band_picker") %>"
        class="mb-2.5 flex gap-0.5 rounded-[10px] border border-slate-200 bg-slate-100 p-0.75 sm:mb-5 sm:inline-flex">
     <% BANDS.each do |band| %>
       <button type="button" value="<%= band %>" x-on:click="band = '<%= band %>'" x-bind:aria-pressed="band === '<%= band %>'"
               x-bind:class="band === '<%= band %>' ? 'bg-white font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.14)]' : 'font-medium text-slate-600 hover:text-slate-900'"
-              class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 sm:flex-none sm:px-4.5">
+              class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 sm:flex-none sm:px-4.5">
         <%= t(".bands.#{band}") %>
       </button>
     <% end %>
@@ -21,7 +21,7 @@
     <% charts.each do |chart| %>
       <button type="button" value="<%= chart.go_back %>" x-on:click="direction = <%= chart.go_back %>" x-bind:aria-pressed="direction === <%= chart.go_back %>"
               x-bind:class="direction === <%= chart.go_back %> ? 'bg-white font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.14)]' : 'font-medium text-slate-600 hover:text-slate-900'"
-              class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+              class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
         <%= t(".directions.#{chart.go_back}") %>
       </button>
     <% end %>

@@ -73,7 +73,7 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 要在 `duckdb` 互動 shell 裡探索，先用 `SET VARIABLE` 設好 `data_root`、`route_id`、`day`、`static_day`、`inspect_dir` 五個變數，再依上表的順序 `.read` 各檔。
 
-「先 `params.sql`、再依檔名排序的編號階段檔」這個組法寫在 `lib/analysis_run.rb`，`bin/health-card` 與 `bin/rails derived:load` 共用。
+「先 `params.sql`、再依檔名排序的編號階段檔」這個組法寫在 `lib/analysis_run.rb`，`bin/health-card`、`bin/rails derived:load` 與 `bin/rails survey:end_natures` 共用。給 `stages: false` 時只接 `params.sql` 與呼叫端指定的檔，不接編號階段檔。
 
 ## 衍生表的匯出
 
@@ -89,7 +89,7 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 捷運出入口快照由 `bin/rails external:mrt_exits` 下載，北捷的檔是 Big5，存檔前轉成 UTF-8，表頭、資料列與經緯度不對就不寫檔。`derived:load` 用檔名日期最新的那一份，日期存進 `route_days.mrt_exits_day`。哪些站算「靠近捷運」不在這裡決定，300、500、800 公尺三種門檻是在路線頁的 `RoutePage::MrtOverlap` 套用的。
 
-`turnaround_facilities.sql` 是唯一讀 `bus_data` 的檔，編號階段檔與健檢卡都不讀。靜止回報是一筆折返停留期間（本趟終點到下一趟起點，含兩端）同一台車速度為 0 的 GPS 回報，不看 `RouteID`；兩端的折返停留都收。停車那一端的位置是靜止點（同一座標的靜止回報）裡 `standstill_radius_meters` 鄰域筆數最多的那一點為種子，取種子鄰域內的靜止點以筆數加權的平均，存六位小數，之後的距離都從這個值量；開過去就走那一端以末站計。查核數字是結束在這一端的折返停留筆數、其中至少一筆靜止回報落在位置 `located_radius_meters` 內的筆數，以及位置到末站的距離。公廁存位置 `toilet_radius_meters` 內的每一間，一間一列。靜止格是每筆靜止回報的經緯度各除以 `standstill_cell_degrees`、商四捨五入到小數六位後取整數再乘回去的西南角，一天裡少於 `cell_min_buses` 台車的格子不匯出。五個常數都在 `params.sql`：50 公尺、150 公尺、500 公尺、0.0002 度、3 台。兩端的性質由 `derived:load` 從 `config/route_page.yml` 讀出傳進來（`stop` 或 `pass_through`）；路線還沒寫進設定時兩個都是 `unknown`，三張結果都是空的；其他值會讓整段 SQL 失敗。
+`turnaround_facilities.sql` 是唯一讀 `bus_data` 的檔，編號階段檔與健檢卡都不讀。靜止回報是一筆折返停留期間（本趟終點到下一趟起點，含兩端）同一台車速度為 0 的 GPS 回報，不看 `RouteID`；兩端的折返停留都收。停車那一端的位置是靜止點（同一座標的靜止回報）裡 `standstill_radius_meters` 鄰域筆數最多的那一點為種子，取種子鄰域內的靜止點以筆數加權的平均，存六位小數，之後的距離都從這個值量；直接折返那一端以末站計。查核數字是結束在這一端的折返停留筆數、其中至少一筆靜止回報落在位置 `located_radius_meters` 內的筆數，以及位置到末站的距離。公廁存位置 `toilet_radius_meters` 內的每一間，一間一列。靜止格是每筆靜止回報的經緯度各除以 `standstill_cell_degrees`、商四捨五入到小數六位後取整數再乘回去的西南角，一天裡少於 `cell_min_buses` 台車的格子不匯出。五個常數都在 `params.sql`：50 公尺、150 公尺、500 公尺、0.0002 度、3 台。兩端的性質由 `derived:load` 從 `config/route_page.yml` 讀出傳進來（`stop` 或 `pass_through`）；路線還沒寫進設定時兩個都是 `unknown`，三張結果都是空的；其他值會讓整段 SQL 失敗。
 
 公廁快照由 `bin/rails external:public_toilets` 下載。環境部的全國公廁建檔資料沒有整份檔案，只有一頁最多 1,000 列的 API，所以照 `number` 由小到大翻頁，每一頁檢查表頭與每一列，整份收齊、`number` 嚴格遞增才一次寫成 `external/public-toilets/<台北日>.csv`，有一頁不對就不寫檔。`derived:load` 用檔名日期最新的那一份，日期存進 `route_days.public_toilets_day`。300 公尺的門檻與「同一地址的廁所併成一處」都在路線頁的 `RoutePage::Facilities` 套用，衍生表存的是 500 公尺內的每一間。
 
@@ -98,6 +98,28 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 `depots.sql` 是唯一讀 `GetProvider.gz`（公運處的業者營運基本資料）的檔，編號階段檔與健檢卡都不讀；第 10 階段只多讀到離站事件的 `StationID`（車輛所屬的營業站），放進 `bus_events` 與 `stop_events`。每趟的調度站是這趟事件裡出現最多的 `StationID`，同票取小的，沒有 `StationID` 的事件不投票；每個調度站算當天趟次的不同車牌數與趟次數。名稱照 `stationId` 對到 `nameZn`（業者）與 `stationNameZn`（營業站），對不到是空字串；同一個 `stationId` 有兩列時整段 SQL 失敗。`derived:load` 把每一列寫進 `route_day_depots`；快照沒有這個檔時印一行、照樣寫入，名稱都是空字串。
 
 時刻帶 `+08:00` 寫出。每個檔的欄位順序與列的排序都固定，同樣的輸入連跑兩次，位元組會完全相同。
+
+## 全路網兩端性質的試跑
+
+`end_nature_evidence.sql`、`end_nature_export.sql` 與 `end_nature_survey.sql` 都不以數字開頭，只由 `bin/rails survey:end_natures FROM=2026-10-19 TO=2026-10-22`（可以另外給 `ROUTES=<路線 Id,…>` 與 `OUT=<目錄>`，資料根目錄給環境變數 `TURNAROUND_DATA`）執行，`bin/health-card` 與 `derived:load` 都不跑它們。這個指令只寫 `OUT`（預設 `tmp/end-natures/`）底下的檔，不寫資料庫，也不改 `config/route_page.yml` 與路線頁。
+
+每個路線日（那一天 `GetRoute.gz` 的每一條路線，或 `ROUTES` 給的；掛在別條路線 `member_routes` 底下的成員路線跟它的頁面路線一起跑）照 `derived:load` 的分析跑一次：`params.sql`、全部編號階段檔、`mrt_overlap.sql`、`turnaround_facilities.sql`，再接 `end_nature_evidence.sql` 與 `end_nature_export.sql`。變數是 `data_root`、`route_id`、`member_route_ids`、`day`、`static_day`、`inspect_dir` 與 `derived_dir`（跑完就丟的暫存目錄）、`mrt_exits_path`、`mrt_exits_day`、`public_toilets_path`、`public_toilets_day`、都給 `unknown` 的 `end_nature_0` 與 `end_nature_1`，以及 `survey_dir`。一天能不能算、用哪一份捷運出入口與公廁快照，規則跟 `derived:load` 相同（`RawDayCheck`、`NewestSnapshot`），而且每一天都在第一個路線日之前檢查。路線日都跑完，再用 `AnalysisRun` 的 `stages: false` 跑 `end_nature_survey.sql`，只接 `params.sql`，讀這次每個路線日的證據寫報告。
+
+| 檔案 | 讀 | 建立或寫出 |
+| --- | --- | --- |
+| `end_nature_evidence.sql` | `stops`、`trips`、`layover_pairs`、`layovers`、`gps_reports`，變數 `route_id` | view `layover_evidence`（每一筆折返停留一列：結束在哪一端、下一趟的路線 Id 與方向、兩站距離、GPS 回報筆數、最長靜止、最遠離站）、`end_pair_counts`（頁面路線每個方向一列：末站，以及結束在那一端的配對照 `category` 分五類的筆數） |
+| `end_nature_export.sql` | `routes`、`layover_evidence`、`end_pair_counts`，變數 `route_id`、`route_ids`、`day`、`survey_dir` | 寫到 `survey_dir`：`layovers.csv`（每筆折返停留與它的證據，依方向、本趟終點、車牌排序，時刻寫台北時間、不帶時差）、`ends.csv`（每個方向一列，這次的路線 Id 用「・」接） |
+| `end_nature_survey.sql` | 變數 `layovers_files`、`ends_files`（這次每個路線日的兩個檔）、`configured_path`（指令寫的 `configured.csv`）、`report_path` | `survey_layovers`、`survey_ends`、`configured_ends`、view `inferred_ends`，寫出報告：一端一列，合併所有日子的證據、判斷與理由、設定的性質與是否相符 |
+
+一筆折返停留的兩站，是本趟路線 Id 與方向的末站、下一趟路線 Id 與方向的起站；回報是那台車在本趟終點到下一趟起點之間（含兩端）的 `gps_reports`，不看 `RouteID`，沒有數字座標的不算。最遠離站是每筆回報離兩站裡較近那一站的距離取最大。最長靜止的量法：回報依時間排序，速度 0 的回報在前一筆也是速度 0、而且相距 `standstill_radius_meters` 內時接在同一段，否則開新的一段，一段從第一筆量到最後一筆，取最長的一段；回報之間的空檔不切斷一段。有回報但沒有速度 0 的是 0.0，沒有回報的兩個數都是空的。距離與最長靜止取一位小數，折返停留的分鐘數保留秒數。
+
+判斷規則的四個常數都在 `params.sql`：最長靜止超過 `nature_still_minutes`（2 分鐘）的折返停留算停下來過。一端把調查的日子合起來算，有 GPS 回報的折返停留少於 `nature_min_layovers`（20 筆）是 `undetermined`、理由 `few_layovers`；停下來過的比例不超過 `nature_pass_through_max_share`（0.05）是 `pass_through`，至少 `nature_stop_min_share`（0.5）是 `stop`，介於兩者之間是 `undetermined`、理由 `between`。比例用筆數比較，剛好在門檻上的不會因為浮點數落到另一邊。規則不讀設定的性質，設定只拿來填報告的 `configured_nature` 與 `agrees`。
+
+`OUT` 底下：
+
+- `evidence/<台北日>/<路線 Id>/`：`layovers.csv`、`ends.csv` 與 `fingerprint`（這次分析的 SQL 全文加上路線 Id 清單的 SHA-256，一行 64 個十六進位字元）。DuckDB 先寫到同一層的暫存目錄，整個路線日成功才換成這個名字。再跑時指紋相同就沿用、不跑 DuckDB，不同就重跑並換掉；跑失敗的路線日不留目錄。
+- `configured.csv`：設定裡每條路線每個方向一列，`route_id`、`go_back`、`nature`。
+- `report-<FROM>_<TO>.csv`：每次都從這次所有日子的證據重算，先寫暫存檔，成功才改成這個名字。
 
 ## 測試
 

@@ -63,9 +63,6 @@ class RouteDayLoader
   }.freeze
   DIRECTION_NAMES = { 0 => "去程", 1 => "返程" }.freeze
 
-  # An external snapshot used for the day: the file and the date in its name.
-  Snapshot = Data.define(:path, :day)
-
   def initialize(route_id:, day:, data_root:, duckdb:, out: $stdout, member_route_ids: RoutePage.member_route_ids(route_id))
     @route_id = route_id
     @member_route_ids = member_route_ids
@@ -142,11 +139,9 @@ class RouteDayLoader
   # up before the toilet snapshot, so a data root missing both is told about
   # the entrance snapshot.
   def newest_snapshot(directory, label, task)
-    directory = File.join(@data_root, directory)
-    name = Dir.glob("*.csv", base: directory).grep(/\A\d{4}-\d{2}-\d{2}\.csv\z/).max
-    raise Error, "沒有#{label}快照：先跑 #{task}" unless name
-
-    Snapshot.new(path: File.join(directory, name), day: Date.iso8601(File.basename(name, ".csv")))
+    NewestSnapshot.find(data_root: @data_root, directory:, label:, task:)
+  rescue NewestSnapshot::Missing => e
+    raise Error, e.message
   end
 
   # The day as the newest office calendar snapshot of its year has it. It is

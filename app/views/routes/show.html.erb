@@ -40,7 +40,8 @@
     <% end %>
     <%# 卡片在 turbo-frame 外面：拉桿只重新載入卡片裡的這一塊 %>
     <%= render CardComponent.new(id: "buffer") do %>
-      <%= render BufferTradeComponent.new(buffer_trade: RoutePage::BufferTrade.new(route_days, minutes: @buffer_minutes, ends: @ends), coverage: @coverage) %>
+      <% buffer_trade = RoutePage::BufferTrade.new(route_days, minutes: @buffer_minutes, late: @buffer_late, hour_range: @buffer_hours, end_go_back: @buffer_end, ends: @ends) %>
+      <%= render BufferTradeComponent.new(buffer_trade:, coverage: @coverage) %>
     <% end %>
     <%= render CardComponent.new(id: "runtimes") do %>
       <%= render RunTimeTableComponent.new(run_times: RoutePage::RunTimes.new(route_days)) %>

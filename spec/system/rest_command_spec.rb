@@ -39,7 +39,7 @@ RSpec.describe "Rest command in the console", :js, type: :system do
 
   it "開路線頁之後，用網站名稱列的連結換到首頁，提示仍然只有一次" do
     visit_recording_console route_path(9001)
-    find("[data-site-bar] a").click
+    find("[data-site-bar] a[href='/']").click
     find("[data-section=hero]")
     expect(console_lines.count(hint)).to eq(1)
   end

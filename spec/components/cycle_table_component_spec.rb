@@ -148,7 +148,7 @@ RSpec.describe CycleTableComponent, type: :component do
       expect(render_block(ends: route_ends("stop", "stop")).css("[data-stops] [data-far-end-rest]").size).to eq(1)
     end
 
-    it "前段結束的那一端開過去就走：說明沒有那一句" do
+    it "前段結束的那一端直接折返：說明沒有那一句" do
       expect(render_block(ends: route_ends("pass_through", "stop")).css("[data-far-end-rest]").size).to eq(0)
     end
   end

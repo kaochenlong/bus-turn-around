@@ -8,10 +8,11 @@ tw: &tw
     - 平日跟假日是照人事行政總處的辦公日曆分的。颱風停班不在日曆裡，那幾天還是照日曆算。
     - 站牌靠近捷運出入口，不代表這一段可以被捷運取代，像是公車橫越捷運線的時候，路口附近的站也會被算進去。距離是直線距離，不是實際走路的距離，捷運出入口的資料也不是定期更新。
     - 換休息試算算的是車開了幾個小時，不是駕駛的工時。試算只用停車那一端量得到的折返，量不到的不另外估。多派幾台車是按小時平均估的，實際排班會不一樣。
-    - 哪一端會停車，是一條一條路線人工查過之後寫進設定的，不是從資料算出來的；業者改了折返的方式，這個設定就會過期。開過去就走那一端的折返停留不算休息，試算也不會替那一端加緩衝。
+    - 換休息試算的晚到是假設：每次車回到停車那一端，都比量到的再晚同樣的分鐘數。量到的那幾天的晚到已經算在折返停留裡，不用再加；晚到比停留還長的部分會延到下一趟發車，試算不往下追。套用的小時看的是車回到停車那一端的時刻。
+    - 哪一端會停車，是一條一條路線人工查過之後寫進設定的，不是從資料算出來的；業者改了折返的方式，這個設定就會過期。直接折返那一端的折返停留不算休息，試算也不會替那一端加緩衝。
     - 來回一趟與週期只算兩段都量到起站與末站、而且前後接得起來的趟次，所以筆數比趟次少。一台車當天的第一個來回沒有週期。週期是車的節奏，雙班制下對不到某一個駕駛的班表。
     - 停車那一端的位置，是那一天車停著等的時候最常停的地方。GPS 每 10 秒一筆，有時候一整段都沒有回報，那一天就量不到位置。位置是車停的地方，不是駕駛去的地方。
-    - 開過去就走的那一端車不停，位置就用末站。
+    - 直接折返的那一端車不停下來等，位置就用末站。
     - 公廁來自環境部每月更新的全國公廁建檔資料，男廁、女廁、無障礙廁所各算一間，頁面把同一個地址的廁所併成一處。距離是直線距離，不是走路的距離。資料沒有開放時段，也看不出駕駛能不能借用。
     - 地圖上的方塊是約 20 公尺見方的格子，一天內有 3 台以上的車停過才畫，少於 3 台的不畫。顏色深淺是車子停住時 GPS 回報的筆數（每 10 秒一筆），不是停了多久，也不代表在休息。底圖是外部的資料，照原樣顯示。
     - 站序那一塊的路線圖，畫的是臺北市公共運輸處登記的路線軌跡，不是 GPS 量到的，所以臨時改道、繞路不會出現在圖上。登記的軌跡也可能比站序舊。
@@ -35,10 +36,11 @@ en:
     - "Weekdays and holidays follow the office calendar of the Directorate-General of Personnel Administration; days off for typhoons are not in it and count as the calendar says."
     - A stop near an MRT entrance does not mean the bus segment can be replaced by the MRT: stops near a crossing count too. Distances are straight-line, not walking distances, and the entrance data is updated irregularly.
     - The rest trade-off counts vehicle-hours, not driver hours, and uses only layovers measured at the ends where buses stop, without extrapolating to other trips. Added vehicles are an hourly average, not a schedule.
+    - The lateness in the rest trade-off is an assumption that every arrival at the end where buses stop is that many minutes later than measured. The lateness of the measured days is already in the measured layovers and is not added again; lateness longer than a layover would delay the next departure, which the estimate does not follow. The hours applied are the hours buses arrive at the end where they stop.
     - Which end buses stop at is verified route by route and written into the configuration, not computed from the data; it goes stale when the operator changes how the route turns around. Layovers at an end where buses drive on are not rest opportunities, and the rest trade-off does not count them.
     - Round trips and cycles use only trips whose first and last stops were both observed and that pair up as stored layovers, so their counts are lower than the trip counts. A vehicle's first loop of the day has no cycle. A cycle is the rhythm of a vehicle; with two shifts per vehicle it does not map to one driver's roster.
     - At an end where buses stop, the location is where vehicles stood still most densely during that day's layovers. GPS reports come every 10 seconds and can be missing for a whole day, and then that day has no location. It is where the vehicle stood, not where the driver went.
-    - At an end where buses drive on, they do not stop, so the location is the last stop.
+    - At an end where buses drive on, they do not wait, so the location is the last stop.
     - "Toilets come from the national registry of the Ministry of Environment, updated monthly, with one row per toilet; the page groups toilets at one address into one place. Distances are straight-line, not walking distances. The data has no opening hours and says nothing about whether a driver may use a toilet."
     - The squares on the maps are cells of about 20 metres that at least three vehicles stood in on a day; cells with fewer vehicles are not drawn. Their shade sums GPS standstill reports taken every 10 seconds and is neither minutes stood nor rest. The basemap is third-party data shown as it is.
     - The route map in the stop sequence block draws the route shape the Taipei City Public Transportation Office registers, not measured GPS, so temporary detours and diversions do not appear on it. The registered shape can be older than the stop list.

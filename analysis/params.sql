@@ -88,5 +88,29 @@ SET VARIABLE route_shape_max_latitude = 27;
 SET VARIABLE route_shape_min_longitude = 118;
 SET VARIABLE route_shape_max_longitude = 123;
 
+-- End nature survey (analysis/end_nature_survey.sql). The rule was fixed
+-- before the whole network was surveyed, from the eight ends verified by hand
+-- (docs/spectra/changes/02-end-nature-survey). A layover stood still when its
+-- longest standstill is longer than nature_still_minutes: at the
+-- pass-through ends of 251 and 251區, the two whose standstills were measured,
+-- it never went past 2.0 minutes, the largest being exactly 2.0 at
+-- 臺北車站(開封), and "longer than" keeps that below. An end whose layovers
+-- with GPS reports are fewer than nature_min_layovers is undetermined: over
+-- four days that is at least 5 a day, and under 20 one layover moves the
+-- share by 5 points, as much as the pass-through threshold. Of the layovers
+-- with GPS reports, a share that stood still of at most
+-- nature_pass_through_max_share is pass-through: it was 0 at both of those
+-- ends, and 5% leaves room for a bus that waits now and then. It is no wider
+-- because an end where buses stop for two minutes, taken for pass-through,
+-- drops out of the rest trade-off with the very problem it has.
+-- A share of at least nature_stop_min_share is a stop: 168 of 211 and 198 of
+-- 223 at the two ends of 307 stood still for 2 minutes or more, and the
+-- median longest standstill at the stopping ends of 251 and 251區 was 14.4 and
+-- 3.5 minutes, so more than half. A share in between is undetermined.
+SET VARIABLE nature_still_minutes = 2;
+SET VARIABLE nature_min_layovers = 20;
+SET VARIABLE nature_pass_through_max_share = 0.05;
+SET VARIABLE nature_stop_min_share = 0.5;
+
 -- Minutes from one timestamp to a later one, with the seconds kept.
 CREATE OR REPLACE MACRO minutes_between(earlier, later) AS epoch(later - earlier) / 60;
