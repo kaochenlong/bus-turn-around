@@ -51,6 +51,7 @@ Changes can be parked（暫存）— temporarily moved out of `docs/spectra/chan
 - `bin/rails parallel:spec`：平行跑整套測試
 - `bin/ci`：完整檢查（RuboCop、bundler-audit、Brakeman、平行 RSpec、seeds）
 - `bin/rubocop`：style 檢查；`bin/brakeman`：安全掃描
+- `bin/push-derived`：把開發資料庫的衍生表推上正式站，不加參數只印要推的內容；`--push` 才會備份正式站、在一個交易裡換掉、再比對列數
 
 ## 慣例
 

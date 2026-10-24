@@ -1,6 +1,6 @@
 ---
 tw: &tw
-  note: 每一站的車上人數用車子離站時的記錄，沒有離站記錄才用到站時的記錄。時段是照那一趟開始的時間分的。
+  note: 每一站的車上人數取車子離站時的記錄，沒有才用到站時的；時段照那一趟幾點發車分。p90 是九成的趟次不超過的人數。
   summary: 逐站數字：載客剖面表
   summary_note: "%{count} 站 × %{bands} 個時段，每格是中位數 / p90（趟數）"
   directions:
@@ -16,7 +16,7 @@ tw: &tw
 zh-TW:
   <<: *tw
 en:
-  note: The on-board count when leaving each stop, or when arriving where no departure was recorded. Bands follow the trip's start hour.
+  note: The on-board count when leaving each stop, or when arriving where no departure was recorded. Bands follow the trip's start hour. p90 is the count nine trips in ten do not exceed.
   summary: "Stop by stop: the load profile table"
   summary_note: "%{count} stops × %{bands} time bands; each cell is median / p90 (trips)"
   directions:

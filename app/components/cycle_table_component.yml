@@ -2,8 +2,8 @@
 tw: &tw
   eyebrow: 來回一趟與週期
   title: 跑得完嗎？來回一趟要多久，週期給了多久
-  note_html: 來回一趟從%{first_stop}發車算到回到%{last_stop}，含另一端的停留；週期是這台車回到%{last_stop}，到下一次回到同一站的間隔，中間的休息都算在裡面。%{far_end_rest}兩者都照發車的那個小時分組，只算兩段都量到起站與末站、而且中間沒有去跑別條路線的車。一列的筆數少於 5 就標「樣本少」。
-  far_end_rest: 另一端的停留是休息，不是過站。
+  note_html: 來回一趟是從%{first_stop}發車，到回到%{last_stop}為止，中間含另一端的停留。週期是這台車回到%{last_stop}，到下一次再回到這一站，中間的休息都算在內。%{far_end_rest}兩種都照幾點發車分組，只算兩段都有量到起站與末站、中間也沒有去開別的路線的車。一列不到 5 筆就標「樣本少」。
+  far_end_rest: 另一端也是停車的一端，那裡的停留算休息。
   first_stop_fallback: 起站
   last_stop_fallback: 末站
   headline_html: 來回一趟有一半要 %{round_trip_p50} 分鐘以上、八成五在 %{round_trip_p85} 分鐘內跑完；週期最緊的一成只有 %{cycle_p10} 分鐘、一半在 %{cycle_p50} 分鐘內。

@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+# Pushes the derived tables of the development database to production, as
+# DerivedPushCommand describes: without --push it only prints what would be
+# pushed. The source is the development database, so any other RAILS_ENV
+# stops here, before Rails is loaded.
+ENV["RAILS_ENV"] ||= "development"
+unless ENV["RAILS_ENV"] == "development"
+  warn("bin/push-derived 推的是開發資料庫，RAILS_ENV 要是 development，現在是 #{ENV['RAILS_ENV']}")
+  exit 1
+end
+
+require_relative "../config/environment"
+exit DerivedPushCommand.new(ARGV).run

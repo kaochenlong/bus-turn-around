@@ -1,9 +1,9 @@
 ---
 tw: &tw
-  note: 地圖要等網頁的腳本載入才會出現，載不到時就只有這一句；這一端的數字都在上面。
-  coverage_html: 畫出來的格子涵蓋這幾天 %{share} 的靜止回報。
+  note: 地圖要等網頁的程式載入才畫得出來，載不到時只會看到這一句；這一端的數字都在上面。
+  coverage_html: 圖上的格子包含這幾天車子停住時 %{share} 的 GPS 回報。
   beyond_extent_html: 另有 %{count} 格在 %{km} 公里外，沒有畫出來。
-  no_reports: 這幾天沒有靜止回報。
+  no_reports: 這幾天沒有車子停住時的 GPS 回報。
   labels:
     last_stop: 末站
     next_first_stop: 下一趟起站

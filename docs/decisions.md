@@ -76,7 +76,7 @@
 
 - 2026-10-24 定的。網站用 Kamal 部署到 sgp1 的一台 Droplet（Ubuntu 24.04、1 vCPU、2 GiB），kamal-proxy 終止 TLS、向 Let's Encrypt 簽證書；Cloudflare 只做 DNS，不開代理。
 - Postgres 以 Kamal accessory 跟網站跑在同一台（postgres:16，對齊開發用的版本），資料庫的埠只綁主機的 127.0.0.1。不用 Managed PostgreSQL、不開備份：衍生表隨時能從原始檔重算（第 2 條），資料庫壞掉的代價是重灌一次。
-- 主機不裝 DuckDB、不放原始檔。衍生表由筆電算好（`derived:load`）再推上去，第一次是把開發資料庫的五張表 pg_dump 再 pg_restore；每晚自動跑要在哪裡算，另開 change 決定。
+- 主機不裝 DuckDB、不放原始檔。衍生表由筆電算好（`derived:load`）再推上去，第一次是把開發資料庫的五張表 pg_dump 再 pg_restore；之後用 `bin/push-derived --push`，整份換成開發資料庫的衍生表（`route_days` 與沿外鍵連到它的每一張表）。deploy 不動資料，要推的是三種時候：change 新增或改了衍生表、改了算法或 `config/route_page.yml` 兩端的性質、要讓正式站出現新的日子或路線；開發資料庫裡要剛好是正式站該有的日子。每晚自動跑要在哪裡算，另開 change 決定。
 - 採集器 n-gear 留在 Mac mini（第 8 條照舊），不跟網站同機。
 - image 在筆電建、從 git HEAD 的乾淨 clone 建、推到 Kamal 的本機 registry，不用外部 registry；每個 image 對應一個 commit。
 - 密碼只在 production credentials：`.kamal/secrets` 用 `config/credentials/production.key` 當 RAILS_MASTER_KEY，資料庫密碼從 credentials 的 `database.password` 讀。這個專案是 per-environment credentials，`config/master.key` 只解共用那份。
