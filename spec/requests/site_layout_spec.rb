@@ -7,6 +7,13 @@ RSpec.describe "Site layout", type: :request do
 
   def footers = page.css('footer[data-attribution][data-license="OGDL-Taiwan-1.0"]')
 
+  # The three quoted paragraphs of the 授權 section of docs/data-sources.md,
+  # taken the way spec/analysis/card_spec.rb takes them for the health card.
+  def statement_in_docs
+    licence = Rails.root.join("docs/data-sources.md").read[/^### 授權\n(.*?)(?=^#)/m, 1]
+    licence.lines.grep(/\A> /).map { it.delete_prefix("> ").chomp }
+  end
+
   # The footer itself and everything inside it.
   def sections_in_footer = page.css("footer[data-attribution][data-section], footer[data-attribution] [data-section]")
 
@@ -42,6 +49,11 @@ RSpec.describe "Site layout", type: :request do
   it "首頁恰好有一個顯名聲明 footer" do
     get root_path
     expect(footers.size).to eq(1)
+  end
+
+  it "首頁頁尾的前三段依序逐字等於 docs/data-sources.md 授權那一節的三段顯名聲明" do
+    get root_path
+    expect(page.css("footer[data-attribution] p").first(3).map { it.text.strip }).to eq(statement_in_docs)
   end
 
   it "頁尾有一行是設定的底圖顯名：測試環境是測試用空白底圖" do

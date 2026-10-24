@@ -529,92 +529,19 @@ The 資料限制 section SHALL state: the vehicle is not the driver and layover 
 #### Scenario: Attribution reproduced
 
 - **WHEN** the card is generated
-- **THEN** the 資料來源與授權 section contains the line beginning `臺北市公共運輸處 2026 臺北市公車即時開放資料` and the URL `https://data.gov.tw/license`
+- **THEN** the 資料來源與授權 section contains the line beginning `臺北市公共運輸處 2026 臺北市公車開放資料`, which names GetRoute, GetStop and GetPathDetail as well as GetBusData, GetBusEvent and BusSeatEvent, and the URL `https://data.gov.tw/license`
 
 
 <!-- @trace
-source: zhongshan-first-health-card
-updated: 2026-10-22
+source: 01-bus-feeds-attribution
+updated: 2026-10-24
 code:
-  - spec/fixtures/analysis/bus_event/2026-10-19/08.jsonl.gz
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/16.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/13.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-20/02.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/08.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/23.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-20/00.jsonl
-  - spec/fixtures/analysis/static/2026-10-19/GetRoute.gz
-  - spec/fixtures/analysis/bus_seat_event/2026-10-20/01.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/17.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/10.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/15.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/20.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/16.jsonl
-  - analysis/30_layovers.sql
-  - spec/fixtures/analysis/bus_event/2026-10-19/00.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/14.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/17.jsonl
-  - analysis/10_load.sql
-  - Makefile
-  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
-  - analysis/20_trips.sql
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/21.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-20/02.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/11.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/07.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/11.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-20/01.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-18/21.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/00.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/07.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/19.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/09.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/22.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/19.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/23.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/22.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/14.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-20/00.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-18/23.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/09.jsonl
-  - analysis/40_load_profile.sql
-  - spec/fixtures/analysis/bus_event/2026-10-19/18.jsonl
-  - analysis/60_export.sql
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/06.jsonl
-  - spec/fixtures/analysis/static/2026-10-19/GetPathDetail.gz
-  - spec/fixtures/analysis/bus_event/2026-10-19/20.jsonl
-  - analysis/params.sql
-  - analysis/README.md
-  - spec/fixtures/analysis/bus_event/2026-10-18/22.jsonl
-  - analysis/50_quality.sql
-  - spec/support/duckdb.rb
-  - spec/fixtures/analysis/bus_seat_event/2026-10-18/22.jsonl
-  - docs/cards/15373-2026-10-19.md
-  - spec/fixtures/analysis/bus_event/2026-10-18/21.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-18/23.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/18.jsonl
-  - .rubocop.yml
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/12.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/06.jsonl
+  - docs/data-sources.md
   - bin/health-card
-  - spec/fixtures/analysis/bus_event/2026-10-19/13.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/15.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/10.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/12.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/21.jsonl
-  - spec/fixtures/analysis/README.md
+  - app/components/attribution_component.yml
 tests:
-  - spec/analysis/quality_spec.rb
-  - spec/analysis/card_spec.rb
-  - spec/analysis/trips_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/analysis/layovers_spec.rb
-  - spec/analysis/fixtures_spec.rb
-  - spec/analysis/chains_spec.rb
-  - spec/analysis/duckdb_helpers_spec.rb
-  - spec/analysis/profile_spec.rb
-  - spec/analysis/cli_spec.rb
-  - spec/analysis/load_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/requests/site_layout_spec.rb
 -->
 
 ---
