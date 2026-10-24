@@ -1,5 +1,6 @@
 ---
 tw: &tw
+  route_id: "路線 Id %{id}"
   ranges:
     day: 當天
     7d: 最近 7 天
@@ -13,6 +14,7 @@ tw: &tw
 zh-TW:
   <<: *tw
 en:
+  route_id: "Route ID %{id}"
   ranges:
     day: The day
     7d: Last 7 days

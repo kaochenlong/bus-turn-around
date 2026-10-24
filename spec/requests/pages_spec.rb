@@ -36,9 +36,17 @@ RSpec.describe "Pages", type: :request do
       .to eq([ [ "15373", true, nil ], [ "9001", false, "/routes/9001" ] ])
   end
 
-  it "9001 的卡上是測試幹線、9001、甲站－戊站與 2026-10-20（二）" do
+  it "9001 的卡：名稱那一行只有測試幹線，甲站－戊站那一行接著路線 Id 9001，最新一天是 2026-10-20（二）平日" do
     store_days("2026-10-19", "2026-10-20")
     get root_path
-    expect(page.at_css("[data-route='9001']")&.text).to include("測試幹線", "9001", "甲站－戊站", "2026-10-20（二）")
+    card, route_id = page.at_css("[data-route='9001']").then { [ it, it.at_css("[data-route-id]") ] }
+    expect([ card.at_css("p").text, route_id&.text, route_id&.parent&.text&.include?("甲站－戊站"), card.text ])
+      .to match([ "測試幹線", "路線 Id 9001", true, include("2026-10-20（二）#{I18n.t('day_types.weekday')}") ])
+  end
+
+  it "沒有資料的 15373：卡上只寫路線 Id 15373，標成沒有資料，沒有連結" do
+    get root_path
+    card = page.at_css("[data-route='15373']")
+    expect([ card.at_css("p").text, card.key?("data-no-data"), card.name, card.css("a").size ]).to eq([ "路線 Id 15373", true, "div", 0 ])
   end
 end

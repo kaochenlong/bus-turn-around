@@ -1,0 +1,46 @@
+<section data-section="stop-sequence">
+  <%= eyebrow(t(".eyebrow")) %>
+  <h2 class="mb-4 text-section-sm leading-snug font-bold text-slate-900 sm:mb-5 sm:text-section"><%= t(".title") %></h2>
+  <% if @stop_sequence.any? %>
+    <%# 預設收起：每一站都在伺服器輸出裡，點摘要展開，不需要 JS %>
+    <details data-stop-sequence class="group rounded-xl border border-slate-200 bg-slate-50">
+      <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">
+        <span class="font-semibold text-slate-900"><%= safe_join(directions.map { tag.span(stop_count(it), data: { stop_count: it.stop_names.size }) }, t(".separator")) %></span>
+        <svg aria-hidden="true" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"
+             class="size-5.5 shrink-0 fill-none stroke-slate-600 stroke-2 group-open:rotate-180"><path d="M6 9l6 6 6-6" /></svg>
+      </summary>
+      <div class="px-4 pb-4 sm:px-5 sm:pb-5">
+        <div class="grid gap-8 sm:grid-cols-2 sm:gap-12">
+          <% directions.each do |direction| %>
+            <div data-direction="<%= direction.go_back %>" class="min-w-0">
+              <h3 class="mb-2 text-subsection font-semibold text-teal-800"><%= stop_count(direction) %></h3>
+              <%# 拿掉項目符號的 ol 要帶 role="list"，Safari 的 VoiceOver 才會把它當成清單 %>
+              <ol role="list">
+                <% last_index = direction.stop_names.size - 1 %>
+                <% direction.stop_names.each_with_index do |stop_name, index| %>
+                  <%= tag.li data: { first_stop: (true if index.zero?), last_stop: (true if index == last_index) }, class: "border-b border-slate-200 py-1.5 last:border-b-0" do %>
+                    <%= stop_name %>
+                    <%= stop_mark(t(".first_stop")) if index.zero? %>
+                    <%= stop_mark(t(".last_stop")) if index == last_index %>
+                  <% end %>
+                <% end %>
+              </ol>
+              <%# 折返那一列放在 ol 外面，清單的項目數才等於這個方向的站牌數 %>
+              <%= tag.p data: { turnaround: true, end_nature: nature(direction), next_first_stop: direction.next_first_stop }, class: "mt-3 font-medium text-slate-800" do %>
+                <% if direction.next_first_stop %>
+                  <%= t(".turnaround_html", nature: nature_tag(t(".natures.#{nature(direction)}")),
+                                            next_first_stop: tag.span(direction.next_first_stop, class: "font-semibold text-teal-800")) %>
+                <% else %>
+                  <%= t(".turnaround_only_html", nature: nature_tag(t(".natures.#{nature(direction)}"))) %>
+                <% end %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+        <p data-static-day="<%= @stop_sequence.static_day.iso8601 %>" class="mt-5.5 text-label text-slate-500"><%= t(".snapshot", day: @stop_sequence.static_day.iso8601) %></p>
+      </div>
+    </details>
+  <% else %>
+    <p data-no-stops class="text-slate-600"><%= t(".no_stops") %></p>
+  <% end %>
+</section>

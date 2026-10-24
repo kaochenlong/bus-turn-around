@@ -117,11 +117,11 @@ RSpec.describe "Routes", type: :request do
     )
   end
 
-  it "有資料的那一天，頁面依序是摘要、折返停留分佈圖、折返停留、來回與週期、折返點設施、試算、行駛時間、沿線人數圖、捷運重疊、載客剖面、資料限制" do
+  it "有資料的那一天，頁面依序是摘要、站序、折返停留分佈圖、折返停留、來回與週期、折返點設施、試算、行駛時間、沿線人數圖、捷運重疊、載客剖面、資料限制" do
     store_days("2026-10-19")
     get route_path(9001), params: { day: "2026-10-19" }
     expect(page.css("[data-section]").map { it["data-section"] })
-      .to eq(%w[summary layover-chart layovers cycles facilities buffer-trade run-times load-chart mrt-overlap load-profile limitations])
+      .to eq(%w[summary stop-sequence layover-chart layovers cycles facilities buffer-trade run-times load-chart mrt-overlap load-profile limitations])
   end
 
   it "涵蓋的日子沒有兩端的列時，折返點設施那一區說要重新載入，也沒有地圖容器" do

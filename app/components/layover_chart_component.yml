@@ -1,7 +1,7 @@
 ---
 tw: &tw
   eyebrow: 折返停留
-  title: 車在終點能停幾分鐘？
+  title: 車在折返點能停幾分鐘？
   note: 每一筆是同一台車這一趟到了末站，到下一趟從起站出發，中間隔了幾分鐘，照結束的那一趟是哪個方向分開畫。這段時間包含回場、加油、等發車，所以只是駕駛休息時間的上限。每根長條旁邊是筆數，精確的百分位數在下面的表。
   directions:
     "0": 去程結束
@@ -19,7 +19,7 @@ zh-TW:
   <<: *tw
 en:
   eyebrow: Layovers
-  title: How long does a bus stay at the end of the line?
+  title: How long does a bus stay at the turnaround?
   note: Each layover runs from a trip's arrival at its last stop to the same vehicle leaving the first stop of its next trip, drawn per direction of the ending trip. It includes returning to the depot, refuelling and waiting, so it is an upper bound on rest. Counts are next to each bar; exact percentiles are in the table below.
   directions:
     "0": Outbound ends
