@@ -95,6 +95,14 @@ export function start(section) {
   section.dataset.heroShot = shot
   section.dataset.hero = "playing"
   narrow.addEventListener("change", switchFraming)
+  // Every material compiled and every texture uploaded before the first
+  // frame, those of parts not drawn yet included: the destination sign,
+  // hidden until the driver steps out, would otherwise stall the frame it
+  // first lights up in.
+  renderer.compile(scene, cameras[shot])
+  scene.traverse((object) => {
+    if (object.material?.map) renderer.initTexture(object.material.map)
+  })
   // The first frame right away, so that the canvas is never blank, even when
   // the illustration starts out of view.
   pose(parts, seconds)

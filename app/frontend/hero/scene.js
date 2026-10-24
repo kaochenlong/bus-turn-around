@@ -23,7 +23,7 @@ const SLATE_600 = 0x475569 // clothes
 const SLATE_800 = 0x1e293b // windows, hair, eyes and dark parts
 const TEAL_500 = 0x14b8a6 // clothes
 const TEAL_700 = 0x0f766e // the band on the bus and the office door
-const AMBER_400 = 0xfbbf24 // the one accent: the stop sign and a few cells of the board
+const AMBER_400 = 0xfbbf24 // the one accent: the stop sign, a few cells of the board and the words on the bus's sign
 const SKIN = 0xf1d6c2 // everyone's head and face, the same for all
 const GREEN_600 = 0x16a34a // the crowns of the street trees and the shrubs, and nothing else
 
@@ -58,7 +58,7 @@ export function buildScene({ shadowMapSize = 4096 } = {}) {
   dispatch.add(dispatchOffice())
   dispatch.position.set(-11.4, 0, 3.3)
 
-  const { group: busGroup, frontLeaf, rearLeaf } = bus()
+  const { group: busGroup, frontLeaf, rearLeaf, sign } = bus()
   clipToBlock(busGroup)
   const { figure: driver, arms: driverArms } = person(TEAL_500)
   const terminal = new THREE.Group()
@@ -71,7 +71,7 @@ export function buildScene({ shadowMapSize = 4096 } = {}) {
   stop.position.set(STOP_AT.x, 0, STOP_AT.z)
 
   scene.add(dispatch, terminal, stop, greenery())
-  const parts = { bus: busGroup, frontLeaf, rearLeaf, driver, driverArms, riders: waiting }
+  const parts = { bus: busGroup, frontLeaf, rearLeaf, sign, driver, driverArms, riders: waiting }
   pose(parts, STILL)
   return { scene, dispatch, terminal, stop, parts }
 }
@@ -122,10 +122,11 @@ const ABOARD = [0.5, -1.95]
 const AT_STOP_X = STOP_AT.x + KERBSIDE[0] - DOORWAY.x
 
 // Puts the moving parts where they are `seconds` into the animation, counted
-// round the loop; pose(parts, STILL) is the still. Each move back undoes the
-// one out, so the driver walks back the way they came: along the bus, then
-// in through the door.
-export function pose({ bus, frontLeaf, rearLeaf, driver, driverArms, riders }, seconds) {
+// round the loop, and lights the bus's destination sign while the driver is
+// out; pose(parts, STILL) is the still. Each move back undoes the one out, so
+// the driver walks back the way they came: along the bus, then in through the
+// door.
+export function pose({ bus, frontLeaf, rearLeaf, sign, driver, driverArms, riders }, seconds) {
   const at = THREE.MathUtils.euclideanModulo(seconds, CYCLE)
   const phase = (span) => easeInOut(progress(at, span))
   bus.position.x =
@@ -151,12 +152,22 @@ export function pose({ bus, frontLeaf, rearLeaf, driver, driverArms, riders }, s
   const stretch = THREE.MathUtils.degToRad(STRETCH_DEGREES) * (phase(TIMELINE.raiseArms) - phase(TIMELINE.lowerArms))
   for (const shoulder of driverArms) shoulder.rotation.x = stretch
 
+  poseSign(sign, at)
   for (const rider of riders) poseRider(rider, at)
 }
 
 // How far `seconds` is through the span [from, to], from 0 to 1.
 function progress(seconds, [from, to]) {
   return THREE.MathUtils.clamp((seconds - from) / (to - from), 0, 1)
+}
+
+// Lights the destination sign while the driver is out of the bus, from the
+// first step out until the door has closed behind them, and runs its words
+// right to left, in the middle of the sign at STILL; blank at other times.
+function poseSign({ plane, texture, wordsWidth, signWidth }, at) {
+  plane.visible = at >= TIMELINE.stepOut[0] && at < TIMELINE.doorClose[1]
+  const middle = (wordsWidth - signWidth) / 2
+  texture.offset.x = (middle + (at - STILL) * SIGN_SPEED) / (wordsWidth + signWidth)
 }
 
 // Puts a rider where their keyframes have them `at` seconds into the loop:
@@ -327,7 +338,8 @@ function tree([x, z]) {
 // The dispatch office on the pavement, cut open at the top like the block
 // itself so that the room shows: a wide window in the wall facing the street,
 // a door towards the bus, a desk with a screen under the duty board on the
-// far wall, and the station master at the desk, pointing at the board.
+// far wall, the station master at the desk, pointing at the board, and a
+// Samoyed sitting on the floor behind the window, which never moves.
 // Its origin is the ground in the middle of the room.
 function dispatchOffice() {
   const group = new THREE.Group()
@@ -364,6 +376,14 @@ function dispatchOffice() {
   master.position.set(0.5, 0, -0.5)
   master.rotation.y = Math.PI
   group.add(master)
+
+  // Back from the window far enough to show over the sill, but not so far
+  // that the wall above the window hides its head; it faces the bus, half
+  // turned towards the street.
+  const dog = samoyed()
+  dog.position.set(-0.9, 0, 0.4)
+  dog.rotation.y = -0.5
+  group.add(dog)
   return group
 }
 
@@ -394,6 +414,9 @@ function dutyBoard([x, y, z]) {
   return group
 }
 
+// The fonts for the characters on the poster and the destination sign.
+const CHINESE_FONTS = "'PingFang TC', 'Heiti TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif"
+
 // A poster on the far wall beside the duty board, centred at `at`: a rough
 // likeness of the 洋流 poster, orange with a white band down the middle and
 // the two characters in black, drawn on a canvas when the scene is built. The
@@ -410,7 +433,7 @@ function poster([x, y, z]) {
   context.fillStyle = "#ffffff"
   context.fillRect(95, 0, 110, 400)
   context.fillStyle = "#111111"
-  context.font = "900 175px 'PingFang TC', 'Heiti TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif"
+  context.font = `900 175px ${CHINESE_FONTS}`
   context.textAlign = "center"
   context.textBaseline = "middle"
   context.fillText("洋", 150, 110)
@@ -421,6 +444,44 @@ function poster([x, y, z]) {
   sheet.position.set(x, y, z)
   sheet.receiveShadow = true
   return sheet
+}
+
+// A Samoyed sitting up, facing +x with its feet at the origin, about half as
+// tall as a person: white haunches, a chest leaning back under a thick ruff,
+// two straight forelegs, a plumed tail curled over its back and the head.
+function samoyed() {
+  const group = new THREE.Group()
+  group.add(ball(0.21, [-0.13, 0, 0], SLATE_100))
+  const chest = box([0.26, 0.42, 0.34], [0.03, 0.1, 0], SLATE_100, { radius: 0.13 })
+  chest.rotation.z = -0.3
+  group.add(chest)
+  group.add(ball(0.17, [0.1, 0.32, 0], SLATE_100))
+  for (const z of [-0.08, 0.08]) group.add(box([0.09, 0.4, 0.09], [0.15, 0, z], SLATE_100, { radius: 0.04 }))
+  group.add(ball(0.13, [-0.33, 0.24, 0.1], SLATE_100))
+  group.add(dogHead([0.16, 0.62, 0]))
+  return group
+}
+
+// The Samoyed's head, facing +x and centred at `at`: a white ball with a
+// short muzzle, a black nose, two dot eyes like the people's and two pricked
+// ears, each a four-sided cone centred where it sits.
+function dogHead([x, y, z]) {
+  const head = new THREE.Group()
+  head.position.set(x, y, z)
+  const radius = 0.15
+  head.add(ball(radius, [0, -radius, 0], SLATE_100))
+  head.add(box([0.15, 0.1, 0.13], [0.11, -0.1, 0], SLATE_100, { radius: 0.05 }))
+  head.add(ball(0.03, [0.185, -0.075, 0], SLATE_800))
+  for (const side of [-1, 1]) head.add(ball(0.022, [0.124, 0.003, side * 0.071], SLATE_800))
+  for (const side of [-1, 1]) {
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.13, 4), material(SLATE_100))
+    ear.position.set(-0.02, 0.167, side * 0.08)
+    ear.rotation.set(side * 0.3, Math.PI / 4, 0)
+    ear.castShadow = true
+    ear.receiveShadow = true
+    head.add(ear)
+  }
+  return head
 }
 
 // The head of every person: its radius and the height of its centre.
@@ -473,9 +534,11 @@ function hair() {
 
 // A generic low-floor city bus heading +x with its door side towards +z: a
 // white body with a teal band under the windows, and no operator's livery,
-// route number or emblem. Its origin is the ground under its middle. Returns
-// the bus with the two leaves of its front door, which pose() opens: the
-// front one swings out, the rear one folds into the bus.
+// route number or emblem. Its destination sign is blank except while the
+// driver is out, when it runs 暫停服務 (out of service). Its origin is the
+// ground under its middle. Returns the bus with the two leaves of its front
+// door, which pose() opens: the front one swings out, the rear one folds into
+// the bus; and the lit face of its sign, which pose() lights and runs.
 function bus() {
   const group = new THREE.Group()
   const length = 12
@@ -503,13 +566,18 @@ function bus() {
   const rearLeaf = doorLeaf(4.45, 0.42, side, 1)
   group.add(frontLeaf, rearLeaf)
 
-  // The front: the band, windscreen, a blank destination sign, bumper and lamps.
+  // The front: the band, windscreen, the destination sign with its lit face
+  // just in front, bumper and lamps.
   group.add(box([0.04, band[1] - band[0], 2.1], [front, band[0], 0], TEAL_700))
   group.add(box([0.04, 1.2, 2.1], [front, 1.45, 0], SLATE_800))
   group.add(box([0.04, 0.28, 1.9], [front, 2.74, 0], SLATE_800))
+  const sign = signFace(1.9, 0.28)
+  sign.plane.position.set(front + 0.025, 2.88, 0)
+  sign.plane.rotation.y = Math.PI / 2
+  group.add(sign.plane)
   group.add(box([0.14, 0.3, width], [front, floor, 0], SLATE_800, { radius: 0.05 }))
   for (const z of [-0.85, 0.85]) group.add(box([0.06, 0.18, 0.42], [front, 0.78, z], SLATE_300))
-  return { group, frontLeaf, rearLeaf }
+  return { group, frontLeaf, rearLeaf, sign }
 }
 
 // A wheel standing a little proud of the body side at z = ±1.25, with its hub.
@@ -538,6 +606,50 @@ function doorLeaf(hinge, bottom, side, towards) {
   pivot.add(box([0.55, 2.4, 0.06], [towards * 0.275, bottom, 0.03], SLATE_100))
   pivot.add(box([0.38, 1.5, 0.02], [towards * 0.275, bottom + 0.75, 0.07], SLATE_800))
   return pivot
+}
+
+// The words the destination sign runs while the driver is out of the bus,
+// and how: SIGN_FONT pixels high on a strip SIGN_PIXELS tall, moving right to
+// left at SIGN_SPEED pixels a second, three characters a second.
+const OUT_OF_SERVICE = "暫停服務"
+const SIGN_PIXELS = 64
+const SIGN_FONT = 50
+const SIGN_SPEED = 150
+
+// The lit face of the destination sign, `width` by `height`, facing +z and
+// hidden until poseSign() lights it. It shows a sign-wide stretch of a strip
+// drawn on a canvas, the words in amber on the sign's dark followed by a gap
+// as wide as the sign, so that the words have left before they come round
+// again; poseSign() slides the stretch along the strip, which repeats. It
+// ignores the scene's lights, as a lit sign makes its own.
+function signFace(width, height) {
+  const canvas = document.createElement("canvas")
+  const context = canvas.getContext("2d")
+  const font = `900 ${SIGN_FONT}px ${CHINESE_FONTS}`
+  context.font = font
+  const words = context.measureText(OUT_OF_SERVICE)
+  const wordsWidth = Math.ceil(words.width)
+  const signWidth = Math.round((SIGN_PIXELS * width) / height)
+  // Sizing the canvas clears it and resets the context, font included.
+  canvas.width = wordsWidth + signWidth
+  canvas.height = SIGN_PIXELS
+  context.fillStyle = new THREE.Color(SLATE_800).getStyle()
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  context.font = font
+  context.fillStyle = new THREE.Color(AMBER_400).getStyle()
+  // Centred on the characters' own height, which differs from font to font.
+  context.fillText(OUT_OF_SERVICE, 0, (SIGN_PIXELS + words.actualBoundingBoxAscent - words.actualBoundingBoxDescent) / 2)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.wrapS = THREE.RepeatWrapping
+  texture.repeat.x = signWidth / canvas.width
+  // Seen at a slant, the words blur into a bar with plain mipmaps; filtering
+  // anisotropically keeps them clearer, without the shimmer of the sharper
+  // filtering that skips mipmaps. three.js caps it at what the GPU supports.
+  texture.anisotropy = 16
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: texture }))
+  plane.visible = false
+  return { plane, texture, wordsWidth, signWidth }
 }
 
 // Riders waiting at the stop for the bus's next trip, turned more or less
