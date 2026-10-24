@@ -11,6 +11,7 @@ require "rails_helper"
 #  departure           :string           not null
 #  destination         :string           not null
 #  loaded_at           :timestamptz      not null
+#  member_names        :jsonb            not null
 #  mrt_exits_day       :date
 #  office_calendar_day :date             not null
 #  public_toilets_day  :date
@@ -48,6 +49,28 @@ RSpec.describe RouteDay, type: :model do
   it "同一路線同一天只能有一列" do
     create_route_day
     expect { create_route_day }.to raise_error(ActiveRecord::RecordNotUnique)
+  end
+
+  it "刪掉一天時，那一天的調度站跟著刪掉" do
+    route_day = create_route_day.tap { create(:route_day_depot, route_day: it) }
+    expect { route_day.delete }.to change(RouteDayDepot, :count).from(1).to(0)
+  end
+
+  it "同一天同一個調度站只能有一列" do
+    route_day = create_route_day.tap { create(:route_day_depot, route_day: it) }
+    expect { create(:route_day_depot, route_day:) }.to raise_error(ActiveRecord::RecordNotUnique)
+  end
+
+  it "沒給 route_id 的站序與趟次，預設屬於路線日的路線" do
+    route_day = create_route_day.tap { fill(it) }
+    expect([ route_day.stops.sole.route_id, route_day.trips.sole.route_id ]).to eq([ 9001, 9001 ])
+  end
+
+  it "同一天同方向同站序，兩條路線各一列可以，同一條路線兩列不行" do
+    route_day = create_route_day
+    route_day.stops.create!(route_id: 9001, go_back: 0, seq: 0, stop_name: "甲站")
+    route_day.stops.create!(route_id: 9050, go_back: 0, seq: 0, stop_name: "甲站")
+    expect { route_day.stops.create!(route_id: 9050, go_back: 0, seq: 0, stop_name: "甲站") }.to raise_error(ActiveRecord::RecordNotUnique)
   end
 
   %w[day_type office_calendar_day].each do |column|

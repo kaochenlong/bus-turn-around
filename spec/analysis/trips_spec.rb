@@ -72,6 +72,17 @@ RSpec.describe "analysis/20_trips.sql" do
     end
   end
 
+  describe "成員日 2026-10-23，9001 掛成員路線 9050" do
+    def member_trips(query) = run_sql_stages(through: "20_trips", member_route_ids: [ 9001, 9050 ], day: Date.new(2026, 10, 23), static_day: Date.new(2026, 10, 23), query:)
+
+    it "TEST-0005 三趟都完整：9050 去程 seq 0 到 4 兩趟，中間一趟 9001 返程 seq 5 到 9，各用自己的站序" do
+      rows = member_trips("SELECT route_id, path_attribute_id, go_back, first_seq, last_seq, completeness, strftime(start_time, '%H:%M') AS start, " \
+                          "strftime(end_time, '%H:%M') AS finish FROM trips ORDER BY trip_id")
+      expect(rows.map(&:values)).to eq([ [ 9050, 9050, 0, 0, 4, "complete", "07:00", "07:50" ], [ 9001, 9001, 1, 5, 9, "complete", "08:00", "08:50" ],
+                                         [ 9050, 9050, 0, 0, 4, "complete", "09:00", "09:50" ] ])
+    end
+  end
+
   describe "切趟" do
     [
       [ [ 0, 3, 1, "08:10:00" ], [ 0, 4, 1, "08:12:00" ], 1, "同方向站序遞增" ],

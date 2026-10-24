@@ -144,6 +144,49 @@ RSpec.describe "analysis/40_load_profile.sql" do
     end
   end
 
+  describe "成員日 2026-10-23，9001 掛成員路線 9050：沿線的數字以 9001 的站序為準" do
+    def member_rows(query) = run_sql_stages(through: "40_load_profile", member_route_ids: [ 9001, 9050 ], day: Date.new(2026, 10, 23), static_day: Date.new(2026, 10, 23), query:)
+
+    # Per direction and page route sequence number, the counts in trip order.
+    let(:counts_by_page_seq) do
+      "SELECT t.go_back, c.page_seq, list(c.on_board ORDER BY t.start_time) AS counts FROM trip_stop_counts c JOIN trips t USING (trip_id) " \
+        "WHERE c.page_seq IS NOT NULL GROUP BY ALL ORDER BY ALL"
+    end
+
+    it "9050 兩趟的人數併到 9001 同站位的站：方向 0 的 seq 0、1、3、4 各兩趟，己站對不到所以 seq 2 沒有；方向 1 是 9001 那趟的 seq 5 到 9" do
+      expect(member_rows(counts_by_page_seq).map(&:values)).to eq([ [ 0, 0, [ 3, 2 ] ], [ 0, 1, [ 5, 4 ] ], [ 0, 3, [ 6, 5 ] ], [ 0, 4, [ 2, 1 ] ],
+                                                                     [ 1, 5, [ 4 ] ], [ 1, 6, [ 6 ] ], [ 1, 7, [ 5 ] ], [ 1, 8, [ 3 ] ], [ 1, 9, [ 1 ] ] ])
+    end
+
+    it "己站的 7 與 6 對不到 9001 的站位：page_seq 是空的，留著算淨上下車" do
+      rows = member_rows("SELECT seq, on_board, page_seq FROM trip_stop_counts WHERE page_seq IS NULL ORDER BY on_board DESC")
+      expect(rows.map(&:values)).to eq([ [ 2, 7, nil ], [ 2, 6, nil ] ])
+    end
+
+    it "剖面表用 9001 的站序與站名：方向 0 有甲、乙、丁、戊站，沒有丙站也沒有己站" do
+      rows = member_rows("SELECT DISTINCT seq, stop_name FROM load_profile WHERE go_back = 0 ORDER BY seq")
+      expect(rows.map(&:values)).to eq([ [ 0, "甲站" ], [ 1, "乙站" ], [ 3, "丁站" ], [ 4, "戊站" ] ])
+    end
+
+    it "剖面表依時段：07:00 那趟是早尖峰、09:00 那趟是日間，seq 0 各一趟，人數 3 與 2" do
+      rows = member_rows("SELECT band, n_trips, median FROM load_profile WHERE go_back = 0 AND seq = 0 ORDER BY band")
+      expect(rows.map(&:values)).to eq([ [ "daytime", 1, 2.0 ], [ "morning_peak", 1, 3.0 ] ])
+    end
+
+    it "淨上下車仍在 9050 自己的站序上算：第一趟己站 +2、丁站 -1，span 都是 1" do
+      rows = member_rows(<<~SQL)
+        SELECT n.seq, n.net_boarding, n.span FROM net_boarding n JOIN trips t USING (trip_id)
+        WHERE t.bus_id = 'TEST-0005' AND t.start_time = TIMESTAMP '2026-10-23 07:00:00' AND n.seq IN (2, 3) ORDER BY n.seq
+      SQL
+      expect(rows.map(&:values)).to eq([ [ 2, 2, 1 ], [ 3, -1, 1 ] ])
+    end
+
+    it "歸零檢查的兩端用 9001 的站名，每個方向一列、沒有重複：方向 0 兩趟完整趟次都沒有記錄" do
+      rows = member_rows("SELECT terminal, go_back, stop_name, n_trips, n_missing FROM reset_check ORDER BY go_back, terminal")
+      expect(rows.map(&:values)).to eq([ [ "first", 0, "甲站", 0, 2 ], [ "last", 0, "戊站", 0, 2 ], [ "first", 1, "戊站對面", 0, 1 ], [ "last", 1, "甲站", 0, 1 ] ])
+    end
+  end
+
   describe "淨上下車" do
     it "seq 2 是 10、seq 3 沒有、seq 4 是 7 時，seq 4 的淨上下車 -3、span 2，標為跨站" do
       rows = of_trip("net_boarding", "10:41:00", "v.seq, v.net_boarding, v.span, v.crosses_missing_stops")

@@ -27,6 +27,11 @@ RSpec.describe AnalysisRun do
       sql = with_analysis_dir("params.sql" => "") { |dir| described_class.sql({ day: Date.new(2026, 10, 19), data_root: "a'b" }, analysis_dir: dir) }
       expect(sql.lines.first(2)).to eq([ "SET VARIABLE day = DATE '2026-10-19';\n", "SET VARIABLE data_root = 'a''b';\n" ])
     end
+
+    it "整數陣列寫成 DuckDB 的清單：一頁的路線 Id" do
+      sql = with_analysis_dir("params.sql" => "") { |dir| described_class.sql({ member_route_ids: [ 16111, 19108 ] }, analysis_dir: dir) }
+      expect(sql.lines.first).to eq("SET VARIABLE member_route_ids = [16111, 19108];\n")
+    end
   end
 
   describe ".run" do

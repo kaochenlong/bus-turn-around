@@ -1,5 +1,5 @@
 <div data-end-map data-map="pending" x-data="endMap" aria-hidden="true" data-end="<%= go_back %>"
-     data-tile-url="<%= tiles.url %>" data-tile-attribution="<%= tiles.attribution %>" data-max-zoom="<%= tiles.max_zoom %>" data-labels="<%= labels_json %>"
+     data-tile-url="<%= tiles.url %>" data-tile-attribution="<%= tiles.attribution %>" data-max-zoom="<%= tiles.max_zoom %>" data-labels="<%= labels_json %>" data-base-map-labels="<%= base_map_labels_json %>"
      class="relative mt-5 overflow-hidden rounded-xl border border-slate-200 bg-slate-100"><script type="application/json" data-end-map-data><%= data_json.html_safe %></script><p data-map-note class="absolute inset-0 items-center justify-center p-4 text-center text-label text-slate-500"><%= t(".note") %></p><div data-map-canvas class="h-60 sm:h-72"></div></div>
 <% if no_reports? %>
   <p data-map-coverage data-no-reports class="mt-2 text-label text-slate-500"><%= t(".no_reports") %></p>

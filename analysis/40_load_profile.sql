@@ -5,7 +5,8 @@
 -- from stage 20. Creates views:
 --   seat_stop_events   seat_events mapped to the route and the stop's seqNo
 --   trip_seat_records  the seat records attached to each trip
---   trip_stop_counts   one on-board count per counted stop of a trip
+--   trip_stop_counts   one on-board count per counted stop of a trip, with
+--                      the stop's sequence number on the page route (page_seq)
 --   net_boarding       change of the count from the previous counted stop
 --   count_coverage     how many trips and observed trip stops have a count
 --   trip_bands         the time band of each trip, by its start hour
@@ -44,15 +45,34 @@ WHERE c.remaining_num IS NOT NULL;
 
 -- The count when leaving a stop is the departure record's; without one, the
 -- arrival record's. Of several records of one kind, the latest is taken.
+-- page_seq is the stop's sequence number on the page route: the trip's own
+-- seq for the page route's trips; for a member route's trips, the page
+-- route's stop of the same direction and stop location, or NULL when the
+-- page route does not serve that location in that direction. The profile and
+-- the stored counts use page_seq; net boarding keeps the trip's own seq. Of
+-- two page route stops at one location, the earlier is taken.
 CREATE OR REPLACE VIEW trip_stop_counts AS
-SELECT trip_id,
-       seq,
-       coalesce(
-           arg_max(remaining_num, data_time) FILTER (WHERE car_on_stop = 0),
-           arg_max(remaining_num, data_time) FILTER (WHERE car_on_stop = 1)
-       ) AS on_board
-FROM trip_seat_records
-GROUP BY trip_id, seq;
+WITH counted AS (
+    SELECT trip_id,
+           route_id,
+           go_back,
+           seq,
+           coalesce(
+               arg_max(remaining_num, data_time) FILTER (WHERE car_on_stop = 0),
+               arg_max(remaining_num, data_time) FILTER (WHERE car_on_stop = 1)
+           ) AS on_board
+    FROM trip_seat_records
+    GROUP BY trip_id, route_id, go_back, seq
+)
+SELECT c.trip_id,
+       c.seq,
+       c.on_board,
+       CASE WHEN c.route_id = getvariable('route_id') THEN c.seq ELSE p.seq END AS page_seq
+FROM counted c
+LEFT JOIN stops own ON own.route_id = c.route_id AND own.go_back = c.go_back AND own.seq = c.seq
+LEFT JOIN stops p ON c.route_id <> getvariable('route_id') AND p.route_id = getvariable('route_id')
+                 AND p.go_back = c.go_back AND p.stop_location_id = own.stop_location_id
+QUALIFY row_number() OVER (PARTITION BY c.trip_id, c.seq ORDER BY p.seq) = 1;
 
 -- The first counted stop of a trip has no previous count, so no net boarding.
 -- A span over 1 means the change covers stops without a count.
@@ -102,11 +122,13 @@ SELECT trip_id,
 FROM trips;
 
 -- Only stops with at least one count appear; n_trips is the number of trips
--- with a count at that stop.
+-- with a count at that stop. The stops are the page route's, by page_seq, so
+-- a member route's count at a shared location pools with the page route's
+-- and a count at a stop only the member serves stays out.
 CREATE OR REPLACE VIEW load_profile AS
 SELECT t.go_back,
        b.band,
-       c.seq,
+       c.page_seq AS seq,
        s.stop_name,
        count(*) AS n_trips,
        round(median(c.on_board), 1) AS median,
@@ -114,8 +136,8 @@ SELECT t.go_back,
 FROM trip_stop_counts c
 JOIN trips t USING (trip_id)
 JOIN trip_bands b USING (trip_id)
-JOIN stops s ON s.route_id = t.route_id AND s.go_back = t.go_back AND s.seq = c.seq
-GROUP BY t.go_back, b.band, c.seq, s.stop_name;
+JOIN stops s ON s.route_id = getvariable('route_id') AND s.go_back = t.go_back AND s.seq = c.page_seq
+GROUP BY t.go_back, b.band, c.page_seq, s.stop_name;
 
 -- Whether the count is zero when nobody should be on board: before boarding
 -- at the first stop, from the latest arrival record before the start, and
@@ -140,14 +162,14 @@ JOIN seat_stop_events c
 WHERE t.completeness = 'complete' AND c.remaining_num IS NOT NULL
 GROUP BY t.trip_id;
 
--- One row per direction and end, named after the stop at that end, because
--- the two ends of a route can behave differently. Every direction is listed.
--- A complete trip without a count at an end is left out of that end's shares
--- and counted as missing.
+-- One row per direction and end, named after the page route's stop at that
+-- end (its member routes share the ends), because the two ends of a route
+-- can behave differently. Every direction is listed. A complete trip without
+-- a count at an end is left out of that end's shares and counted as missing.
 CREATE OR REPLACE VIEW reset_check AS
 WITH ends AS (
     SELECT d.go_back, m.terminal, CASE m.terminal WHEN 'first' THEN d.min_seq ELSE d.max_seq END AS seq
-    FROM (SELECT go_back, min(seq) AS min_seq, max(seq) AS max_seq FROM stops GROUP BY go_back) d
+    FROM (SELECT go_back, min(seq) AS min_seq, max(seq) AS max_seq FROM stops WHERE route_id = getvariable('route_id') GROUP BY go_back) d
     CROSS JOIN (SELECT unnest(['first', 'last']) AS terminal) m
 ),
 complete_trips AS (
@@ -167,7 +189,7 @@ SELECT m.terminal,
             ELSE count(c.on_board) FILTER (WHERE c.on_board <= getvariable('reset_near_zero')) / count(c.on_board) END AS share_near_zero,
        max(c.on_board) AS max_count
 FROM ends m
-JOIN stops s ON s.go_back = m.go_back AND s.seq = m.seq
+JOIN stops s ON s.route_id = getvariable('route_id') AND s.go_back = m.go_back AND s.seq = m.seq
 LEFT JOIN complete_trips k ON k.go_back = m.go_back
 LEFT JOIN counts c ON c.go_back = m.go_back AND c.terminal = m.terminal
 GROUP BY m.terminal, m.go_back, s.stop_name;

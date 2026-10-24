@@ -50,7 +50,7 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 | 檔案 | 讀 | 建立 |
 | --- | --- | --- |
 | `params.sql` | | 定義用的常數，全部是變數，另外還有 `minutes_between` macro |
-| `10_load.sql` | 變數 `data_root`、`route_id`、`day`、`static_day`，以及原始檔 | `input_files`、`routes`、`bus_events`、`seat_events`、`other_route_events`、`load_counts`、`stops`、`path_stops`、`stop_events`、`unknown_stop_events`、`sequence_check` |
+| `10_load.sql` | 變數 `data_root`、`route_id`、`day`、`static_day`、選用的 `member_route_ids`（一頁的路線 Id 清單，頁面路線在前；沒給就只有 `route_id`），以及原始檔 | `input_files`、`routes`、`bus_events`、`seat_events`、`other_route_events`、`load_counts`、`stops`、`path_stops`、`stop_events`、`unknown_stop_events`、`sequence_check` |
 | `20_trips.sql` | `stop_events`、`stops`、`routes` | `trip_events`、`segmented_trips`、`trips`、`path_trip_counts` |
 | `30_layovers.sql` | `trips`、`stops`、`other_route_events` | `layover_pairs`、`layovers`、`layover_exclusions`、`layover_distribution`、`rest_runs`、`rest_windows`、`chains`、`chain_report`、`chain_summary` |
 | `40_load_profile.sql` | `seat_events`、`routes`、`stops`、`trips`、`trip_events` | `seat_stop_events`、`trip_seat_records`、`trip_stop_counts`、`net_boarding`、`count_coverage`、`trip_bands`、`load_profile`、`reset_counts`、`reset_check`、`count_anomalies` |
@@ -77,19 +77,25 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 ## 衍生表的匯出
 
-`mrt_overlap.sql`、`turnaround_facilities.sql` 與 `derived_export.sql` 都不以數字開頭，`bin/health-card` 不會執行它們。`bin/rails derived:load ROUTE=15373 DAY=2026-10-19`（或 `FROM=… TO=…`，資料根目錄給環境變數 `TURNAROUND_DATA`）對每一天先跑 `params.sql`、全部編號階段檔，再依序接 `mrt_overlap.sql`、`turnaround_facilities.sql`、`derived_export.sql`，多了變數 `mrt_exits_path`、`mrt_exits_day`、`public_toilets_path`、`public_toilets_day`、`end_nature_0`、`end_nature_1`、`derived_dir`，接著把寫出的 CSV 在一個交易裡替換進 PostgreSQL 的衍生表。一天要等讀檔視窗結束（隔天的 01 時檔出現）才能算，當天的 `bus_data/<D>/` 要至少有一個小時檔，資料根目錄的 `external/taipei-mrt-exits/` 要至少有一份捷運出入口快照，`external/public-toilets/` 要至少有一份公廁快照。
+`mrt_overlap.sql`、`turnaround_facilities.sql`、`route_shape.sql`、`depots.sql` 與 `derived_export.sql` 都不以數字開頭，`bin/health-card` 不會執行它們。`bin/rails derived:load ROUTE=15373 DAY=2026-10-19`（或 `FROM=… TO=…`，資料根目錄給環境變數 `TURNAROUND_DATA`）對每一天先跑 `params.sql`、全部編號階段檔，再依序接 `mrt_overlap.sql`、`turnaround_facilities.sql`、`route_shape.sql`、`depots.sql`、`derived_export.sql`，多了變數 `mrt_exits_path`、`mrt_exits_day`、`public_toilets_path`、`public_toilets_day`、`end_nature_0`、`end_nature_1`、`bus_shape_path`、`provider_path`、`derived_dir`，接著把寫出的 CSV 在一個交易裡替換進 PostgreSQL 的衍生表。一天要等讀檔視窗結束（隔天的 01 時檔出現）才能算，當天的 `bus_data/<D>/` 要至少有一個小時檔，資料根目錄的 `external/taipei-mrt-exits/` 要至少有一份捷運出入口快照，`external/public-toilets/` 要至少有一份公廁快照。
 
 | 檔案 | 讀 | 建立或寫出 |
 | --- | --- | --- |
 | `mrt_overlap.sql` | `stops`（含經緯度），變數 `mrt_exits_path` | `mrt_exits`、`stop_mrt_distances`：每站最近的捷運出入口與直線距離（haversine，地球半徑 6,371,000 公尺，一位小數） |
 | `turnaround_facilities.sql` | `stops`、`layovers`、讀檔視窗內的 `bus_data` 小時檔（用第 10 階段的 `day_files`、`window_start`、`window_end` 列出），變數 `public_toilets_path`、`end_nature_0`、`end_nature_1` | `public_toilets`、`gps_reports`（當天有折返停留的車的 GPS，照 `(BusID, DataTime)` 去重），以及 view `standstill_records`、`turnaround_ends`（每一端的位置、來源與三個查核數字）、`end_toilets`（位置 500 公尺內的每一間公廁）、`standstill_cells`（3 台車以上停過的靜止格） |
-| `derived_export.sql` | `routes`、`stops`、`stop_mrt_distances`、`trips`、`trip_bands`、`layovers`、`trip_stop_counts`、`turnaround_ends`、`end_toilets`、`standstill_cells`，變數 `route_id`、`day`、`static_day`、`mrt_exits_day`、`public_toilets_day` | 寫到 `derived_dir`：`route_day.csv`（含 `mrt_exits_day` 與 `public_toilets_day`）、`stops.csv`（含經緯度、最近出入口與距離）、`trips.csv`（含時段 `band`）、`layovers.csv`（本趟終點與下一趟起點，不寫分鐘數）、`trip_stop_counts.csv`（以 `bus_id` 加 `start_time` 指回趟次）、`ends.csv`（兩端各一列）、`end_toilets.csv`（以 `go_back` 指回那一端）、`end_cells.csv`（以 `go_back` 指回那一端） |
+| `route_shape.sql` | 變數 `bus_shape_path`（那一天靜態快照的 `GetBusShape.gz`，快照沒有這個檔時是內容為 `[]` 的暫存檔）、`route_id` | `route_shape_rows`（這條路線 `SubRouteID` 為 -1 的列，各帶點與不能用的原因）、`route_shapes`（方向 0 與 1 各一列：留下那一列的更新時間與點，以及 `issue`） |
+| `depots.sql` | `trip_events`、`trips`，變數 `provider_path`（那一天靜態快照的 `GetProvider.gz`，快照沒有這個檔時是 `BusInfo` 為空陣列的暫存檔） | `providers`（檔裡每個營業站一列：`stationId`、業者與營業站名稱），以及 view `trip_depots`（當天每趟的調度站）、`route_day_depots`（每個調度站一列：業者與營業站名稱、車數、趟次數） |
+| `derived_export.sql` | `routes`、`stops`、`stop_mrt_distances`、`trips`、`trip_bands`、`layovers`、`trip_stop_counts`、`turnaround_ends`、`end_toilets`、`standstill_cells`、`route_shapes`、`route_day_depots`，變數 `route_id`、`day`、`static_day`、`mrt_exits_day`、`public_toilets_day` | 寫到 `derived_dir`：`route_day.csv`（含 `mrt_exits_day` 與 `public_toilets_day`）、`stops.csv`（含經緯度、最近出入口與距離）、`trips.csv`（含時段 `band`）、`layovers.csv`（本趟終點與下一趟起點，不寫分鐘數）、`trip_stop_counts.csv`（以 `bus_id` 加 `start_time` 指回趟次）、`ends.csv`（兩端各一列）、`end_toilets.csv`（以 `go_back` 指回那一端）、`end_cells.csv`（以 `go_back` 指回那一端）、`shapes.csv`（兩個方向各一列，點是緯度、經度的 JSON 陣列，沒有路線軌跡的方向點是空的、`issue` 寫原因）、`depots.csv`（每個調度站一列，車數多的在前、同車數照 `station_id`，名稱對不到是空字串） |
 
 捷運出入口快照由 `bin/rails external:mrt_exits` 下載，北捷的檔是 Big5，存檔前轉成 UTF-8，表頭、資料列與經緯度不對就不寫檔。`derived:load` 用檔名日期最新的那一份，日期存進 `route_days.mrt_exits_day`。哪些站算「靠近捷運」不在這裡決定，300、500、800 公尺三種門檻是在路線頁的 `RoutePage::MrtOverlap` 套用的。
 
 `turnaround_facilities.sql` 是唯一讀 `bus_data` 的檔，編號階段檔與健檢卡都不讀。靜止回報是一筆折返停留期間（本趟終點到下一趟起點，含兩端）同一台車速度為 0 的 GPS 回報，不看 `RouteID`；兩端的折返停留都收。停車那一端的位置是靜止點（同一座標的靜止回報）裡 `standstill_radius_meters` 鄰域筆數最多的那一點為種子，取種子鄰域內的靜止點以筆數加權的平均，存六位小數，之後的距離都從這個值量；開過去就走那一端以末站計。查核數字是結束在這一端的折返停留筆數、其中至少一筆靜止回報落在位置 `located_radius_meters` 內的筆數，以及位置到末站的距離。公廁存位置 `toilet_radius_meters` 內的每一間，一間一列。靜止格是每筆靜止回報的經緯度各除以 `standstill_cell_degrees`、商四捨五入到小數六位後取整數再乘回去的西南角，一天裡少於 `cell_min_buses` 台車的格子不匯出。五個常數都在 `params.sql`：50 公尺、150 公尺、500 公尺、0.0002 度、3 台。兩端的性質由 `derived:load` 從 `config/route_page.yml` 讀出傳進來（`stop` 或 `pass_through`）；路線還沒寫進設定時兩個都是 `unknown`，三張結果都是空的；其他值會讓整段 SQL 失敗。
 
 公廁快照由 `bin/rails external:public_toilets` 下載。環境部的全國公廁建檔資料沒有整份檔案，只有一頁最多 1,000 列的 API，所以照 `number` 由小到大翻頁，每一頁檢查表頭與每一列，整份收齊、`number` 嚴格遞增才一次寫成 `external/public-toilets/<台北日>.csv`，有一頁不對就不寫檔。`derived:load` 用檔名日期最新的那一份，日期存進 `route_days.public_toilets_day`。300 公尺的門檻與「同一地址的廁所併成一處」都在路線頁的 `RoutePage::Facilities` 套用，衍生表存的是 500 公尺內的每一間。
+
+`route_shape.sql` 是唯一讀 `GetBusShape.gz`（公運處的公車路線軌跡）的檔，編號階段檔與健檢卡都不讀。它只留路線 `Id` 等於 `route_id`、`SubRouteID` 為 -1 的列；`wkt` 的每一點是經度在前、緯度在後，轉成 `[緯度, 經度]`、各取到小數 6 位，照原本順序存。能用的列要 `utime` 讀得出來（當成台北時間）、是 `LINESTRING`、至少 `route_shape_min_points` 點，每一點的緯度在 `route_shape_min_latitude` 到 `route_shape_max_latitude`、經度在 `route_shape_min_longitude` 到 `route_shape_max_longitude` 之間，五個常數在 `params.sql`：2 點、20 到 27、118 到 123。同一個方向有好幾列時，取能用的列裡 `utime` 最新的那一列。`issue` 是 `no_row`、`not_linestring`、`too_few_points`、`out_of_range`、`no_update_time`（這個方向沒有路線軌跡）或 `duplicate_rows`（有，但不只一列）；`derived:load` 只把有點的列寫進 `route_day_shapes`，對每一個有 `issue` 的方向印一行，快照沒有這個檔時只印缺檔那一行。
+
+`depots.sql` 是唯一讀 `GetProvider.gz`（公運處的業者營運基本資料）的檔，編號階段檔與健檢卡都不讀；第 10 階段只多讀到離站事件的 `StationID`（車輛所屬的營業站），放進 `bus_events` 與 `stop_events`。每趟的調度站是這趟事件裡出現最多的 `StationID`，同票取小的，沒有 `StationID` 的事件不投票；每個調度站算當天趟次的不同車牌數與趟次數。名稱照 `stationId` 對到 `nameZn`（業者）與 `stationNameZn`（營業站），對不到是空字串；同一個 `stationId` 有兩列時整段 SQL 失敗。`derived:load` 把每一列寫進 `route_day_depots`；快照沒有這個檔時印一行、照樣寫入，名稱都是空字串。
 
 時刻帶 `+08:00` 寫出。每個檔的欄位順序與列的排序都固定，同樣的輸入連跑兩次，位元組會完全相同。
 

@@ -1,6 +1,8 @@
 # TurnAround 折返點
 
-> English summary. Taipei's bus system is short of drivers and its routes overlap heavily with the metro. In three years the city adjusted 147 of 288 routes and lowered off-peak service on 80 of them, mostly wherever drivers happened to run out rather than where cuts would hurt least. The city's own review rules already set thresholds (70% overlap with the metro, fewer than five boardings per peak trip), but nobody measures, route by route, how many riders the overlapping segments actually carry or how many minutes drivers really get to rest at the terminals. TurnAround builds that evidence layer from the city's open real-time feeds and turns it into three things officials can act on: a per-route health card, a "trade overlap for rest" calculator, and proposal drafts that match the review rules. Data collection is done by the companion gem [n-gear](../gems/n-gear).
+這個網站量的，是每台公車到了末站、再開出去之前，實際停了多久，以及沿線載了多少人。
+
+網站：<https://bus.5xcamp.us>
 
 ## 要解決的問題
 
@@ -12,19 +14,29 @@
 
 ## 交付物
 
-1. 路線健檢卡：每條路線一頁，含與捷運的重疊度與競爭力、分時段載客剖面、班表達成、折返停留分佈、法規風險、折返點設施、建議動作。
-2. 「換休息」試算：輸入縮駛某段、改區間、離峰改預約、每趟加 15 分鐘緩衝等動作，輸出車時與駕駛工時變化、休息達成率、受影響乘客數。
-3. 提案草稿與每月公開報告：格式對齊《臺北市聯營公車申請分配調整路線及車次處理原則》，讓公運處、業者、工會、議員、研究者都能引用。
+網站上每條路線一頁（路線頁），可以看一天，或最近 7 天裡跟那一天同一種日型別（平日或假日）的日子。目前有路線頁的是中山幹線、251、251區 與 307，307西藏三民 併在 307 一起算。頁面依序是：
+
+1. 摘要與站序：起訖、涵蓋的日子、趟次數，以及站序與路線軌跡地圖。
+2. 折返停留：每一端是停車還是開過去就走，停留的分佈（p10、p50、p90）與不到 15 分鐘的比例。
+3. 來回與週期：同一台車跑一個來回要多久，以及兩次回到停車端之間隔多久。
+4. 折返點設施：每一端 300 公尺、500 公尺內有幾處公廁，附地圖。
+5. 換休息試算：假設停車那一端的每次折返都多留一段緩衝（0 到 20 分鐘，預設 15），算每天要多花幾車時、最忙的那個小時要多派幾台車（都給上下限），以及目前停留不少於緩衝的比例。算的是車的時數，不是駕駛的工時。
+6. 行駛時間：每個方向依發車小時的 p50、p85、p95。
+7. 載客剖面與捷運重疊：沿線的車上人數、靠近捷運的站與路段、分時段的逐站數字。
+8. 資料限制。
+
+頁面只報數字，不標示有沒有超過門檻，也不給建議。
+
+另外，`bin/health-card` 直接讀原始檔，產出一條路線一天的健檢卡（Markdown）。一天版只用來驗證指標的定義，不能引用，範例在 [docs/cards/](docs/cards/)。
 
 ## 誰受益
 
-1. 公車駕駛：休息時間第一次有人在量，而且可以拿去對照法規。想要班表加緩衝、終點站有廁所，手上也有數字可以講，不只是抱怨。
+1. 公車駕駛：折返點實際停多久，第一次有人在量，而且可以拿去對照法規。想要班表加緩衝、終點站有廁所，手上也有數字可以講，不只是抱怨。
 2. 公運處：面對民代和業者的時候，有逐路線、公開可以驗證的依據，不再只能被動減班。
 3. 業者：可以排出合法又跑得完的班表，脫班罰款和留不住人的成本都有機會降下來。
-4. 乘客：班距比較穩、脫班比較少、司機不用趕。離峰低運量的區段改成預約或小巴，而不是直接砍掉。
-5. 工會、議員、研究者：每月的公開報告，以及可以釋出的原始資料。
+4. 乘客：班距比較穩、脫班比較少、司機不用趕。
 
-代價也要算，被縮駛路段的乘客要多走幾步，失去路線的業者少了收入。這些要算出來放在提案裡，不能假裝沒有。工具本身不會讓任何人多休息一分鐘，要等有人做了決定才會有好處。如果資料被拿去單純減班，那就是用錯地方了。
+工具本身不會讓任何人多休息一分鐘，要等有人做了決定才會有好處。如果資料被拿去單純減班，那就是用錯地方了。
 
 ## 明確不做
 
@@ -36,13 +48,14 @@
 
 ```
 data.taipei 公車即時 feed
-  └─▶ n-gear：每 10 秒採集、去重、每小時 JSONL，兩小時後壓成 .jsonl.gz（唯一的資料來源，可重算、可釋出）
-        └─▶ DuckDB：每晚批次算趟次、折返停留、載客剖面、重疊與競爭力
-              └─▶ PostgreSQL：只放算好的衍生表
-                    └─▶ Rails：健檢卡、試算、報告
+  └─▶ n-gear：每 10 秒採集、去重、每小時 JSONL，兩小時後壓成 .jsonl.gz（唯一的資料來源，衍生結果隨時能重算）
+        └─▶ DuckDB：算趟次、折返停留、載客剖面、捷運重疊、折返點設施、路線軌跡
+              ├─▶ bin/health-card：一天版健檢卡
+              └─▶ PostgreSQL：只放算好的衍生表，由 bin/rails derived:load 寫入
+                    └─▶ Rails：路線頁、首頁
 ```
 
-網頁只查衍生表，不碰原始檔。為什麼這樣切，見 [docs/decisions.md](docs/decisions.md)。
+採集器 n-gear 是另一個 repo。衍生表在筆電上算好，再推上正式站。網頁只查衍生表，不碰原始檔。為什麼這樣切，見 [docs/decisions.md](docs/decisions.md)。
 
 ## 資料來源與授權
 
@@ -58,6 +71,8 @@ bin/dev     # Rails server 與 Vite
 bin/ci      # RuboCop、bundler-audit、Brakeman、平行 RSpec、seeds
 ```
 
+衍生表與健檢卡要用 n-gear 收的原始檔來算，資料根目錄用環境變數 `TURNAROUND_DATA` 指定，`bin/rails derived:load` 與 `bin/health-card` 的用法見 [analysis/README.md](analysis/README.md)。
+
 需求與計畫用 Spectra 管理：規格在 `docs/spectra/specs/`，進行中的 change 在 `docs/spectra/changes/`，專案脈絡在 `docs/spectra/config.yaml`。
 
 ## 文件
@@ -65,6 +80,7 @@ bin/ci      # RuboCop、bundler-audit、Brakeman、平行 RSpec、seeds
 - [docs/background.md](docs/background.md)：問題、數字、法規錨點、要算的指標、限制、來源
 - [docs/data-sources.md](docs/data-sources.md)：feed、資料集、授權與顯名聲明
 - [docs/decisions.md](docs/decisions.md)：架構與命名的決定及理由
+- [docs/spectra/LANGUAGE.md](docs/spectra/LANGUAGE.md)：詞彙表，文件、規格與畫面上用哪些詞
 - [docs/use-cases.md](docs/use-cases.md)：十一個使用場景，含駕駛本人，誰、做什麼、何時、在哪、拿著什麼
 - [docs/100-days.md](docs/100-days.md)：如果市府上任 100 天內要落地，需要哪個局處、哪些資料、多少成本
 

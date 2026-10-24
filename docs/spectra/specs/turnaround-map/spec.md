@@ -600,132 +600,430 @@ tests:
 ---
 ### Requirement: Map budget
 
-The chunk that carries the map library and the drawing code SHALL be at most 100 KB after brotli compression, measured on the built file, and SHALL be requested only on route pages and only after a map container is at least a quarter visible. The number and size of tiles each map requests when first drawn SHALL be measured and recorded in the change's design.
+The map library and the code the maps share SHALL be built into one chunk, and each kind of map (the end maps of `turnaround-map` and the route map of `route-shape`) SHALL have its own drawing chunk. The shared chunk together with either drawing chunk SHALL be at most 100 KB after brotli compression, measured on the built files. These chunks SHALL be requested only on route pages and only after a map container is at least a quarter visible, and a drawing chunk SHALL be requested only after a container of its own kind is. The number and size of tiles each map requests when first drawn SHALL be measured and recorded in the design of the change that adds or changes that map.
 
 #### Scenario: Chunk size
 
-- **WHEN** the frontend is built and the map chunk is compressed with brotli at quality 11
-- **THEN** the result is at most 100 KB
+- **WHEN** the frontend is built and the shared chunk and both drawing chunks are compressed with brotli at quality 11
+- **THEN** the shared chunk plus the end map's drawing chunk is at most 100 KB, and the shared chunk plus the route map's drawing chunk is at most 100 KB
 
-##### Example: measured on the fixture page
+##### Example: measured on the built files
 
-- **GIVEN** the built chunk of `app/frontend/end_map/runtime.js`
-- **WHEN** it is compressed with `brotli -q 11` and `gzip -9`
-- **THEN** both sizes are recorded in the design's Risks and the brotli size is at most 100 KB
+- **GIVEN** the built chunks of `app/frontend/end_map/runtime.js` and `app/frontend/route_map/runtime.js` and the chunk they both import
+- **WHEN** each is compressed with `brotli -q 11` and `gzip -9`
+- **THEN** all sizes are recorded in the 03-route-shape-map design's Risks, and each sum of the shared chunk and one drawing chunk is at most 100 KB after brotli
+
+#### Scenario: Drawing chunk of the other kind not requested
+
+- **WHEN** a route page whose covered days have route shapes is opened and only the route map container is scrolled into view
+- **THEN** the shared chunk and the route map's drawing chunk are requested, and the end map's drawing chunk is not
+
 
 <!-- @trace
-source: turnaround-map
+source: 03-route-shape-map
 updated: 2026-10-24
 code:
-  - app/models/route_day_end_toilet.rb
-  - app/components/attribution_component.html.erb
-  - app/components/data_limitations_component.yml
-  - app/views/routes/show.html.erb
-  - analysis/params.sql
-  - app/components/attribution_component.rb
-  - analysis/derived_export.sql
-  - app/components/section_nav_component.yml
-  - output/branding-v2/a-bus/favicon-preview.png
-  - app/components/home_hero_component.yml
-  - output/branding-v2/a-bus/favicon.ico
-  - app/components/turnaround_facilities_component.rb
-  - .ruby-version
-  - .kamal/secrets
-  - app/components/attribution_component.yml
-  - app/components/home_hero_component.html.erb
-  - app/components/end_map_component.yml
-  - public/turnaround/og-image-v2.jpg
-  - app/components/end_map_component.rb
+  - app/components/route_coverage_component.html.erb
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/07.jsonl
   - spec/support/duckdb.rb
-  - app/assets/images/home-hero-wide.webp
-  - app/components/section_nav_component.rb
-  - app/models/route_day.rb
-  - app/components/cycle_table_component.html.erb
-  - config/environments/production.rb
-  - app/models/route_page/facilities.rb
-  - app/components/end_map_component.html.erb
-  - config/map.yml
-  - public/turnaround/icon-32.png
-  - tools/hero/index.html
-  - config/locales/en.yml
-  - app/components/site_bar_component.html.erb
-  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
-  - app/components/home_hero_component.rb
-  - lib/tasks/external.rake
-  - spec/factories/route_day_end_toilets.rb
-  - app/models/map_tiles.rb
-  - app/views/layouts/application.html.erb
-  - app/frontend/hero/runtime.js
-  - bin/health-card
-  - app/frontend/stylesheets/application.css
-  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
-  - app/assets/images/home-hero-narrow.webp
-  - docs/data-sources.md
-  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
-  - public/turnaround/icon-16.png
-  - app/components/turnaround_facilities_component.yml
-  - app/assets/images/home-hero-tall.webp
-  - app/assets/images/turnaround-logo.webp
-  - public/turnaround/apple-touch-icon.png
-  - output/branding-v2/a-bus/logo.png
-  - config/deploy.yml
-  - app/models/route_page/cycles.rb
-  - app/models/route_page/end_map.rb
-  - config/database.yml
-  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
-  - docs/decisions.md
-  - package.json
-  - spec/fixtures/analysis/README.md
-  - spec/factories/route_day_end_cells.rb
-  - app/components/cycle_table_component.yml
-  - spec/factories/route_day_ends.rb
-  - Dockerfile
-  - analysis/turnaround_facilities.sql
-  - config/credentials/production.yml.enc
-  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
-  - app/components/turnaround_facilities_component.html.erb
-  - app/models/derived_load_command.rb
-  - app/frontend/entrypoints/application.js
-  - app/frontend/hero/scene.js
-  - tools/hero/export.js
-  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
-  - config/locales/tw.yml
-  - app/models/route_day_end.rb
-  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
-  - app/models/route_day_end_cell.rb
-  - app/models/route_day_loader.rb
-  - Gemfile.lock
-  - app/frontend/end_map/runtime.js
-  - app/models/public_toilets_snapshot.rb
-  - public/turnaround/favicon.ico
-  - Gemfile
-  - db/schema.rb
-  - analysis/README.md
-  - app/components/cycle_table_component.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetRoute.gz
   - spec/factories/route_days.rb
+  - app/components/route_coverage_component.rb
+  - app/components/route_list_component.html.erb
+  - app/components/route_map_component.html.erb
+  - docs/data-sources.md
+  - analysis/params.sql
+  - analysis/README.md
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/09.jsonl
+  - analysis/route_shape.sql
+  - spec/factories/route_day_end_cells.rb
+  - app/models/route_day_stop.rb
+  - app/models/trip.rb
+  - app/models/derived_load_command.rb
+  - analysis/derived_export.sql
+  - app/components/stop_sequence_component.html.erb
+  - bin/health-card
+  - analysis/40_load_profile.sql
+  - spec/factories/route_day_shapes.rb
+  - app/frontend/route_map/runtime.js
+  - spec/fixtures/analysis/README.md
+  - app/components/buffer_trade_component.html.erb
+  - spec/fixtures/analysis/static/2026-10-23/GetStop.gz
+  - db/schema.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetRoute.gz
+  - analysis/10_load.sql
+  - app/components/route_list_component.rb
+  - db/migrate/20261024050100_add_member_route_columns_to_derived_tables.rb
+  - docs/background.md
+  - app/components/stop_sequence_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-23/07.jsonl
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/08.jsonl
+  - app/components/end_map_component.html.erb
+  - app/components/route_map_component.rb
+  - app/models/route_day_loader.rb
+  - config/route_page.yml
+  - app/components/buffer_trade_component.yml
+  - spec/factories/route_day_end_toilets.rb
+  - analysis/60_export.sql
+  - app/components/route_map_component.yml
+  - app/models/route_day.rb
+  - app/frontend/entrypoints/application.js
+  - app/models/route_page/route_shape.rb
+  - lib/analysis_run.rb
+  - app/models/route_page/load_profile.rb
+  - analysis/turnaround_facilities.sql
+  - spec/fixtures/analysis/static/2026-10-19/GetPathDetail.gz
+  - app/views/routes/show.html.erb
+  - docs/decisions.md
+  - spec/fixtures/analysis/static/2026-10-23/GetBusShape.gz
+  - spec/fixtures/analysis/bus_event/2026-10-23/07.jsonl
+  - spec/fixtures/analysis/static/2026-10-19/GetBusShape.gz
+  - config/locales/tw.yml
+  - spec/fixtures/analysis/bus_event/2026-10-23/09.jsonl
+  - spec/fixtures/analysis/static/2026-10-23/GetPathDetail.gz
+  - app/frontend/maps/base_map.js
+  - app/models/route_page.rb
+  - app/frontend/stylesheets/application.css
+  - config/locales/en.yml
+  - app/frontend/end_map/runtime.js
+  - spec/fixtures/analysis/bus_event/2026-10-24/01.jsonl
+  - app/components/application_component.rb
+  - spec/fixtures/analysis/bus_event/2026-10-23/08.jsonl
+  - db/migrate/20261024050200_backfill_route_id_on_derived_rows.rb
+  - app/components/attribution_component.yml
+  - app/models/route_day_shape.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
+  - app/components/data_limitations_component.yml
+  - db/migrate/20261024050300_require_route_id_on_derived_rows.rb
+  - spec/factories/route_day_ends.rb
+  - analysis/50_quality.sql
+  - db/migrate/20261024035750_create_route_day_shapes.rb
+  - analysis/mrt_overlap.sql
 tests:
-  - spec/models/map_tiles_spec.rb
-  - spec/analysis/turnaround_facilities_spec.rb
-  - spec/system/end_map_spec.rb
-  - spec/models/route_page/cycles_spec.rb
-  - spec/requests/site_layout_spec.rb
-  - spec/components/cycle_table_component_spec.rb
-  - spec/analysis/cli_spec.rb
-  - spec/models/route_page/facilities_spec.rb
-  - spec/requests/route_page_fixture_spec.rb
-  - spec/models/route_page/end_map_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/assets/home_hero_images_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/analysis/derived_export_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/models/route_page/card_consistency_spec.rb
   - spec/analysis/params_spec.rb
-  - spec/models/public_toilets_snapshot_spec.rb
-  - spec/components/end_map_component_spec.rb
-  - spec/components/turnaround_facilities_component_spec.rb
-  - spec/components/home_hero_component_spec.rb
-  - spec/models/route_day_loader_spec.rb
-  - spec/system/home_hero_spec.rb
-  - spec/system/route_page_mobile_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/analysis/mrt_overlap_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/analysis/trips_spec.rb
+  - spec/models/route_page/ends_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/components/route_coverage_component_spec.rb
   - spec/analysis/fixtures_spec.rb
+  - spec/models/route_page/route_shape_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/analysis/layovers_spec.rb
+  - spec/analysis/profile_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/analysis/analysis_run_spec.rb
+  - spec/analysis/quality_spec.rb
+  - spec/analysis/load_spec.rb
+  - spec/analysis/route_shape_spec.rb
+  - spec/system/route_map_spec.rb
+  - spec/components/route_map_component_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/migrations/member_route_columns_spec.rb
+  - spec/analysis/card_spec.rb
+  - spec/models/route_day_loader_spec.rb
+-->
+
+---
+### Requirement: Map gestures
+
+Every map of the route page, the end maps of `turnaround-map` and the route map of `route-shape`, SHALL leave the gestures that scroll a page to the page, as Google Maps does. The zoom key SHALL be ⌘ on a Mac and Ctrl on every other system. Turning the mouse wheel over a drawn map without the zoom key SHALL scroll the page and SHALL NOT zoom the map, and the map SHALL show for a moment a note naming the zoom key. Turning the wheel while holding the zoom key SHALL zoom the map around the pointer, SHALL NOT scroll the page and SHALL show no note; one notch of the wheel SHALL zoom the map by less than one zoom level. A trackpad pinch, which browsers send as a wheel turn with Ctrl held, SHALL zoom the map in the same way on every system, so on a Mac a wheel turn with Ctrl held SHALL zoom the map too. On a touch screen one finger SHALL scroll the page and SHALL NOT move the map, and moving one finger over a drawn map SHALL show for a moment a note saying to use two fingers; two fingers SHALL move and zoom the map. A mouse SHALL still drag the map. A note SHALL NOT take focus or catch the pointer, and SHALL go away about a second after the last gesture.
+
+#### Scenario: Wheel over the route map
+
+- **WHEN** the mouse wheel is turned over a drawn route map in the direction that zooms in
+- **THEN** the system and the key held decide whether the page scrolls, whether the map zooms in and whether the note naming the zoom key shows
+
+##### Example: systems and keys held while the wheel turns
+
+| System | Key held | Page scrolls | Map zooms in | Note shown |
+| --- | --- | --- | --- | --- |
+| Mac | none | yes | no | yes, naming ⌘ |
+| Mac | ⌘ | no | yes | no |
+| Mac | Ctrl, as a trackpad pinch sends | no | yes | no |
+| Windows | none | yes | no | yes, naming Ctrl |
+| Windows | Ctrl | no | yes | no |
+| Windows | the Windows key | yes | no | yes, naming Ctrl |
+
+#### Scenario: One notch zooms less than a level
+
+- **WHEN** the wheel is turned one notch over a drawn route map with the zoom key held
+- **THEN** the map zooms in by less than one zoom level, so the distance between two of its stop marks grows by more than nothing and by less than twice
+
+#### Scenario: One finger on a touch screen
+
+- **WHEN** one finger is dragged across a drawn route map on a touch screen
+- **THEN** the map does not move, and the map shows the note saying to use two fingers
+
+#### Scenario: End maps follow the same gestures
+
+- **WHEN** the mouse wheel is turned over a drawn end map without the zoom key
+- **THEN** the page scrolls, the map keeps its zoom, and the map shows the note naming the zoom key
+
+
+<!-- @trace
+source: 03-route-shape-map
+updated: 2026-10-24
+code:
+  - app/components/route_coverage_component.html.erb
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/07.jsonl
+  - spec/support/duckdb.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetRoute.gz
+  - spec/factories/route_days.rb
+  - app/components/route_coverage_component.rb
+  - app/components/route_list_component.html.erb
+  - app/components/route_map_component.html.erb
+  - docs/data-sources.md
+  - analysis/params.sql
+  - analysis/README.md
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/09.jsonl
+  - analysis/route_shape.sql
+  - spec/factories/route_day_end_cells.rb
+  - app/models/route_day_stop.rb
+  - app/models/trip.rb
+  - app/models/derived_load_command.rb
+  - analysis/derived_export.sql
+  - app/components/stop_sequence_component.html.erb
+  - bin/health-card
+  - analysis/40_load_profile.sql
+  - spec/factories/route_day_shapes.rb
+  - app/frontend/route_map/runtime.js
+  - spec/fixtures/analysis/README.md
+  - app/components/buffer_trade_component.html.erb
+  - spec/fixtures/analysis/static/2026-10-23/GetStop.gz
+  - db/schema.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetRoute.gz
+  - analysis/10_load.sql
+  - app/components/route_list_component.rb
+  - db/migrate/20261024050100_add_member_route_columns_to_derived_tables.rb
+  - docs/background.md
+  - app/components/stop_sequence_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-23/07.jsonl
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/08.jsonl
+  - app/components/end_map_component.html.erb
+  - app/components/route_map_component.rb
+  - app/models/route_day_loader.rb
+  - config/route_page.yml
+  - app/components/buffer_trade_component.yml
+  - spec/factories/route_day_end_toilets.rb
+  - analysis/60_export.sql
+  - app/components/route_map_component.yml
+  - app/models/route_day.rb
+  - app/frontend/entrypoints/application.js
+  - app/models/route_page/route_shape.rb
+  - lib/analysis_run.rb
+  - app/models/route_page/load_profile.rb
+  - analysis/turnaround_facilities.sql
+  - spec/fixtures/analysis/static/2026-10-19/GetPathDetail.gz
+  - app/views/routes/show.html.erb
+  - docs/decisions.md
+  - spec/fixtures/analysis/static/2026-10-23/GetBusShape.gz
+  - spec/fixtures/analysis/bus_event/2026-10-23/07.jsonl
+  - spec/fixtures/analysis/static/2026-10-19/GetBusShape.gz
+  - config/locales/tw.yml
+  - spec/fixtures/analysis/bus_event/2026-10-23/09.jsonl
+  - spec/fixtures/analysis/static/2026-10-23/GetPathDetail.gz
+  - app/frontend/maps/base_map.js
+  - app/models/route_page.rb
+  - app/frontend/stylesheets/application.css
+  - config/locales/en.yml
+  - app/frontend/end_map/runtime.js
+  - spec/fixtures/analysis/bus_event/2026-10-24/01.jsonl
+  - app/components/application_component.rb
+  - spec/fixtures/analysis/bus_event/2026-10-23/08.jsonl
+  - db/migrate/20261024050200_backfill_route_id_on_derived_rows.rb
+  - app/components/attribution_component.yml
+  - app/models/route_day_shape.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
+  - app/components/data_limitations_component.yml
+  - db/migrate/20261024050300_require_route_id_on_derived_rows.rb
+  - spec/factories/route_day_ends.rb
+  - analysis/50_quality.sql
+  - db/migrate/20261024035750_create_route_day_shapes.rb
+  - analysis/mrt_overlap.sql
+tests:
+  - spec/components/route_list_component_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/models/route_page/card_consistency_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/analysis/mrt_overlap_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/analysis/trips_spec.rb
+  - spec/models/route_page/ends_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/components/route_coverage_component_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/route_page/route_shape_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/analysis/layovers_spec.rb
+  - spec/analysis/profile_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/analysis/analysis_run_spec.rb
+  - spec/analysis/quality_spec.rb
+  - spec/analysis/load_spec.rb
+  - spec/analysis/route_shape_spec.rb
+  - spec/system/route_map_spec.rb
+  - spec/components/route_map_component_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/migrations/member_route_columns_spec.rb
+  - spec/analysis/card_spec.rb
+  - spec/models/route_day_loader_spec.rb
+-->
+
+---
+### Requirement: Map full screen
+
+Every map of the route page, the end maps of `turnaround-map` and the route map of `route-shape`, SHALL have, below its zoom buttons, a button that shows the map container on the whole screen, when the browser can show an element on the whole screen; where it cannot, as Safari on an iPhone, there SHALL be no such button. Like the zoom buttons, the button SHALL NOT take focus. On the whole screen the map SHALL fill the screen and, because there is no page to scroll, turning the wheel SHALL zoom the map without the zoom key, one finger SHALL move the map and no gesture note SHALL show. Pressing the button again or pressing Escape SHALL leave the whole screen, and the map SHALL return to its place and size in the page with the gestures of Map gestures.
+
+#### Scenario: Button shows the map on the whole screen
+
+- **WHEN** the full screen button of a drawn route map is pressed
+- **THEN** the route map container is shown on the whole screen and the map fills it
+
+#### Scenario: Wheel on the whole screen
+
+- **WHEN** the wheel is turned over the route map on the whole screen without the zoom key
+- **THEN** the map zooms in and no note shows
+
+#### Scenario: Back to the page
+
+- **WHEN** the full screen button is pressed again while the route map is on the whole screen
+- **THEN** the page shows again with the route map in its place and size, and turning the wheel without the zoom key scrolls the page and shows the note
+
+#### Scenario: No button without full screen support
+
+- **WHEN** the browser cannot show an element on the whole screen and a route map is drawn
+- **THEN** the route map has no full screen button
+
+#### Scenario: End maps have the button too
+
+- **WHEN** the full screen button of a drawn end map is pressed
+- **THEN** the end map container is shown on the whole screen
+
+<!-- @trace
+source: 03-route-shape-map
+updated: 2026-10-24
+code:
+  - app/components/route_coverage_component.html.erb
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/07.jsonl
+  - spec/support/duckdb.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetRoute.gz
+  - spec/factories/route_days.rb
+  - app/components/route_coverage_component.rb
+  - app/components/route_list_component.html.erb
+  - app/components/route_map_component.html.erb
+  - docs/data-sources.md
+  - analysis/params.sql
+  - analysis/README.md
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/09.jsonl
+  - analysis/route_shape.sql
+  - spec/factories/route_day_end_cells.rb
+  - app/models/route_day_stop.rb
+  - app/models/trip.rb
+  - app/models/derived_load_command.rb
+  - analysis/derived_export.sql
+  - app/components/stop_sequence_component.html.erb
+  - bin/health-card
+  - analysis/40_load_profile.sql
+  - spec/factories/route_day_shapes.rb
+  - app/frontend/route_map/runtime.js
+  - spec/fixtures/analysis/README.md
+  - app/components/buffer_trade_component.html.erb
+  - spec/fixtures/analysis/static/2026-10-23/GetStop.gz
+  - db/schema.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetRoute.gz
+  - analysis/10_load.sql
+  - app/components/route_list_component.rb
+  - db/migrate/20261024050100_add_member_route_columns_to_derived_tables.rb
+  - docs/background.md
+  - app/components/stop_sequence_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-23/07.jsonl
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/08.jsonl
+  - app/components/end_map_component.html.erb
+  - app/components/route_map_component.rb
+  - app/models/route_day_loader.rb
+  - config/route_page.yml
+  - app/components/buffer_trade_component.yml
+  - spec/factories/route_day_end_toilets.rb
+  - analysis/60_export.sql
+  - app/components/route_map_component.yml
+  - app/models/route_day.rb
+  - app/frontend/entrypoints/application.js
+  - app/models/route_page/route_shape.rb
+  - lib/analysis_run.rb
+  - app/models/route_page/load_profile.rb
+  - analysis/turnaround_facilities.sql
+  - spec/fixtures/analysis/static/2026-10-19/GetPathDetail.gz
+  - app/views/routes/show.html.erb
+  - docs/decisions.md
+  - spec/fixtures/analysis/static/2026-10-23/GetBusShape.gz
+  - spec/fixtures/analysis/bus_event/2026-10-23/07.jsonl
+  - spec/fixtures/analysis/static/2026-10-19/GetBusShape.gz
+  - config/locales/tw.yml
+  - spec/fixtures/analysis/bus_event/2026-10-23/09.jsonl
+  - spec/fixtures/analysis/static/2026-10-23/GetPathDetail.gz
+  - app/frontend/maps/base_map.js
+  - app/models/route_page.rb
+  - app/frontend/stylesheets/application.css
+  - config/locales/en.yml
+  - app/frontend/end_map/runtime.js
+  - spec/fixtures/analysis/bus_event/2026-10-24/01.jsonl
+  - app/components/application_component.rb
+  - spec/fixtures/analysis/bus_event/2026-10-23/08.jsonl
+  - db/migrate/20261024050200_backfill_route_id_on_derived_rows.rb
+  - app/components/attribution_component.yml
+  - app/models/route_day_shape.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
+  - app/components/data_limitations_component.yml
+  - db/migrate/20261024050300_require_route_id_on_derived_rows.rb
+  - spec/factories/route_day_ends.rb
+  - analysis/50_quality.sql
+  - db/migrate/20261024035750_create_route_day_shapes.rb
+  - analysis/mrt_overlap.sql
+tests:
+  - spec/components/route_list_component_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/models/route_page/card_consistency_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/analysis/mrt_overlap_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/analysis/trips_spec.rb
+  - spec/models/route_page/ends_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/components/route_coverage_component_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/route_page/route_shape_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/analysis/layovers_spec.rb
+  - spec/analysis/profile_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/analysis/analysis_run_spec.rb
+  - spec/analysis/quality_spec.rb
+  - spec/analysis/load_spec.rb
+  - spec/analysis/route_shape_spec.rb
+  - spec/system/route_map_spec.rb
+  - spec/components/route_map_component_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/migrations/member_route_columns_spec.rb
+  - spec/analysis/card_spec.rb
+  - spec/models/route_day_loader_spec.rb
 -->

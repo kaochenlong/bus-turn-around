@@ -50,8 +50,10 @@ module RoutePage
 
     private
 
+    # The page route's stops of the latest of the days; a member route's stop
+    # list stored with it is not read here.
     def stops
-      @stops ||= @latest ? RouteDayStop.where(route_day_id: @latest.id).order(:go_back, :seq).to_a : []
+      @stops ||= @latest ? RouteDayStop.where(route_day_id: @latest.id, route_id: @latest.route_id).order(:go_back, :seq).to_a : []
     end
 
     def near?(stop, meters) = stop.nearest_exit_meters && stop.nearest_exit_meters <= meters

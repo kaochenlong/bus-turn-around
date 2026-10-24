@@ -1,3 +1,30 @@
+# == Schema Information
+#
+# Table name: route_day_ends
+#
+#  id                   :bigint           not null, primary key
+#  end_latitude         :float
+#  end_longitude        :float
+#  end_seq              :integer          not null
+#  end_stop_meters      :float
+#  end_stop_name        :string           not null
+#  go_back              :integer          not null
+#  latitude             :float
+#  location_source      :string
+#  longitude            :float
+#  n_layovers           :integer          not null
+#  n_located_layovers   :integer
+#  n_standstill_records :integer          not null
+#  route_day_id         :bigint           not null
+#
+# Indexes
+#
+#  index_route_day_ends_on_route_day_id_and_go_back  (route_day_id,go_back) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (route_day_id => route_days.id) ON DELETE => cascade
+#
 FactoryBot.define do
   # One end of a stored day: by default direction 0 of route 9001, a stopping
   # end at 戊站 located as on the fixture day.

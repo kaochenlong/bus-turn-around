@@ -50,6 +50,17 @@ RSpec.describe "bin/health-card 產出的卡" do
       )
     end
 
+    it "只有一個路線 Id 時，路線那一行照舊：測試幹線（路線 Id 9001）" do
+      expect(bullet(output[:card][/\A.*?(?=^## )/m], "路線")).to eq("測試幹線（路線 Id 9001）")
+    end
+
+    it "掛成員路線 9050 時，路線那一行用「・」列出兩個 Id，趟次合計是成員日的 3 趟，附屬路線列出成員的" do
+      card = generate("--day", "2026-10-23", "--static-day", "2026-10-23", "--also-route", "9050")[:card]
+      header = card[/\A.*?(?=^## )/m]
+      expect([ bullet(header, "路線"), rows_starting_with(section("趟次", card), "合計").first, bullet(header, "附屬路線").include?("測試幹線經己站（9050）") ])
+        .to eq([ "測試幹線（路線 Id 9001・9050）", [ "合計", "", "3", "3" ], true ])
+    end
+
     it "產出時刻是台北時間，機器的時區設成 UTC 也一樣" do
       started = Time.now.floor
       shown = bullet(generate("--day", "2026-10-19", env: { "TZ" => "UTC" })[:card], "產出時刻")[/\A\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/]

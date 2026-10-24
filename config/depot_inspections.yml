@@ -1,0 +1,125 @@
+# The evaluation reports of 臺北市公共運輸處 whose depot inspection scores the
+# route pages show, one term each (docs/spectra/changes/03-depot-inspection-scores).
+# download_url is the report's PDF; bin/rails external:pto_assessment TERM=<term>
+# saves it under the data root and compares its sha256 with sha256, the file
+# the scores were copied from.
+#
+# The scores are copied by hand from appendix 1 of the report, the depot
+# inspection score sheets (臺北市公共運輸處市區公車場站檢查評分表), only for the
+# depots the vehicles of a route with a route page belong to. items are the
+# nine columns copied, named as the sheet's header prints them, with their
+# weight in percent. A depot names its operator and station exactly as
+# GetProvider.gz does (nameZn, stationNameZn), because the route page matches
+# them with route_day_depots character for character; printed_as is how the
+# appendix prints them, inspected_on the inspection date as printed, without a
+# year, and printed_page the appendix page. scores gives every item the two
+# columns the sheet prints, as they are, never averaged. not_in_appendix lists
+# depots looked for on every page of the appendix and not found there.
+#
+# The depots are those route_day_depots gives the route pages' trips of
+# 2026-10-19 to 2026-10-23, each trip's StationID by majority vote, named by
+# GetProvider.gz of the same days; a route page added later has its depots
+# looked up the same way before they are copied here. A StationID that only
+# turns up in a stray event, not in a trip, is no depot of the route.
+shared:
+  terms:
+    115-1:
+      title: 115年第1期臺北市市區公車營運服務指標評鑑總體報告書
+      announced_on: 2026-07-21
+      page_url: https://pto.gov.taipei/News_Content.aspx?n=D95BCCD0723AEAC5&s=C104D9489EB993F2&sms=CBE6FC1D209236AE
+      download_url: https://www-ws.gov.taipei/Download.ashx?u=LzAwMS9VcGxvYWQvNDU4L3JlbGZpbGUvNjgyNTUvOTY3NjkyMi9jNTA3ZTMxMi03NzkxLTQ0Y2UtYWRmMi1iNDY1OTYzZmNiMWMucGRm&n=MTE15bm056ysMeacn%2biHuuWMl%2bW4guW4guWNgOWFrOi7iueHn%2bmBi%2bacjeWLmeaMh%2baomeiplemRkee4vemrlOWgseWRiuabuC5wZGY%3d&icon=..pdf
+      sha256: 5eee1a7f2022e286018fc472db3164b1930f24548c42410b56d0f41920ecb5ec
+      appendix_pages: A-3 到 A-17
+      items:
+        - { name: 調度室環境, weight: 10 }
+        - { name: 休憩室空間及環境, weight: 10 }
+        - { name: 休憩室設施, weight: 6 }
+        - { name: 盥洗室環境, weight: 6 }
+        - { name: 禁菸環境, weight: 5 }
+        - { name: 停車場使用情形, weight: 5 }
+        - { name: 男女專用廁所或性別友善廁所, weight: 2 }
+        - { name: 男女性專用休息室, weight: 2 }
+        - { name: 總分, weight: 100 }
+      depots:
+        # 307 (16111 with 19108).
+        - provider: 臺北客運
+          station: 板橋前站
+          printed_as: 臺北 板橋前
+          inspected_on: 12月12日
+          printed_page: A-8
+          scores:
+            調度室環境: [8, 8]
+            休憩室空間及環境: [8, 8]
+            休憩室設施: [6, 6]
+            盥洗室環境: [5, 5]
+            禁菸環境: [5, 5]
+            停車場使用情形: [5, 5]
+            男女專用廁所或性別友善廁所: [2, 2]
+            男女性專用休息室: [2, 2]
+            總分: [100, 100]
+        - provider: 臺北客運
+          station: 民生站
+          printed_as: 臺北 民生站
+          inspected_on: 1月9日
+          printed_page: A-8
+          scores:
+            調度室環境: [10, 10]
+            休憩室空間及環境: [10, 10]
+            休憩室設施: [6, 6]
+            盥洗室環境: [5, 5]
+            禁菸環境: [5, 5]
+            停車場使用情形: [5, 5]
+            男女專用廁所或性別友善廁所: [2, 2]
+            男女性專用休息室: [2, 2]
+            總分: [100, 100]
+        # 中山幹線 (15373).
+        - provider: 光華巴士
+          station: 天東站
+          printed_as: 光華 天東站
+          inspected_on: 1月2日
+          printed_page: A-7
+          scores:
+            調度室環境: [9, 10]
+            休憩室空間及環境: [9, 10]
+            休憩室設施: [6, 6]
+            盥洗室環境: [6, 6]
+            禁菸環境: [5, 5]
+            停車場使用情形: [5, 5]
+            男女專用廁所或性別友善廁所: [2, 2]
+            男女性專用休息室: [2, 2]
+            總分: [100, 100]
+      not_in_appendix:
+        # 307: A-10 lists 首都客運 without either station.
+        - { provider: 首都客運, station: 民生站 }
+        - { provider: 首都客運, station: 板橋前站 }
+        # 251 and 251區: A-4 lists 欣欣客運 without 深坑站; the 深坑站 of A-11 is 指南客運's.
+        - { provider: 欣欣客運, station: 深坑站 }
+        # 中山幹線: A-7 lists 光華巴士 with 天東站, 北士科 and 洲美站 only.
+        - { provider: 光華巴士, station: 天西站 }
+        - { provider: 光華巴士, station: 中和站 }
+        # 265區, which has no route page yet.
+        - { provider: 三重客運, station: 土城站 }
+        - { provider: 大南汽車, station: 土城站 }
+
+# The fixture's depots: StationID 19001 of the fixture is 測試客運 測試站.
+test:
+  terms:
+    115-1:
+      depots:
+        - provider: 測試客運
+          station: 測試站
+          printed_as: 測試 測試站
+          inspected_on: 12月2日
+          printed_page: A-99
+          scores:
+            調度室環境: [8, 9]
+            休憩室空間及環境: [7, 7]
+            休憩室設施: [6, 6]
+            盥洗室環境: [5, 4]
+            禁菸環境: [5, 5]
+            停車場使用情形: [5, 5]
+            男女專用廁所或性別友善廁所: [2, 2]
+            男女性專用休息室: [2, 2]
+            總分: [98, 97]
+      not_in_appendix:
+        - { provider: 測試客運, station: 測試二站 }

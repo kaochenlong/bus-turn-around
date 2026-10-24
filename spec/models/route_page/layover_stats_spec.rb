@@ -23,6 +23,13 @@ RSpec.describe RoutePage::LayoverStats, type: :model do
     expect(rows.map { [ it.go_back, it.stop_name, it.n_layovers ] }).to eq([ [ 0, "戊站", 3 ], [ 1, "甲站", 0 ] ])
   end
 
+  it "最新那一天另有成員路線 9050 的站序時不讀它：9050 的去程多一站己站，去程那一列的末站仍是 9001 的戊站" do
+    day = route_day(Date.new(2026, 10, 20), [ 30 ])
+    day.stops.create!(route_id: 9050, go_back: 0, seq: 5, stop_name: "己站")
+    rows = described_class.new(RouteDay.where(id: day.id)).rows
+    expect(rows.map { [ it.go_back, it.stop_name, it.n_layovers ] }).to eq([ [ 0, "戊站", 1 ], [ 1, "甲站", 0 ] ])
+  end
+
   it "同一個物件呼叫兩次 rows，只查一次 layovers：摘要與折返停留表共用一次查詢" do
     stats = described_class.new(RouteDay.where(id: days.map(&:id)))
     queries = []

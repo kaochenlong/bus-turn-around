@@ -4,10 +4,12 @@ require_relative "../support/duckdb"
 RSpec.describe RouteDayLoader, :duckdb, type: :model do
   let(:day) { Date.new(2026, 10, 19) }
 
-  def load_day = described_class.new(route_id: 9001, day:, data_root: DuckdbHelpers::FIXTURE_DATA, duckdb: "duckdb").call
+  # What the loader prints goes to a StringIO the example does not read.
+  def load_day = described_class.new(route_id: 9001, day:, data_root: DuckdbHelpers::FIXTURE_DATA, duckdb: "duckdb", out: StringIO.new).call
 
   def stored_counts
-    [ Trip.count, Layover.count, TripStopCount.count, RouteDayStop.count, RouteDay.count, RouteDayEnd.count, RouteDayEndToilet.count, RouteDayEndCell.count ]
+    [ Trip.count, Layover.count, TripStopCount.count, RouteDayStop.count, RouteDay.count, RouteDayEnd.count, RouteDayEndToilet.count, RouteDayEndCell.count,
+      RouteDayShape.count, RouteDayDepot.count ]
   end
 
   def fixture(path) = File.join(DuckdbHelpers::FIXTURE_DATA, path)
@@ -31,13 +33,135 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     end
   end
 
-  it "fixture 2026-10-19 寫入兩次，趟次 27、折返停留 18、趟次站 96、站序 10、路線日 1、兩端 2、公廁 5、靜止格 1，第二次後不變" do
+  it "fixture 2026-10-19 寫入兩次，趟次 27、折返停留 18、趟次站 96、站序 20（9001 與成員路線 9050 各 10）、路線日 1、兩端 2、公廁 5、靜止格 1、路線軌跡 2、調度站 1，第二次後不變" do
     load_day
-    expect { load_day }.not_to(change { stored_counts }.from([ 27, 18, 96, 10, 1, 2, 5, 1 ]))
+    expect { load_day }.not_to(change { stored_counts }.from([ 27, 18, 96, 20, 1, 2, 5, 1, 2, 1 ]))
   end
 
-  it "回傳寫入的趟次、折返停留、趟次站、兩端、公廁與靜止格筆數" do
-    expect(load_day).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, ends: 2, end_toilets: 5, end_cells: 1)
+  describe "寫入後的成員路線（test 設定的 9001 掛 9050）" do
+    before { load_day }
+
+    it "每個站帶路線 Id 與站位：9050 的 10 站裡己站的站位是 85002，9001 的丙站是 81002" do
+      stops = RouteDayStop.where(go_back: 0, seq: 2).order(:route_id).pluck(:route_id, :stop_name, :stop_location_id)
+      expect([ RouteDayStop.where(route_id: 9050).count, stops ]).to eq([ 10, [ [ 9001, "丙站", 81002 ], [ 9050, "己站", 85002 ] ] ])
+    end
+
+    it "2026-10-19 的 27 趟都是 9001 的，路線日記下成員的名稱" do
+      expect([ Trip.distinct.pluck(:route_id), RouteDay.sole.member_names ]).to eq([ [ 9001 ], { "9050" => "測試幹線經己站" } ])
+    end
+  end
+
+  describe "成員日 2026-10-23" do
+    def load_member_day = described_class.new(route_id: 9001, day: Date.new(2026, 10, 23), data_root: DuckdbHelpers::FIXTURE_DATA, duckdb: "duckdb", out: StringIO.new).call
+
+    it "寫入 3 趟（9050 兩趟、9001 一趟）、2 筆折返停留、13 列趟次站" do
+      counts = load_member_day
+      expect([ counts.values_at(:trips, :layovers, :trip_stop_counts), Trip.pluck(:route_id).tally ]).to eq([ [ 3, 2, 13 ], { 9050 => 2, 9001 => 1 } ])
+    end
+  end
+
+  it "回傳寫入的趟次、折返停留、趟次站、兩端、公廁、靜止格、路線軌跡與調度站筆數" do
+    expect(load_day).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, ends: 2, end_toilets: 5, end_cells: 1, shapes: 2, depots: 1)
+  end
+
+  describe "寫入後的調度站" do
+    before { load_day }
+
+    it "一列：19001、測試客運、測試站、4 台車、27 趟" do
+      expect(RouteDayDepot.pluck(:station_id, :provider_name, :station_name, :n_buses, :n_trips)).to eq([ [ 19001, "測試客運", "測試站", 4, 27 ] ])
+    end
+
+    it "同一天再載一次：還是恰好一列、id 換了，趟次、折返停留與趟次站的筆數不變" do
+      before_reload = [ RouteDayDepot.sole.id, Trip.count, Layover.count, TripStopCount.count ]
+      load_day
+      expect([ RouteDayDepot.count, RouteDayDepot.sole.id == before_reload.first, [ Trip.count, Layover.count, TripStopCount.count ] ]).to eq([ 1, false, before_reload.drop(1) ])
+    end
+  end
+
+  describe "寫入後的路線軌跡" do
+    before { load_day }
+
+    it "兩個方向各一列、各 5 點，更新時間是 utime 當台北時間" do
+      expect(RouteDayShape.order(:go_back).map { [ it.go_back, it.points.size, it.shape_updated_at ] }).to eq(
+        [ [ 0, 5, Time.zone.parse("2023-12-29 09:46:21") ], [ 1, 5, Time.zone.parse("2023-12-29 09:48:24") ] ]
+      )
+    end
+
+    it "方向 0 的點照原本順序，從 (25.05, 121.5) 到 (25.06, 121.5)" do
+      expect(RouteDayShape.find_by!(go_back: 0).points.values_at(0, -1)).to eq([ [ 25.05, 121.5 ], [ 25.06, 121.5 ] ])
+    end
+  end
+
+  describe "靜態快照的路線軌跡檔" do
+    let(:out) { StringIO.new }
+    let(:root) { Dir.mktmpdir("route-shapes") }
+
+    after { FileUtils.remove_entry(root) }
+
+    # A data root whose raw files and external snapshots are the fixture's and
+    # whose static snapshot of 2026-10-19 has the fixture's four other files
+    # and, unless `shapes` is nil, a route shapes file holding `shapes`.
+    def data_root_with_shapes(shapes)
+      %w[bus_event bus_seat_event bus_data external].each { File.symlink(fixture(it), File.join(root, it)) }
+      static = File.join(root, "static/2026-10-19").tap { FileUtils.mkdir_p(it) }
+      %w[GetRoute.gz GetStop.gz GetPathDetail.gz GetProvider.gz].each { File.symlink(fixture("static/2026-10-19/#{it}"), File.join(static, it)) }
+      Zlib::GzipWriter.open(File.join(static, "GetBusShape.gz")) { it.write(JSON.generate(shapes)) } if shapes
+      root
+    end
+
+    def load_with_shapes(shapes) = described_class.new(route_id: 9001, day:, data_root: data_root_with_shapes(shapes), duckdb: "duckdb", out:).call
+
+    # The fixture's rows of route 9001, with direction 1 latitude and longitude swapped.
+    def swapped_direction_1
+      rows = JSON.parse(Zlib::GzipReader.open(fixture("static/2026-10-19/GetBusShape.gz"), &:read)).select { it["RouteID"] == 9001 && it["SubRouteID"] == -1 }
+      rows.map { it["GoBack"] == 1 ? it.merge("wkt" => "LINESTRING (25.06 121.5003, 25.05 121.5003)") : it }
+    end
+
+    it "沒有這個檔：趟次與折返停留照寫，路線軌跡 0 列" do
+      expect(load_with_shapes(nil).values_at(:trips, :layovers, :shapes)).to eq([ 27, 18, 0 ])
+    end
+
+    it "沒有這個檔：只印一行，點名日期、路線與缺的檔，不再逐方向印" do
+      load_with_shapes(nil)
+      expect(out.string.lines).to match([ a_string_including("2026-10-19", "9001", "GetBusShape.gz") ])
+    end
+
+    it "返程那一列經緯度對調：只存去程，印一行點名日期、路線、返程與原因" do
+      load_with_shapes(swapped_direction_1)
+      expect([ RouteDayShape.pluck(:go_back), out.string.lines ]).to match([ [ 0 ], [ a_string_including("2026-10-19", "9001", "返程", "out_of_range") ] ])
+    end
+  end
+
+  describe "靜態快照沒有業者營運基本資料檔（GetProvider.gz）" do
+    let(:out) { StringIO.new }
+    let(:root) { Dir.mktmpdir("no-providers") }
+
+    after { FileUtils.remove_entry(root) }
+
+    # A data root like the fixture's whose static snapshot of 2026-10-19 has every file but GetProvider.gz.
+    def data_root_without_providers
+      %w[bus_event bus_seat_event bus_data external].each { File.symlink(fixture(it), File.join(root, it)) }
+      static = File.join(root, "static/2026-10-19").tap { FileUtils.mkdir_p(it) }
+      %w[GetRoute.gz GetStop.gz GetPathDetail.gz GetBusShape.gz].each { File.symlink(fixture("static/2026-10-19/#{it}"), File.join(static, it)) }
+      root
+    end
+
+    def load_without_providers = described_class.new(route_id: 9001, day:, data_root: data_root_without_providers, duckdb: "duckdb", out:).call
+
+    it "趟次照寫，只印一行，點名日期、路線與缺的檔" do
+      counts = load_without_providers
+      expect([ counts[:trips], out.string.lines ]).to match([ 27, [ a_string_including("2026-10-19", "9001", "GetProvider.gz") ] ])
+    end
+
+    it "調度站照樣一列，業者與營業站名稱存成空字串" do
+      load_without_providers
+      expect(RouteDayDepot.pluck(:station_id, :provider_name, :station_name)).to eq([ [ 19001, "", "" ] ])
+    end
+  end
+
+  it "route_shape.sql 給得出的每一種 issue，loader 都寫得出說明" do
+    issues = Rails.root.join("analysis/route_shape.sql").read.scan(/THEN '([a-z_]+)'/).flatten
+    expect(issues.sort).to eq(described_class::SHAPE_ISSUES.keys.sort)
   end
 
   describe "寫入後的兩端" do
@@ -89,10 +213,10 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     expect { load_day_ignoring_failure }.not_to(change { Trip.order(:id).ids })
   end
 
-  it "站牌帶著最近的捷運出入口與距離：去程丙站 0.0 公尺、去程甲站 556.0 公尺" do
+  it "站牌帶著最近的捷運出入口與距離：9001 去程丙站 0.0 公尺、去程甲站 556.0 公尺；成員路線 9050 的己站 100.7 公尺" do
     load_day
-    expect(RouteDayStop.where(go_back: 0, seq: [ 0, 2 ]).order(:seq).pluck(:nearest_exit_name, :nearest_exit_meters)).to eq(
-      [ [ "丙站捷運出口1", 556.0 ], [ "丙站捷運出口1", 0.0 ] ]
+    expect(RouteDayStop.where(go_back: 0, seq: [ 0, 2 ]).order(:route_id, :seq).pluck(:route_id, :nearest_exit_name, :nearest_exit_meters)).to eq(
+      [ [ 9001, "丙站捷運出口1", 556.0 ], [ 9001, "丙站捷運出口1", 0.0 ], [ 9050, "丙站捷運出口1", 556.0 ], [ 9050, "丙站捷運出口1", 100.7 ] ]
     )
   end
 
@@ -161,8 +285,8 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
 
     def load_unconfigured = described_class.new(route_id: 9001, day:, data_root: DuckdbHelpers::FIXTURE_DATA, duckdb: "duckdb", out:).call
 
-    it "趟次、折返停留與趟次站照寫，兩端、公廁與靜止格都是 0 列" do
-      expect(load_unconfigured).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, ends: 0, end_toilets: 0, end_cells: 0)
+    it "趟次、折返停留、趟次站、路線軌跡與調度站照寫，兩端、公廁與靜止格都是 0 列" do
+      expect(load_unconfigured).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, ends: 0, end_toilets: 0, end_cells: 0, shapes: 2, depots: 1)
     end
 
     it "資料庫裡兩端、公廁與靜止格都沒有列" do

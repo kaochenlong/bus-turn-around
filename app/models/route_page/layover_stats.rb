@@ -2,8 +2,9 @@ module RoutePage
   # Layovers per direction of the ending trip, pooled over the given route
   # days, as in the layover-metrics spec: count, p10, p50 and p90 interpolated
   # linearly and kept to one decimal, and the share under 15 minutes. Minutes
-  # come from the two stored times. Each direction is named after its last
-  # stop on the latest of the days, and has a row even without layovers.
+  # come from the two stored times. Each direction is named after the page
+  # route's last stop on the latest of the days, and has a row even without
+  # layovers.
   class LayoverStats
     PERCENTILE_LEVELS = [ 0.1, 0.5, 0.9 ].freeze
     SHORT_MINUTES = 15
@@ -12,12 +13,12 @@ module RoutePage
 
     def initialize(route_days)
       @ids = route_days.ids
-      @latest_id = route_days.order(day: :desc).pick(:id)
+      @latest_id, @route_id = route_days.order(day: :desc).pick(:id, :route_id)
     end
 
     # Read once: the summary and the layover table of a page share one query.
     def rows
-      @rows ||= RouteDay.connection.select_all(RouteDay.sanitize_sql_array([ sql, { ids: @ids, latest_id: @latest_id } ])).map do |row|
+      @rows ||= RouteDay.connection.select_all(RouteDay.sanitize_sql_array([ sql, { ids: @ids, latest_id: @latest_id, route_id: @route_id } ])).map do |row|
         Row.new(go_back: row["go_back"], stop_name: row["stop_name"], n_layovers: row["n_layovers"],
                 percentiles: PERCENTILE_LEVELS.each_index.map { row["p#{it}"]&.to_f },
                 short_share: row["short_share"])
@@ -34,7 +35,7 @@ module RoutePage
         WITH last_stops AS (
             SELECT DISTINCT ON (go_back) go_back, stop_name
             FROM route_day_stops
-            WHERE route_day_id = :latest_id
+            WHERE route_day_id = :latest_id AND route_id = :route_id
             ORDER BY go_back, seq DESC
         ),
         minutes AS (

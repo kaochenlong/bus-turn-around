@@ -13,4 +13,14 @@ namespace :external do
   task public_toilets: :environment do
     exit PublicToiletsSnapshot.run(ENV.to_h)
   end
+
+  desc "抓 TDX 估算的一條路線的站間旅行時間，原始回應存成快照，只做內部對照：ROUTE_NAME=307；憑證在 credentials 的 tdx 底下，資料根目錄給 TURNAROUND_DATA"
+  task tdx_s2s_travel_time: :environment do
+    exit TdxS2sTravelTimeSnapshot.run(ENV.to_h)
+  end
+
+  desc "下載公運處一期的評鑑總體報告書 PDF 存成快照，印 sha256 並跟 config/depot_inspections.yml 對照：TERM=115-1；資料根目錄給 TURNAROUND_DATA"
+  task pto_assessment: :environment do
+    exit PtoAssessmentSnapshot.run(ENV.to_h)
+  end
 end

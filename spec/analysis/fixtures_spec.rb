@@ -36,6 +36,8 @@ RSpec.describe "spec/fixtures/analysis" do
     [ "2026-10-18/21", "2026-10-18/22", "2026-10-18/23", "2026-10-19/00",
       *(6..23).map { format("2026-10-19/%02d", it) }, "2026-10-20/00", "2026-10-20/01", "2026-10-20/02" ]
   end
+  # The member day 2026-10-23 (see the README's last section); the record that closes its read window is on 2026-10-24.
+  let(:member_day_hours) { %w[2026-10-23/07 2026-10-23/08 2026-10-23/09] }
 
   describe "static/2026-10-19" do
     let(:stops) { static_rows("GetStop.gz").select { it["routeId"] == 9001 }.sort_by { it["seqNo"] } }
@@ -50,9 +52,14 @@ RSpec.describe "spec/fixtures/analysis" do
       expect(keys).to all(eq(%w[EssentialInfo BusInfo]))
     end
 
-    it "路線 9001 有附屬路線 9001、9002、9003，另有一條對照路線 9100" do
+    it "路線 9001 有附屬路線 9001、9002、9003，其中 9002 有兩列；成員路線 9050 一列；另有一條對照路線 9100" do
       pairs = static_rows("GetRoute.gz").map { [ it["Id"], it["pathAttributeId"] ] }
-      expect(pairs).to contain_exactly([ 9001, 9001 ], [ 9001, 9002 ], [ 9001, 9003 ], [ 9100, 9100 ])
+      expect(pairs).to contain_exactly([ 9001, 9001 ], [ 9001, 9002 ], [ 9001, 9002 ], [ 9001, 9003 ], [ 9050, 9050 ], [ 9100, 9100 ])
+    end
+
+    it "附屬路線 9002 的兩列只有 providerId 與 providerName 不同" do
+      first, second = static_rows("GetRoute.gz").select { it["pathAttributeId"] == 9002 }
+      expect(first.reject { |key, value| second[key] == value }.keys).to eq(%w[providerId providerName])
     end
 
     it "路線 9001 每方向 5 站，seqNo 0 到 9 連號" do
@@ -79,7 +86,7 @@ RSpec.describe "spec/fixtures/analysis" do
 
     it "GetPathDetail 的 sequenceNo 跟真資料一樣，每條附屬路線各自從 0 起算" do
       expect(paths.transform_values { |rows| rows.map { it["sequenceNo"] } }).to eq(
-        9001 => (0..9).to_a, 9002 => (0..4).to_a, 9003 => (0..3).to_a, 9100 => (0..3).to_a
+        9001 => (0..9).to_a, 9002 => (0..4).to_a, 9003 => (0..3).to_a, 9050 => (0..9).to_a, 9100 => (0..3).to_a
       )
     end
 
@@ -131,17 +138,23 @@ RSpec.describe "spec/fixtures/analysis" do
 
     def found(bus, data_time, *fields) = slice(bus, data_time, data_time).map { it.values_at(*fields) }
 
-    it "讀檔視窗內的小時檔與視窗外的兩個檔都在，08 時是 gz" do
-      expected = window_hours.map { it.end_with?("19/08") ? "#{it}.jsonl.gz" : "#{it}.jsonl" }
+    it "讀檔視窗內的小時檔與視窗外的兩個檔都在，08 時是 gz；另有成員日的三個檔與結束它視窗的 2026-10-24 01 時" do
+      expected = window_hours.map { it.end_with?("19/08") ? "#{it}.jsonl.gz" : "#{it}.jsonl" } + [ *member_day_hours, "2026-10-24/01" ].map { "#{it}.jsonl" }
       expect(feed_files("bus_event")).to eq(expected)
     end
 
-    it "車牌只用 TEST-0001 到 TEST-0004" do
-      expect(records.map { it["BusID"] }.uniq.sort).to eq(%w[TEST-0001 TEST-0002 TEST-0003 TEST-0004])
+    it "車牌只用 TEST-0001 到 TEST-0004，成員日多 TEST-0005" do
+      expect(records.map { it["BusID"] }.uniq.sort).to eq(%w[TEST-0001 TEST-0002 TEST-0003 TEST-0004 TEST-0005])
     end
 
-    it "RouteID 有路線 9001 的三條附屬路線、對照路線 9100 與非營運的 0" do
-      expect(records.map { it["RouteID"] }.uniq.sort).to eq(%w[0 9001 9002 9003 9100])
+    it "RouteID 有路線 9001 的三條附屬路線、成員路線 9050、對照路線 9100 與非營運的 0" do
+      expect(records.map { it["RouteID"] }.uniq.sort).to eq(%w[0 9001 9002 9003 9050 9100])
+    end
+
+    it "成員日的事件只有 TEST-0005 的，2026-10-24 只有一筆結束視窗的非營運記錄" do
+      member_day = records.select { it["file"].start_with?("2026-10-23/", "2026-10-24/") }
+      expect([ member_day.map { it["BusID"] }.uniq, records.select { it["file"].start_with?("2026-10-24/") }.map { it.values_at("RouteID", "DataTime") } ])
+        .to eq([ %w[TEST-0005], [ [ "0", "2026-10-24 01:05:00" ] ] ])
     end
 
     it "完整趟：TEST-0001 06:00 從起站離站，06:50 到末站" do
@@ -256,8 +269,8 @@ RSpec.describe "spec/fixtures/analysis" do
 
     def counts(bus, from, to) = slice(bus, from, to).map { it.values_at("StopID", "CarOnStop", "RemainingNum") }
 
-    it "小時檔跟 bus_event 同一組，全部是 .jsonl" do
-      expect(feed_files("bus_seat_event")).to eq(window_hours.map { "#{it}.jsonl" })
+    it "小時檔跟 bus_event 同一組加成員日的三個，全部是 .jsonl，2026-10-24 沒有" do
+      expect(feed_files("bus_seat_event")).to eq((window_hours + member_day_hours).map { "#{it}.jsonl" })
     end
 
     it "同一站有到站 11 與離站 14 兩筆：TEST-0001 08:54" do
@@ -314,8 +327,8 @@ RSpec.describe "spec/fixtures/analysis" do
 
     def points_and_speeds(bus, from, to) = slice(bus, from, to).uniq { it["DataTime"] }.map { [ point(it), it["Speed"] ] }.tally
 
-    it "小時檔是 2026-10-19 的 06、07、08、11、12 五個" do
-      expect(feed_files("bus_data")).to eq(%w[06 07 08 11 12].map { "2026-10-19/#{it}.jsonl" })
+    it "小時檔是 2026-10-19 的 06、07、08、11、12 五個，加成員日 2026-10-23 的 07" do
+      expect(feed_files("bus_data")).to eq([ *%w[06 07 08 11 12].map { "2026-10-19/#{it}.jsonl" }, "2026-10-23/07.jsonl" ])
     end
 
     it "經緯度與速度跟真資料一樣是字串" do

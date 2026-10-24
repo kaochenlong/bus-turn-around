@@ -64,6 +64,20 @@ RSpec.describe "analysis/30_layovers.sql" do
     end
   end
 
+  describe "成員日 2026-10-23，9001 掛成員路線 9050" do
+    def member_rows(query) = run_sql_stages(through: "30_layovers", member_route_ids: [ 9001, 9050 ], day: Date.new(2026, 10, 23), static_day: Date.new(2026, 10, 23), query:)
+
+    it "9050 的趟接 9001 的趟、9001 的趟接 9050 的趟都是折返停留：去程結束 10.0 分鐘、返程結束 10.0 分鐘" do
+      rows = member_rows("SELECT go_back, strftime(end_time, '%H:%M') AS finish, minutes FROM layovers ORDER BY end_time")
+      expect(rows.map(&:values)).to eq([ [ 0, "07:50", 10.0 ], [ 1, "08:50", 10.0 ] ])
+    end
+
+    it "兩組配對都沒有跑別的路線，不算折返停留的配對是 0" do
+      rows = member_rows("SELECT (SELECT list(ran_other_route ORDER BY end_time) FROM layover_pairs) AS ran, no_last_stop + no_first_stop + other_route + negative AS excluded FROM layover_exclusions")
+      expect(rows).to eq([ { "ran" => [ false, false ], "excluded" => 0 } ])
+    end
+  end
+
   describe "灌入的趟次" do
     # Two consecutive trips of one vehicle, 08:00–08:16 then 08:30–09:00, with
     # the given completeness; returns the layovers and the exclusion counts.

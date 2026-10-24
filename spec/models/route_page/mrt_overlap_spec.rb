@@ -27,6 +27,13 @@ RSpec.describe RoutePage::MrtOverlap, type: :model do
     expect([ direction.go_back, direction.n_stops, direction.shares ]).to eq([ 0, 5, { 300 => 0.2, 500 => 0.6, 800 => 0.8 } ])
   end
 
+  it "最新那一天另有成員路線 9050 的站序時不讀它：9050 多一個 100 公尺的站，去程仍是 5 站、重疊度不變" do
+    day = route_day([ 900, 400, 250, 450, 700 ])
+    day.stops.create!(route_id: 9050, go_back: 0, seq: 5, stop_name: "己站", nearest_exit_name: "出口", nearest_exit_meters: 100)
+    direction = overlap(day).directions.sole
+    expect([ direction.n_stops, direction.shares ]).to eq([ 5, { 300 => 0.2, 500 => 0.6, 800 => 0.8 } ])
+  end
+
   it "500 公尺下唯一的重疊路段是第 1 到 3 站，帶起訖站名與站數" do
     stretch = overlap(route_day([ 900, 400, 250, 450, 700 ])).stretches.sole
     expect(stretch.to_h.except(:loads)).to eq(go_back: 0, first_seq: 1, last_seq: 3, first_stop: "站1", last_stop: "站3", n_stops: 3)

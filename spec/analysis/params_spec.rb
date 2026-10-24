@@ -51,4 +51,17 @@ RSpec.describe "analysis/params.sql" do
       expect(literals_in(File.join(DuckdbHelpers::ANALYSIS_DIR, "turnaround_facilities.sql")) & %w[50 150 500 0.0002 3]).to eq([])
     end
   end
+
+  describe "路線軌跡" do
+    let(:names) { %w[route_shape_min_points route_shape_min_latitude route_shape_max_latitude route_shape_min_longitude route_shape_max_longitude] }
+
+    it "一列至少 2 點，緯度在 20 到 27、經度在 118 到 123 之間" do
+      row = run_sql_stages(through: "params", query: "SELECT #{names.map { "getvariable('#{it}') AS #{it}" }.join(', ')}").first
+      expect(row.values_at(*names)).to eq([ 2, 20, 27, 118, 123 ])
+    end
+
+    it "route_shape.sql 不出現這三個門檻的字面數字" do
+      expect(literals_in(File.join(DuckdbHelpers::ANALYSIS_DIR, "route_shape.sql")) & %w[2 20 27 118 123]).to eq([])
+    end
+  end
 end

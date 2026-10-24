@@ -48,7 +48,46 @@ RSpec.describe RoutePage::Ends, type: :model do
     expect([ ends.nature(0), ends.nature(1) ]).to eq(%i[pass_through stop])
   end
 
-  it "有路線頁的路線就是設定裡的路線：test 環境是 15373、10712、11764 與 9001" do
-    expect(RoutePage.route_ids).to contain_exactly(15373, 10712, 11764, 9001)
+  it "307 去程結束的莊敬里那一端停車，返程結束的臺北客運板橋前站(藝文) 那一端停車，19108 共用這兩端" do
+    ends = RoutePage.ends(16111)
+    expect([ ends.nature(0), ends.nature(1), RoutePage.member_route_ids(16111) ]).to eq([ :stop, :stop, [ 16111, 19108 ] ])
+  end
+
+  it "有路線頁的路線就是設定裡的路線：test 環境是 15373、10712、11764、16111 與 9001" do
+    expect(RoutePage.route_ids).to contain_exactly(15373, 10712, 11764, 16111, 9001)
+  end
+
+  describe "同一頁的附屬路線" do
+    def routes_config(routes) = allow(RoutePage).to receive(:routes).and_return(routes)
+
+    let(:both_stop) { { 0 => "stop", 1 => "stop" } }
+
+    it "頁面路線加上設定裡的成員：test 環境的 9001 掛 9050，10712 沒有成員就只有自己" do
+      expect([ RoutePage.member_route_ids(9001), RoutePage.member_route_ids(10712) ]).to eq([ [ 9001, 9050 ], [ 10712 ] ])
+    end
+
+    it "成員同時是設定的鍵時丟錯，訊息寫出那個 Id" do
+      routes_config(9001 => { ends: both_stop, member_routes: [ 9050 ] }, 9050 => { ends: both_stop })
+      expect { RoutePage.member_route_ids(9001) }.to raise_error(RoutePage::Ends::InvalidConfiguration, a_string_including("9001", "9050"))
+    end
+
+    it "成員等於頁面路線本身時丟錯，訊息寫出那個 Id" do
+      routes_config(9001 => { ends: both_stop, member_routes: [ 9001 ] })
+      expect { RoutePage.member_route_ids(9001) }.to raise_error(RoutePage::Ends::InvalidConfiguration, a_string_including("9001"))
+    end
+
+    it "成員出現在別條路線的清單裡時丟錯，訊息寫出那個 Id" do
+      routes_config(9001 => { ends: both_stop, member_routes: [ 9050 ] }, 9002 => { ends: both_stop, member_routes: [ 9050 ] })
+      expect { RoutePage.member_route_ids(9001) }.to raise_error(RoutePage::Ends::InvalidConfiguration, a_string_including("9050", "9002"))
+    end
+
+    it "沒有設定的路線只有自己" do
+      routes_config(9001 => { ends: both_stop })
+      expect(RoutePage.member_route_ids(7777)).to eq([ 7777 ])
+    end
+
+    it "反查成員掛在哪一頁：9050 是 9001 的，頁面路線與沒設定的路線都不是誰的成員" do
+      expect([ RoutePage.member_of(9050), RoutePage.member_of(9001), RoutePage.member_of(7777) ]).to eq([ 9001, nil, nil ])
+    end
   end
 end

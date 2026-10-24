@@ -41,6 +41,7 @@ module DuckdbHelpers
     case value
     when Integer then value.to_s
     when Date then "DATE '#{value.iso8601}'"
+    when Array then "[#{value.map { sql_literal(it) }.join(', ')}]"
     else "'#{value.to_s.gsub("'", "''")}'"
     end
   end
@@ -73,16 +74,16 @@ module DuckdbHelpers
 
   # SQL that replaces the stop events of stage 10 with route 9001 events on
   # 2026-10-19, each [bus_id, go_back, seq, car_on_stop, "HH:MM:SS",
-  # path_attribute_id = 9001, duty_status = 1]. The views of stage 20 and later
-  # rebuild their trips from these events when queried.
+  # path_attribute_id = 9001, duty_status = 1, station_id = 19001]. The views
+  # of stage 20 and later rebuild their trips from these events when queried.
   def replace_stop_events_sql(events)
-    values = events.map do |bus, go_back, seq, car_on_stop, at, path = 9001, duty = 1|
-      "('#{bus}', 9001, #{path}, #{go_back}, #{seq}, #{91000 + seq}, #{car_on_stop}, #{duty}, 0, " \
+    values = events.map do |bus, go_back, seq, car_on_stop, at, path = 9001, duty = 1, station = 19001|
+      "('#{bus}', 9001, #{path}, #{go_back}, #{seq}, #{91000 + seq}, #{car_on_stop}, #{duty}, 0, #{station}, " \
         "TIMESTAMP '2026-10-19 #{at}', 'injected')"
     end
     <<~SQL
       CREATE OR REPLACE TABLE stop_events AS SELECT * FROM (VALUES #{values.join(', ')})
-        AS t(bus_id, route_id, path_attribute_id, go_back, seq, stop_id, car_on_stop, duty_status, bus_status, data_time, source_file);
+        AS t(bus_id, route_id, path_attribute_id, go_back, seq, stop_id, car_on_stop, duty_status, bus_status, station_id, data_time, source_file);
     SQL
   end
 

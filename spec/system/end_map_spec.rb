@@ -75,6 +75,35 @@ RSpec.describe "折返點的地圖", :duckdb, :js, type: :system do
     find("#{map_selector(0)} .leaflet-tooltip", visible: :all).all(":scope > div > *", visible: :all).map { it.text(:all) }
   end
 
+  # Turns the wheel one notch without a key over the middle of direction
+  # `go_back`'s drawn map, in the direction that zooms in, and returns whether
+  # the page scrolled, whether the standstill cell kept its size and whether
+  # the note naming the key to hold showed.
+  def plain_wheel_outcome(go_back)
+    measure = "(() => { const box = (selector) => document.querySelector(selector).getBoundingClientRect(); " \
+              "const map = box(arguments[0]); return [window.scrollY, box(arguments[0] + ' .end-map-cell').width, map.x + map.width / 2, map.y + map.height / 2] })()"
+    scroll_before, width_before, x, y = page.evaluate_script(measure, map_selector(go_back))
+    page.driver.browser.execute_cdp("Input.dispatchMouseEvent", type: "mouseWheel", x:, y:, deltaX: 0, deltaY: -120, modifiers: 0)
+    shown = page.has_css?("#{map_selector(go_back)} .map-gesture-note[data-shown=wheel]", visible: :all, wait: 0.5)
+    sleep 1
+    scroll_after, width_after = page.evaluate_script(measure, map_selector(go_back))
+    [ scroll_after < scroll_before, width_after == width_before, shown ]
+  end
+
+  # Presses direction `go_back`'s full screen button and returns whether its
+  # container goes on the whole screen within five seconds; leaves the whole
+  # screen again, the browser being shared.
+  def on_whole_screen_after_pressing?(go_back)
+    scroll_to_map(go_back).find(".map-fullscreen a", visible: :all).click
+    script = "document.fullscreenElement === document.querySelector(arguments[0])"
+    Timeout.timeout(5) { sleep 0.1 until page.evaluate_script(script, map_selector(go_back)) }
+    true
+  rescue Timeout::Error
+    false
+  ensure
+    page.execute_script("document.fullscreenElement && document.exitFullscreen()")
+  end
+
   # How far below the bottom of the window the first map container starts, in
   # pixels; raises when it is already in view, which would make a test about
   # not loading before scrolling meaningless.
@@ -145,6 +174,17 @@ RSpec.describe "折返點的地圖", :duckdb, :js, type: :system do
         visit_fixture_day
         expect(scroll_to_map(0)["data-animations"]).to eq("off")
       end
+    end
+
+    it "沒按 Ctrl 或 ⌘ 在端點地圖上滾動滑鼠滾輪：頁面捲動、地圖不縮放，出現要按哪個鍵的提示" do
+      visit_fixture_day
+      scroll_to_map(0)
+      expect(plain_wheel_outcome(0)).to eq([ true, true, true ])
+    end
+
+    it "端點地圖也有全螢幕按鈕，按下時那一端的容器全螢幕" do
+      visit_fixture_day
+      expect(on_whole_screen_after_pressing?(0)).to be(true)
     end
 
     it "Turbo 快取前，畫好的地圖還原成伺服器輸出的 pending，畫布裡沒有東西" do

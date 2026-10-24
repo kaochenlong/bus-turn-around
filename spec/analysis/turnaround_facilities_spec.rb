@@ -115,6 +115,12 @@ RSpec.describe "analysis/turnaround_facilities.sql" do
     end
   end
 
+  it "末站只看頁面路線的站序：成員路線 9050 去程多一站 seq 5 時，方向 0 的末站仍是 9001 的第 4 站戊站" do
+    setup = "INSERT INTO stops (route_id, go_back, seq, stop_id, stop_name, latitude, longitude, stop_location_id) VALUES (9050, 0, 5, 95099, '多出來的站', 25.07, 121.5, 85099);"
+    rows = facilities("SELECT end_seq, end_stop_name FROM turnaround_ends WHERE go_back = 0", setup:, member_route_ids: [ 9001, 9050 ])
+    expect(rows).to eq([ { "end_seq" => 4, "end_stop_name" => "戊站" } ])
+  end
+
   it "任一端是 unknown（路線還沒有設定）時，三張結果表都是空的" do
     query = "SELECT (SELECT count(*) FROM turnaround_ends) AS ends, (SELECT count(*) FROM end_toilets) AS toilets, (SELECT count(*) FROM standstill_cells) AS cells"
     expect(facilities(query, end_nature_0: "unknown").first).to eq("ends" => 0, "toilets" => 0, "cells" => 0)

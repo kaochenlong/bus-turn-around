@@ -19,6 +19,7 @@
 #  bus_id             :string           not null
 #  path_attribute_id  :integer          not null
 #  route_day_id       :bigint           not null
+#  route_id           :integer          not null
 #
 # Indexes
 #
@@ -31,4 +32,8 @@
 class Trip < ApplicationRecord
   belongs_to :route_day
   has_many :trip_stop_counts, dependent: nil
+
+  # A trip belongs to its route day's route unless its events carried a
+  # member route's Id; the loader writes the route Id itself.
+  before_validation { self.route_id ||= route_day&.route_id }
 end

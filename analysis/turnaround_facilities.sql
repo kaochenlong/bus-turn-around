@@ -117,10 +117,13 @@ WHERE g.speed = 0 AND g.latitude IS NOT NULL AND g.longitude IS NOT NULL;
 -- tie, so the result never depends on row order. The location is the
 -- count-weighted mean of the points within the radius of the seed, and every
 -- distance from it is measured from the six-decimal value stored.
+-- The ends are the page route's last stops; its member routes share its two
+-- ends (turnaround-ends), so their stop lists are not read here.
 CREATE OR REPLACE VIEW turnaround_ends AS
 WITH last_stops AS (
     SELECT go_back, seq AS end_seq, stop_name AS end_stop_name, latitude AS end_latitude, longitude AS end_longitude
     FROM stops
+    WHERE route_id = getvariable('route_id')
     QUALIFY row_number() OVER (PARTITION BY go_back ORDER BY seq DESC) = 1
 ),
 layover_counts AS (

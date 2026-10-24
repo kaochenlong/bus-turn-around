@@ -35,3 +35,10 @@ en:
   day_types:
     weekday: weekday
     holiday: holiday
+  maps:
+    gestures:
+      wheel_zoom: "Hold {key} and scroll to zoom the map"
+      two_fingers: "Use two fingers to move or zoom the map"
+    fullscreen:
+      enter: Full screen
+      exit: Exit full screen

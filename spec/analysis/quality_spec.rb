@@ -5,7 +5,7 @@ RSpec.describe "analysis/50_quality.sql 與 analysis/60_export.sql" do
   def quality_rows(query) = run_sql_stages(through: "50_quality", query:)
 
   # Runs every stage with the given inspection directory; the output is the card JSON row.
-  def export_to(dir) = run_sql_stages(through: "60_export", query: "", inspect_dir: dir)
+  def export_to(dir, **variables) = run_sql_stages(through: "60_export", query: "", inspect_dir: dir, **variables)
 
   # Seven trips that end on a DutyStatus 2 event, then one trip with three
   # DutyStatus 2 events before a final DutyStatus 1 event.
@@ -87,6 +87,29 @@ RSpec.describe "analysis/50_quality.sql 與 analysis/60_export.sql" do
     end
   end
 
+  describe "成員日 2026-10-23，9001 掛成員路線 9050" do
+    def member_rows(query) = run_sql_stages(through: "50_quality", member_route_ids: [ 9001, 9050 ], day: Date.new(2026, 10, 23), static_day: Date.new(2026, 10, 23), query:)
+
+    it "對不到頁面路線站位的車上人數 2 筆，寫進品質表" do
+      rows = member_rows("SELECT value FROM quality WHERE metric = 'unmatched_page_stop_counts'")
+      expect(rows).to eq([ { "value" => "2" } ])
+    end
+
+    it "末站離站事件的統計以 9001 的末站計，趟次不重複算：去程戊站 2 趟完整趟次、返程甲站 1 趟，都沒有終點後的離站事件" do
+      rows = member_rows("SELECT go_back, stop_name, complete_trips, with_departure FROM last_stop_departures ORDER BY go_back")
+      expect(rows.map(&:values)).to eq([ [ 0, "戊站", 2, 0 ], [ 1, "甲站", 1, 0 ] ])
+    end
+
+    it "當天第一趟與最後一趟把兩條路線的趟次合在一起看：TEST-0005 第一趟與最後一趟都是 9050 的" do
+      rows = member_rows("SELECT path_attribute_id, n_first, n_last FROM vehicle_day_ends WHERE n_first + n_last > 0 ORDER BY 1")
+      expect(rows.map(&:values)).to eq([ [ 9050, 1, 1 ] ])
+    end
+
+    it "完整趟次的漏站率以每趟自己路線的站數算：3 趟各 5 站都觀測到，15 站漏 0 站" do
+      expect(member_rows("SELECT missing_stops, direction_stops, rate FROM missing_stop_rate")).to eq([ { "missing_stops" => 0, "direction_stops" => 15, "rate" => 0.0 } ])
+    end
+  end
+
   describe "灌入的資料" do
     it "5 站方向兩趟完整趟次觀測到 5 與 4 站時，漏站率 10%" do
       trips = [ { bus_id: "TEST-0001", start: "08:00", finish: "08:40" },
@@ -136,6 +159,17 @@ RSpec.describe "analysis/50_quality.sql 與 analysis/60_export.sql" do
       picked = [ card.dig("route", "name"), card["day"], card.dig("quality", "unknown_stop_events"),
                  card.dig("trips", "total"), card.dig("chains", "summary", "n_chains"), card.dig("profile", "anomalies", "jumps") ]
       expect(picked).to eq([ "測試幹線", "2026-10-19", 1, 27, 1, 1 ])
+    end
+
+    it "有成員路線時，JSON 的路線是頁面路線那一條，附屬路線列出全部成員的" do
+      card = Dir.mktmpdir { export_to(it, member_route_ids: [ 9001, 9050 ], day: Date.new(2026, 10, 23), static_day: Date.new(2026, 10, 23)) }.first.fetch("card")
+      picked = [ card.dig("route", "route_id"), card.dig("route", "name"), card.dig("route", "sub_routes").map { it["path_attribute_id"] } ]
+      expect(picked).to eq([ 9001, "測試幹線", [ 9001, 9002, 9003, 9050 ] ])
+    end
+
+    it "頁面路線是 9050、成員是 9001 時，JSON 的路線名是測試幹線經己站" do
+      card = Dir.mktmpdir { export_to(it, route_id: 9050, member_route_ids: [ 9050, 9001 ], day: Date.new(2026, 10, 23), static_day: Date.new(2026, 10, 23)) }.first.fetch("card")
+      expect(card.fetch("route").values_at("route_id", "name", "departure", "destination")).to eq([ 9050, "測試幹線經己站", "甲站", "戊站" ])
     end
 
     it "給卡用的 JSON 在每條附屬路線帶當天第一趟與最後一趟的趟數" do
