@@ -1,0 +1,19 @@
+<!--
+每條任務寫兩件事：做完之後哪個行為可觀察、用什麼驗證。
+Requirement 名稱（英文）與 design 決定標題（中文）都原文照抄，分析器靠字串比對。
+1.1 先加清單、保留 SVG 裡原本的名字；1.2 再把名字換成編號。兩步都改同一個元件與同一份測試，所以 1.2 接在 1.1 之後。
+2026-10-24 apply 時的調整：1.1 的清單文字斷言只鎖站名（以「甲站–乙站」「丁站–戊站」結尾），不鎖翻譯檔寫死的「靠近捷運：」，理由見 design「測試鎖住編號順序、位置與清單，不鎖樣式」；1.1 的描述保留當時的寫法。
+2026-10-24 使用者看過畫面後加了 1.3（hover 連動），2.2 的目視驗收也加上連動，接在 1.3 之後。
+-->
+
+## 1. 圖下方的清單與底色帶上的編號
+
+- [x] 1.1 實作 Load chart along the route 的圖下方清單，套用 design「清單用 HTML、放在橫向捲動那一層外面、不含 svg」：每個方向有重疊路段時，`<figure>` 裡、`@container relative` 那一層之後輸出 `ol[data-span-legend]`，每段一個 `li[data-span-number][data-first-stop][data-last-stop]`，照站序從 1 編號，內容是 `span[aria-hidden="true"]` 畫的編號圓加上 `t(".span", first:, last:)`，清單裡沒有 `svg`；沒有路段的方向不輸出清單。這一步先保留 SVG 裡原本的名字，1.2 再拿掉。照 design「測試鎖住編號順序、位置與清單，不鎖樣式」，先在 `spec/components/load_chart_component_spec.rb` 加清單的例子：方向 0 第 0 到 4 站距離 400、450、900、250、300 公尺時，`li` 依序是 1、2，文字分別以「靠近捷運：甲站–乙站」與「靠近捷運：丁站–戊站」結尾，`data-first-stop`、`data-last-stop` 對得上；站牌沒有距離時沒有 `[data-span-legend]`。新例子要先失敗（現在沒有清單），再實作到通過。驗證：`bundle exec rspec spec/components/load_chart_component_spec.rb` 全過。
+- [x] 1.2 實作 Load chart along the route 的底色帶編號，套用 design「底色帶上方畫編號圓，名字移到圖下方的清單」與「編號圓的大小與位置：直徑 16、圓心在底色帶中點、TOP 往上 12」：`LoadChartComponent` 加 `MARKER_RADIUS = 8`、`MARKER_Y = TOP - 12` 與回傳底色帶中點 x 的方法；每段的 `<g>` 加 `data-span-number`，原本寫名字的 `text` 換成 `circle[data-span-marker]`（`cx` 是底色帶中點、`cy` 是 `MARKER_Y`、`r` 是 `MARKER_RADIUS`、class `fill-sky-800`）與白色編號的 `text`，SVG 裡不再有寫出路段名字的文字。照 design「測試鎖住編號順序、位置與清單，不鎖樣式」，先用同一份兩段的資料加例子：`[data-span-number]` 的 `<g>` 依序是 1、2，`data-span-from`、`data-span-to` 是 0、1 與 3、4；每個圓的 `cx` 等於同一個 `<g>` 裡 `rect` 的 `x + width / 2`（取到小數一位）、`cy` 是 18、`r` 是 8；每個 `<g>` 裡的文字只有編號，SVG 裡沒有任何文字含「靠近捷運」、乙站或丁站（橫軸兩端的甲站、戊站照舊）；站牌沒有距離時沒有 `[data-span-number]`。新例子要先失敗，再實作到通過；既有的例子「500 公尺內的第 2 到 4 站畫成一段底色帶，標出兩端站名」照舊通過（`<g>` 上的 `data-span-from`、`data-span-to`、`data-first-stop`、`data-last-stop` 不變）。驗證：`bundle exec rspec spec/components/load_chart_component_spec.rb` 全過。 [after: 1.1]
+
+- [x] 1.3 實作 Load chart along the route 的連動，套用 design「指到某一段或清單某一列時，兩邊一起變深」與「連動用瀏覽器測，資料用 factory 造兩段」：每個 `div[data-direction]` 帶 `x-data="{ hoveredSpan: null }"`；`g[data-span-number]` 與 `li[data-span-number]` 帶 `x-on:mouseenter`（記下自己的編號）、`x-on:mouseleave`（清成 `null`）與 `x-bind:data-active`（指到的是自己時才有）；`<g>` 加 `group`，底色帶的 `rect` 在 `data-active` 時變 `fill-sky-200`，清單那一列在 `data-active` 時加 `bg-sky-100`，兩者都 `transition-colors`；清單的列加內距與等量的負外距，沒指到時位置不變；`svg` 加 `pointer-events-none`、每段的 `<g>` 加 `pointer-events-auto`。先寫新的 `spec/system/load_chart_hover_spec.rb`（`:js`，不用 DuckDB），用 factory 造 9001 的 2026-10-19：去程第 0 到 4 站距離 400、450、900、250、300 公尺，返程第 5 到 9 站距離 300、350、900、900、900 公尺；等時段切換按鈕出現後，例子是：指到去程清單第 2 列時，有 `data-active` 的只有去程的 `g` 2 與 `li` 2；指到去程第 1 段的編號圓時，只有去程的 `g` 1 與 `li` 1；指到之後移到這一區的標題上，沒有任何 `data-active`。新例子要先失敗（現在沒有連動），再實作到通過。顏色、淡入與內距是寫死的樣式，留給 2.2 目視。驗證：`bundle exec rspec spec/system/load_chart_hover_spec.rb spec/components/load_chart_component_spec.rb spec/system/route_page_layout_spec.rb spec/system/route_page_mobile_spec.rb` 全過；`bin/rails parallel:spec` 全過；`bin/rubocop app/components/load_chart_component.rb spec/components/load_chart_component_spec.rb spec/system/load_chart_hover_spec.rb` 沒有 offense。 [after: 1.2]
+
+## 2. 驗收
+
+- [x] 2.1 確認清單沒有破壞版面的既有保證：載客那一塊裡每一個 `svg` 仍在 `overflow-x: auto` 的那一層裡（清單裡沒有 `svg`），`<figure>` 連同清單在 1400 寬顯示、在手機隱藏，窄螢幕仍是每站一列。驗證：`bundle exec rspec spec/system/route_page_layout_spec.rb spec/system/route_page_mobile_spec.rb` 全過（`:js`，要 headless Chrome 與 DuckDB）；`bin/rails parallel:spec` 全過；`bin/rubocop app/components/load_chart_component.rb spec/components/load_chart_component_spec.rb` 沒有 offense。 [after: 1.2]
+- [x] 2.2 以真資料目視驗收 Load chart along the route：`bin/dev` 開 10712 與 11764 的 `?day=2026-10-22`，在 1280 px 與 720 px 寬各看一次：每個編號都在自己那段底色帶上方，沒有被左右邊切掉，沒有壓到「人」；圖上的圓與圖下方清單的圓是同一個樣子，清單的順序跟編號對得上；15373 只有一段，照樣看得懂。再用滑鼠逐一指每一段（底色帶與編號圓）和清單每一列：指到的那一段底色變深、清單同一列加上淺底色，其他段不變，移開就恢復；指在折線、點或格線上時底色帶不會一閃一閃；清單沒指到時的位置跟加連動之前一樣。圓的顏色、大小、變深的顏色與清單的樣式是寫死的內容，所以用目視。驗證：使用者看過畫面，逐項回報。 [after: 2.1, 1.3]
