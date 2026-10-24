@@ -1,6 +1,7 @@
 ---
 tw: &tw
   title: 有頁面的路線
+  route_id: "路線 Id %{id}"
   latest: "最新資料 %{day}%{day_type}"
   no_data: 還沒有資料
   note: 每條路線都要先用它自己的資料確認過趟次、折返停留這些算法沒問題，才會有頁面。
@@ -8,6 +9,7 @@ zh-TW:
   <<: *tw
 en:
   title: Routes with a page
+  route_id: "Route ID %{id}"
   latest: "Latest data %{day} %{day_type}"
   no_data: No data yet
   note: A route gets a page only after its definitions have been checked on its own data.

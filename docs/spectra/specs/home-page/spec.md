@@ -43,7 +43,7 @@ tests:
 ---
 ### Requirement: Route list
 
-The route list SHALL contain one entry per route Id in the route list configuration, in configuration order, built from one query for the latest stored day of every configured route. An entry whose route has stored days SHALL show the route name, the Id, the departure and destination of the latest stored day, and that day with its weekday in the format the route page uses for covered days, followed by its day type as defined by `day-types`, and SHALL link to `/routes/<Id>`. An entry whose route has no stored days SHALL show only the Id, SHALL state that the route has no data yet, and SHALL NOT link anywhere.
+The route list SHALL contain one entry per route Id in the route list configuration, in configuration order, built from one query for the latest stored day of every configured route. An entry whose route has stored days SHALL show the route name without the Id beside it; the departure and destination of the latest stored day, followed by the label 路線 Id and the route's Id; and that day with its weekday in the format the route page uses for covered days, followed by its day type as defined by `day-types`; and SHALL link to `/routes/<Id>`. An entry whose route has no stored days SHALL show only the label 路線 Id with the route's Id, SHALL state that the route has no data yet, and SHALL NOT link anywhere.
 
 #### Scenario: Entries in configuration order
 
@@ -54,7 +54,13 @@ The route list SHALL contain one entry per route Id in the route list configurat
 
 - **GIVEN** route 9001 has the stored weekdays 2026-10-19 and 2026-10-20 whose latest row has route name 測試幹線, departure 甲站 and destination 戊站
 - **WHEN** `/` is requested
-- **THEN** the 9001 entry shows 測試幹線, 9001, 甲站－戊站 and 2026-10-20（二）平日
+- **THEN** the 9001 entry's name reads 測試幹線 alone, and the entry shows 甲站－戊站 followed by 路線 Id 9001, and 2026-10-20（二）平日
+
+##### Example: entry of a route without data
+
+- **GIVEN** the configuration lists 15373, which has no stored days
+- **WHEN** `/` is requested
+- **THEN** the 15373 entry reads 路線 Id 15373, states that the route has no data yet and has no link
 
 #### Scenario: Latest day is a holiday
 
@@ -74,63 +80,122 @@ The route list SHALL contain one entry per route Id in the route list configurat
 
 
 <!-- @trace
-source: day-types
-updated: 2026-10-23
+source: 02-route-stop-sequence
+updated: 2026-10-24
 code:
-  - lib/tasks/external.rake
-  - app/models/office_calendar_snapshot.rb
-  - docs/data-sources.md
-  - config/locales/tw.yml
-  - app/models/route_day_loader.rb
-  - app/components/data_limitations_component.yml
-  - app/components/route_coverage_component.rb
-  - app/components/route_coverage_component.yml
-  - app/models/mrt_exits_snapshot.rb
-  - app/components/route_coverage_component.html.erb
-  - db/schema.rb
-  - app/components/route_list_component.html.erb
-  - db/migrate/20261022230942_add_day_type_to_route_days.rb
-  - spec/factories/route_days.rb
-  - app/components/attribution_component.html.erb
-  - app/components/attribution_component.yml
+  - app/models/route_day_end_cell.rb
   - config/locales/en.yml
-  - spec/fixtures/analysis/README.md
-  - app/models/route_page/coverage.rb
-  - app/components/application_component.rb
+  - output/branding-v2/a-bus/logo.png
+  - app/components/route_coverage_component.html.erb
   - app/components/route_list_component.yml
-  - app/models/http_fetcher.rb
-  - spec/fixtures/analysis/external/office-calendar/2026/2026-10-19.csv
+  - app/models/route_day_end.rb
+  - bin/health-card
+  - app/frontend/entrypoints/application.js
+  - app/controllers/routes_controller.rb
+  - db/schema.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - analysis/params.sql
+  - app/models/route_day_end_toilet.rb
+  - app/components/stop_sequence_component.html.erb
+  - app/components/stop_sequence_component.yml
+  - app/models/route_page/stop_sequence.rb
+  - app/components/section_nav_component.yml
+  - app/models/route_day_loader.rb
+  - app/components/attribution_component.rb
+  - config/map.yml
+  - public/robots.txt
+  - docs/data-sources.md
+  - app/components/turnaround_facilities_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
+  - app/components/turnaround_facilities_component.html.erb
+  - spec/support/duckdb.rb
+  - app/views/routes/show.html.erb
+  - .ruby-version
+  - app/models/derived_load_command.rb
+  - app/components/layover_chart_component.yml
+  - Dockerfile
+  - app/frontend/stylesheets/application.css
+  - app/components/home_hero_component.yml
+  - app/components/load_chart_component.html.erb
+  - app/models/map_tiles.rb
+  - config/locales/tw.yml
+  - app/components/data_limitations_component.yml
+  - app/components/section_nav_component.rb
+  - app/views/layouts/application.html.erb
+  - app/components/attribution_component.yml
+  - output/branding-v2/a-bus/favicon-preview.png
+  - Gemfile
   - app/models/route_day.rb
-  - db/migrate/20261022231802_require_day_type_on_route_days.rb
+  - package.json
+  - app/frontend/rest_command.js
+  - app/models/route_page/end_map.rb
+  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
+  - analysis/turnaround_facilities.sql
+  - analysis/derived_export.sql
+  - app/components/end_map_component.html.erb
+  - app/components/route_coverage_component.yml
+  - app/frontend/end_map/runtime.js
+  - app/frontend/hero/scene.js
+  - app/components/home_hero_component.html.erb
+  - app/components/end_map_component.rb
+  - app/components/end_map_component.yml
+  - config/deploy.yml
+  - app/models/route_page/facilities.rb
+  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
+  - public/404.html
+  - output/branding-v2/a-bus/favicon.ico
+  - analysis/README.md
+  - spec/fixtures/analysis/README.md
+  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
+  - spec/factories/route_day_end_toilets.rb
+  - spec/factories/route_days.rb
+  - app/components/load_chart_component.rb
+  - lib/tasks/external.rake
+  - app/components/attribution_component.html.erb
+  - app/components/turnaround_facilities_component.yml
+  - spec/factories/route_day_end_cells.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
+  - app/assets/images/home-hero-wide.webp
+  - app/assets/images/home-hero-narrow.webp
+  - Gemfile.lock
+  - app/components/stop_sequence_component.rb
+  - config/initializers/mime_types.rb
+  - spec/factories/route_day_ends.rb
+  - public/turnaround/og-image-v2.jpg
+  - app/frontend/hero/runtime.js
+  - app/models/public_toilets_snapshot.rb
+  - app/components/route_list_component.html.erb
 tests:
-  - spec/components/mrt_overlap_component_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/components/route_summary_component_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/models/route_page/load_profile_spec.rb
-  - spec/components/load_profile_table_component_spec.rb
-  - spec/components/run_time_table_component_spec.rb
-  - spec/system/home_hero_spec.rb
-  - spec/models/http_fetcher_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/components/layover_chart_component_spec.rb
-  - spec/components/load_chart_component_spec.rb
-  - spec/components/application_component_spec.rb
-  - spec/models/route_page/layover_stats_spec.rb
-  - spec/models/route_page/coverage_spec.rb
-  - spec/components/layover_table_component_spec.rb
-  - spec/components/route_list_component_spec.rb
-  - spec/models/home_page/route_list_spec.rb
   - spec/models/route_day_loader_spec.rb
-  - spec/models/route_page/mrt_overlap_spec.rb
-  - spec/analysis/fixtures_spec.rb
-  - spec/models/office_calendar_snapshot_spec.rb
+  - spec/models/route_day_spec.rb
   - spec/requests/pages_spec.rb
+  - spec/analysis/cli_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/models/route_page/layover_distribution_spec.rb
-  - spec/models/route_page/run_times_spec.rb
+  - spec/system/rest_command_spec.rb
+  - spec/models/public_toilets_snapshot_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/route_page/stop_sequence_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/models/route_page/end_map_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/components/load_chart_component_spec.rb
+  - spec/system/load_chart_hover_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
+  - spec/models/map_tiles_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/requests/not_found_page_spec.rb
+  - spec/components/stop_sequence_component_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/route_page/facilities_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/system/end_map_spec.rb
   - spec/components/route_coverage_component_spec.rb
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/requests/easter_eggs_spec.rb
 -->
 
 ---

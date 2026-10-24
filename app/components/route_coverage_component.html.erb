@@ -1,8 +1,8 @@
 <header class="flex flex-col gap-4 sm:gap-4.5">
   <% if @coverage.data? %>
     <div>
-      <h1 class="text-page-sm leading-tight font-bold tracking-[0.01em] text-slate-900 sm:text-page"><%= route_day.route_name %> <span class="font-route-figure font-medium text-slate-500"><%= @coverage.route_id %></span></h1>
-      <p class="mt-1.5 text-slate-600"><%= route_day.departure %>－<%= route_day.destination %></p>
+      <h1 class="text-page-sm leading-tight font-bold tracking-[0.01em] text-slate-900 sm:text-page"><%= route_day.route_name %></h1>
+      <p class="mt-1.5 text-slate-600"><%= route_day.departure %>－<%= route_day.destination %> <span data-route-id class="text-note whitespace-nowrap text-slate-500"><%= t(".route_id", id: @coverage.route_id) %></span></p>
     </div>
   <% end %>
 

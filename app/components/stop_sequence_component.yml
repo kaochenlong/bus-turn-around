@@ -1,0 +1,37 @@
+---
+tw: &tw
+  eyebrow: 站序
+  title: 這條路線停哪些站、在哪裡折返？
+  count: "%{direction} %{count} 站"
+  separator: "・"
+  directions:
+    "0": 去程
+    "1": 返程
+  first_stop: 起站
+  last_stop: 末站
+  turnaround_html: "折返 %{nature}，下一趟從 %{next_first_stop} 出發"
+  turnaround_only_html: "折返 %{nature}"
+  natures:
+    stop: 停車
+    pass_through: 開過去就走
+  snapshot: "站序取自 %{day} 的靜態快照，涵蓋好幾天時只列最新那一天的。"
+  no_stops: 這幾天沒有站序。
+zh-TW:
+  <<: *tw
+en:
+  eyebrow: Stop sequence
+  title: Which stops does this route serve, and where does it turn around?
+  count: "%{direction}: %{count} stops"
+  separator: " · "
+  directions:
+    "0": Outbound
+    "1": Inbound
+  first_stop: First stop
+  last_stop: Last stop
+  turnaround_html: "Turnaround %{nature}; the next trip leaves %{next_first_stop}"
+  turnaround_only_html: "Turnaround %{nature}"
+  natures:
+    stop: Stops
+    pass_through: Drives on
+  snapshot: "Stops from the static snapshot of %{day}; over several days only the latest is listed."
+  no_stops: No stop sequence for these days.

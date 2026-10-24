@@ -243,7 +243,7 @@ tests:
 ---
 ### Requirement: Page content
 
-The page SHALL show, in this order: a summary with the route name, departure and destination, the covered days, the number of trips and of complete trips, and the key numbers of the requirement "Key numbers in the summary"; the section links of the requirement "Section links"; the layover distribution chart, followed by the layovers per direction of the ending trip, each row naming that direction's last stop and the nature of that end as defined by `turnaround-ends` (stopping or pass-through), with the number of layovers, p10, p50, p90 and the share under 15 minutes as defined by `layover-metrics`; the round trip and cycle block of the requirement "Round trip and cycle block"; the turnaround facilities as defined by `turnaround-facilities`, one part per end in direction order, each with the direction, the last stop, the nature of the end, the location source with its check numbers, the number of toilet places within 300 and 500 metres, the nearest place with its number of toilets, the places within 500 metres inside a disclosure that is closed by default, the day of the location used and the day of the toilet snapshot that day was loaded with, each part followed by that end's map container and map data as defined by `turnaround-map` and by the line stating the share of the covered days' standstill reports that the drawn cells cover; the buffer estimate as defined by `buffer-trade` for the selected buffer, with the number of covered days, measured layovers at stopping ends, measured layovers at pass-through ends when the route has such an end, and trips, the rest achievement, the lower and upper added vehicle-hours per day, the lower and upper added vehicles with their busiest hour, and the vehicles per day; the run time summary of `run-time` per direction, with the number of excluded trips; the load chart along the route, followed by the MRT overlap as defined by `mrt-overlap`, with each direction's number of stops and overlap share at 300, 500 and 800 metres, the overlap stretches at 500 metres with their first and last sequence numbers and stop names, the on-board counts of each stretch per time band, and the day of the entrance snapshot used; and the load profile as defined by `load-profile`, per direction, time band and stop, each cell giving the median, the p90 and the number of trips with a count, inside a disclosure that is closed by default and whose rows are all present in the server response. Percentiles SHALL be computed over all trips of the covered days, not combined from daily values. The MRT overlap SHALL NOT mark any share as above or below a review threshold, and the turnaround facilities SHALL NOT judge whether the toilets are enough. When the stops of the covered days carry no nearest-entrance distance, the MRT overlap block SHALL say that the days need to be loaded again instead of showing shares; when the covered days carry no end rows, the turnaround facilities block SHALL say the same and SHALL contain no map container. The buffer estimate SHALL offer a control that sets the buffer from 0 to 20 minutes; changing it SHALL replace only the buffer estimate block and SHALL update the page address with the `buffer` parameter while keeping `day` and `range`.
+The page SHALL show, in this order: a summary with the route name, departure and destination, the covered days, the number of trips and of complete trips, and the key numbers of the requirement "Key numbers in the summary"; the section links of the requirement "Section links"; the stop sequence block of the requirement "Stop sequence block"; the layover distribution chart, followed by the layovers per direction of the ending trip, each row naming that direction's last stop and the nature of that end as defined by `turnaround-ends` (stopping or pass-through), with the number of layovers, p10, p50, p90 and the share under 15 minutes as defined by `layover-metrics`; the round trip and cycle block of the requirement "Round trip and cycle block"; the turnaround facilities as defined by `turnaround-facilities`, one part per end in direction order, each with the direction, the last stop, the nature of the end, the location source with its check numbers, the number of toilet places within 300 and 500 metres, the nearest place with its number of toilets, the places within 500 metres inside a disclosure that is closed by default, the day of the location used and the day of the toilet snapshot that day was loaded with, each part followed by that end's map container and map data as defined by `turnaround-map` and by the line stating the share of the covered days' standstill reports that the drawn cells cover; the buffer estimate as defined by `buffer-trade` for the selected buffer, with the number of covered days, measured layovers at stopping ends, measured layovers at pass-through ends when the route has such an end, and trips, the rest achievement, the lower and upper added vehicle-hours per day, the lower and upper added vehicles with their busiest hour, and the vehicles per day; the run time summary of `run-time` per direction, with the number of excluded trips; the load chart along the route, followed by the MRT overlap as defined by `mrt-overlap`, with each direction's number of stops and overlap share at 300, 500 and 800 metres, the overlap stretches at 500 metres with their first and last sequence numbers and stop names, the on-board counts of each stretch per time band, and the day of the entrance snapshot used; and the load profile as defined by `load-profile`, per direction, time band and stop, each cell giving the median, the p90 and the number of trips with a count, inside a disclosure that is closed by default and whose rows are all present in the server response. Percentiles SHALL be computed over all trips of the covered days, not combined from daily values. The MRT overlap SHALL NOT mark any share as above or below a review threshold, and the turnaround facilities SHALL NOT judge whether the toilets are enough. When the stops of the covered days carry no nearest-entrance distance, the MRT overlap block SHALL say that the days need to be loaded again instead of showing shares; when the covered days carry no end rows, the turnaround facilities block SHALL say the same and SHALL contain no map container. The buffer estimate SHALL offer a control that sets the buffer from 0 to 20 minutes; changing it SHALL replace only the buffer estimate block and SHALL update the page address with the `buffer` parameter while keeping `day` and `range`.
 
 #### Scenario: Seven-day percentile pools trips
 
@@ -253,7 +253,7 @@ The page SHALL show, in this order: a summary with the route name, departure and
 #### Scenario: Overlap block in place
 
 - **WHEN** a stored day whose stops carry nearest-entrance distances is rendered
-- **THEN** the blocks appear in the order summary, layover chart, layovers, round trips and cycles, turnaround facilities, buffer estimate, run times, load chart, MRT overlap, load profile, limitations, and the MRT overlap block names the entrance snapshot day
+- **THEN** the blocks appear in the order summary, stop sequence, layover chart, layovers, round trips and cycles, turnaround facilities, buffer estimate, run times, load chart, MRT overlap, load profile, limitations, and the MRT overlap block names the entrance snapshot day
 
 #### Scenario: Distances missing
 
@@ -302,120 +302,122 @@ The page SHALL show, in this order: a summary with the route name, departure and
 
 
 <!-- @trace
-source: turnaround-map
+source: 02-route-stop-sequence
 updated: 2026-10-24
 code:
-  - app/models/route_day_end_toilet.rb
-  - app/components/attribution_component.html.erb
-  - app/components/data_limitations_component.yml
-  - app/views/routes/show.html.erb
-  - analysis/params.sql
-  - app/components/attribution_component.rb
-  - analysis/derived_export.sql
-  - app/components/section_nav_component.yml
-  - output/branding-v2/a-bus/favicon-preview.png
-  - app/components/home_hero_component.yml
-  - output/branding-v2/a-bus/favicon.ico
-  - app/components/turnaround_facilities_component.rb
-  - .ruby-version
-  - .kamal/secrets
-  - app/components/attribution_component.yml
-  - app/components/home_hero_component.html.erb
-  - app/components/end_map_component.yml
-  - public/turnaround/og-image-v2.jpg
-  - app/components/end_map_component.rb
-  - spec/support/duckdb.rb
-  - app/assets/images/home-hero-wide.webp
-  - app/components/section_nav_component.rb
-  - app/models/route_day.rb
-  - app/components/cycle_table_component.html.erb
-  - config/environments/production.rb
-  - app/models/route_page/facilities.rb
-  - app/components/end_map_component.html.erb
-  - config/map.yml
-  - public/turnaround/icon-32.png
-  - tools/hero/index.html
-  - config/locales/en.yml
-  - app/components/site_bar_component.html.erb
-  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
-  - app/components/home_hero_component.rb
-  - lib/tasks/external.rake
-  - spec/factories/route_day_end_toilets.rb
-  - app/models/map_tiles.rb
-  - app/views/layouts/application.html.erb
-  - app/frontend/hero/runtime.js
-  - bin/health-card
-  - app/frontend/stylesheets/application.css
-  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
-  - app/assets/images/home-hero-narrow.webp
-  - docs/data-sources.md
-  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
-  - public/turnaround/icon-16.png
-  - app/components/turnaround_facilities_component.yml
-  - app/assets/images/home-hero-tall.webp
-  - app/assets/images/turnaround-logo.webp
-  - public/turnaround/apple-touch-icon.png
-  - output/branding-v2/a-bus/logo.png
-  - config/deploy.yml
-  - app/models/route_page/cycles.rb
-  - app/models/route_page/end_map.rb
-  - config/database.yml
-  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
-  - docs/decisions.md
-  - package.json
-  - spec/fixtures/analysis/README.md
-  - spec/factories/route_day_end_cells.rb
-  - app/components/cycle_table_component.yml
-  - spec/factories/route_day_ends.rb
-  - Dockerfile
-  - analysis/turnaround_facilities.sql
-  - config/credentials/production.yml.enc
-  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
-  - app/components/turnaround_facilities_component.html.erb
-  - app/models/derived_load_command.rb
-  - app/frontend/entrypoints/application.js
-  - app/frontend/hero/scene.js
-  - tools/hero/export.js
-  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
-  - config/locales/tw.yml
-  - app/models/route_day_end.rb
-  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
   - app/models/route_day_end_cell.rb
-  - app/models/route_day_loader.rb
-  - Gemfile.lock
-  - app/frontend/end_map/runtime.js
-  - app/models/public_toilets_snapshot.rb
-  - public/turnaround/favicon.ico
-  - Gemfile
+  - config/locales/en.yml
+  - output/branding-v2/a-bus/logo.png
+  - app/components/route_coverage_component.html.erb
+  - app/components/route_list_component.yml
+  - app/models/route_day_end.rb
+  - bin/health-card
+  - app/frontend/entrypoints/application.js
+  - app/controllers/routes_controller.rb
   - db/schema.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - analysis/params.sql
+  - app/models/route_day_end_toilet.rb
+  - app/components/stop_sequence_component.html.erb
+  - app/components/stop_sequence_component.yml
+  - app/models/route_page/stop_sequence.rb
+  - app/components/section_nav_component.yml
+  - app/models/route_day_loader.rb
+  - app/components/attribution_component.rb
+  - config/map.yml
+  - public/robots.txt
+  - docs/data-sources.md
+  - app/components/turnaround_facilities_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
+  - app/components/turnaround_facilities_component.html.erb
+  - spec/support/duckdb.rb
+  - app/views/routes/show.html.erb
+  - .ruby-version
+  - app/models/derived_load_command.rb
+  - app/components/layover_chart_component.yml
+  - Dockerfile
+  - app/frontend/stylesheets/application.css
+  - app/components/home_hero_component.yml
+  - app/components/load_chart_component.html.erb
+  - app/models/map_tiles.rb
+  - config/locales/tw.yml
+  - app/components/data_limitations_component.yml
+  - app/components/section_nav_component.rb
+  - app/views/layouts/application.html.erb
+  - app/components/attribution_component.yml
+  - output/branding-v2/a-bus/favicon-preview.png
+  - Gemfile
+  - app/models/route_day.rb
+  - package.json
+  - app/frontend/rest_command.js
+  - app/models/route_page/end_map.rb
+  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
+  - analysis/turnaround_facilities.sql
+  - analysis/derived_export.sql
+  - app/components/end_map_component.html.erb
+  - app/components/route_coverage_component.yml
+  - app/frontend/end_map/runtime.js
+  - app/frontend/hero/scene.js
+  - app/components/home_hero_component.html.erb
+  - app/components/end_map_component.rb
+  - app/components/end_map_component.yml
+  - config/deploy.yml
+  - app/models/route_page/facilities.rb
+  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
+  - public/404.html
+  - output/branding-v2/a-bus/favicon.ico
   - analysis/README.md
-  - app/components/cycle_table_component.rb
+  - spec/fixtures/analysis/README.md
+  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
+  - spec/factories/route_day_end_toilets.rb
   - spec/factories/route_days.rb
+  - app/components/load_chart_component.rb
+  - lib/tasks/external.rake
+  - app/components/attribution_component.html.erb
+  - app/components/turnaround_facilities_component.yml
+  - spec/factories/route_day_end_cells.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
+  - app/assets/images/home-hero-wide.webp
+  - app/assets/images/home-hero-narrow.webp
+  - Gemfile.lock
+  - app/components/stop_sequence_component.rb
+  - config/initializers/mime_types.rb
+  - spec/factories/route_day_ends.rb
+  - public/turnaround/og-image-v2.jpg
+  - app/frontend/hero/runtime.js
+  - app/models/public_toilets_snapshot.rb
+  - app/components/route_list_component.html.erb
 tests:
-  - spec/models/map_tiles_spec.rb
-  - spec/analysis/turnaround_facilities_spec.rb
-  - spec/system/end_map_spec.rb
-  - spec/models/route_page/cycles_spec.rb
-  - spec/requests/site_layout_spec.rb
-  - spec/components/cycle_table_component_spec.rb
-  - spec/analysis/cli_spec.rb
-  - spec/models/route_page/facilities_spec.rb
-  - spec/requests/route_page_fixture_spec.rb
-  - spec/models/route_page/end_map_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/assets/home_hero_images_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/analysis/derived_export_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/models/public_toilets_snapshot_spec.rb
-  - spec/components/end_map_component_spec.rb
-  - spec/components/turnaround_facilities_component_spec.rb
-  - spec/components/home_hero_component_spec.rb
   - spec/models/route_day_loader_spec.rb
-  - spec/system/home_hero_spec.rb
-  - spec/system/route_page_mobile_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/system/rest_command_spec.rb
+  - spec/models/public_toilets_snapshot_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/route_page/stop_sequence_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/models/route_page/end_map_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/components/load_chart_component_spec.rb
+  - spec/system/load_chart_hover_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
+  - spec/models/map_tiles_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/requests/not_found_page_spec.rb
+  - spec/components/stop_sequence_component_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/route_page/facilities_spec.rb
   - spec/analysis/fixtures_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/components/route_coverage_component_spec.rb
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/requests/easter_eggs_spec.rb
 -->
 
 ---
@@ -1514,4 +1516,305 @@ tests:
   - spec/requests/pages_spec.rb
   - spec/requests/route_page_fixture_spec.rb
   - spec/system/home_hero_spec.rb
+-->
+
+---
+### Requirement: Stop sequence block
+
+The page SHALL show, after the section links and before the layover distribution chart, a stop sequence block built from the stops stored for the latest covered day. The block SHALL hold a disclosure that is closed by default, whose summary gives each direction's number of stops and whose rows are all present in the server response. Inside, the block SHALL list each direction in direction order with its stop names in sequence order, marking the first as the first stop and the last as the last stop, and SHALL NOT show sequence numbers. After each direction's last stop, a row SHALL state the nature of that end as defined by `turnaround-ends` (stopping or pass-through) and SHALL name the first stop of the other direction as where the next trip starts; when the other direction has no stops, the row SHALL state only the nature. The block SHALL state the static snapshot day of the latest covered day. When the latest covered day has no stops, the block SHALL state that the covered days have no stop sequence and SHALL show no list. The block SHALL NOT mark stops as near the MRT, SHALL NOT show on-board counts and SHALL NOT mark which stops another route shares.
+
+#### Scenario: Stops of the latest covered day
+
+- **WHEN** the page covers two days whose stops differ
+- **THEN** the block lists the stops of the later day and states that day's static snapshot day
+
+##### Example: two weekdays given oldest first
+
+- **GIVEN** route 9001's covered days are 2026-10-19 and 2026-10-20, given oldest first as the day coverage orders them; 2026-10-19's direction 0 stops are 甲站 and 乙站, and 2026-10-20's direction 0 stops are 甲站, 丙站 and 戊站, with the static snapshot day 2026-10-20
+- **WHEN** the block is rendered
+- **THEN** direction 0 lists 甲站, 丙站 and 戊站 in that order, and the block names the snapshot day 2026-10-20
+
+#### Scenario: Turnaround row after each direction
+
+- **WHEN** the latest covered day has stops in both directions, and the route's direction 0 is a pass-through end and direction 1 a stopping end
+- **THEN** direction 0's list ends with its last stop marked as the last stop, followed by a pass-through row naming direction 1's first stop, and direction 1's list ends with its last stop, followed by a stopping row naming direction 0's first stop
+
+##### Example: the same name at the stopping end
+
+- **GIVEN** the latest covered day's direction 0 stops are 甲站 (sequence 0), 乙站 (1) and 戊站 (2), its direction 1 stops are 己站 (3), 丁站 (4) and 甲站 (5), and the ends are 0 `pass_through` and 1 `stop`
+- **WHEN** the block is rendered
+- **THEN** direction 0 reads 甲站 marked first stop, 乙站, 戊站 marked last stop, followed by a pass-through row naming 己站; and direction 1 reads 己站 marked first stop, 丁站, 甲站 marked last stop, followed by a stopping row naming 甲站
+
+#### Scenario: No sequence numbers
+
+- **WHEN** direction 1's stops carry the sequence numbers 3 to 5
+- **THEN** each row of the list shows only its stop name, with the first stop and last stop marks, and no row shows a sequence number
+
+#### Scenario: List closed by default
+
+- **WHEN** a stored day with stops is rendered
+- **THEN** the stop list is inside a disclosure that is closed, its summary gives each direction's number of stops, and the response contains a row for every stop of the latest covered day
+
+#### Scenario: Only one direction stored
+
+- **WHEN** the latest covered day has stops only in direction 0
+- **THEN** the block lists direction 0 only, and its turnaround row states the nature of that end without naming a next first stop
+
+#### Scenario: No stops stored
+
+- **WHEN** the latest covered day has no stops
+- **THEN** the block states that the covered days have no stop sequence and shows no list, and every other block renders as before
+
+
+<!-- @trace
+source: 02-route-stop-sequence
+updated: 2026-10-24
+code:
+  - app/models/route_day_end_cell.rb
+  - config/locales/en.yml
+  - output/branding-v2/a-bus/logo.png
+  - app/components/route_coverage_component.html.erb
+  - app/components/route_list_component.yml
+  - app/models/route_day_end.rb
+  - bin/health-card
+  - app/frontend/entrypoints/application.js
+  - app/controllers/routes_controller.rb
+  - db/schema.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - analysis/params.sql
+  - app/models/route_day_end_toilet.rb
+  - app/components/stop_sequence_component.html.erb
+  - app/components/stop_sequence_component.yml
+  - app/models/route_page/stop_sequence.rb
+  - app/components/section_nav_component.yml
+  - app/models/route_day_loader.rb
+  - app/components/attribution_component.rb
+  - config/map.yml
+  - public/robots.txt
+  - docs/data-sources.md
+  - app/components/turnaround_facilities_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
+  - app/components/turnaround_facilities_component.html.erb
+  - spec/support/duckdb.rb
+  - app/views/routes/show.html.erb
+  - .ruby-version
+  - app/models/derived_load_command.rb
+  - app/components/layover_chart_component.yml
+  - Dockerfile
+  - app/frontend/stylesheets/application.css
+  - app/components/home_hero_component.yml
+  - app/components/load_chart_component.html.erb
+  - app/models/map_tiles.rb
+  - config/locales/tw.yml
+  - app/components/data_limitations_component.yml
+  - app/components/section_nav_component.rb
+  - app/views/layouts/application.html.erb
+  - app/components/attribution_component.yml
+  - output/branding-v2/a-bus/favicon-preview.png
+  - Gemfile
+  - app/models/route_day.rb
+  - package.json
+  - app/frontend/rest_command.js
+  - app/models/route_page/end_map.rb
+  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
+  - analysis/turnaround_facilities.sql
+  - analysis/derived_export.sql
+  - app/components/end_map_component.html.erb
+  - app/components/route_coverage_component.yml
+  - app/frontend/end_map/runtime.js
+  - app/frontend/hero/scene.js
+  - app/components/home_hero_component.html.erb
+  - app/components/end_map_component.rb
+  - app/components/end_map_component.yml
+  - config/deploy.yml
+  - app/models/route_page/facilities.rb
+  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
+  - public/404.html
+  - output/branding-v2/a-bus/favicon.ico
+  - analysis/README.md
+  - spec/fixtures/analysis/README.md
+  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
+  - spec/factories/route_day_end_toilets.rb
+  - spec/factories/route_days.rb
+  - app/components/load_chart_component.rb
+  - lib/tasks/external.rake
+  - app/components/attribution_component.html.erb
+  - app/components/turnaround_facilities_component.yml
+  - spec/factories/route_day_end_cells.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
+  - app/assets/images/home-hero-wide.webp
+  - app/assets/images/home-hero-narrow.webp
+  - Gemfile.lock
+  - app/components/stop_sequence_component.rb
+  - config/initializers/mime_types.rb
+  - spec/factories/route_day_ends.rb
+  - public/turnaround/og-image-v2.jpg
+  - app/frontend/hero/runtime.js
+  - app/models/public_toilets_snapshot.rb
+  - app/components/route_list_component.html.erb
+tests:
+  - spec/models/route_day_loader_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/system/rest_command_spec.rb
+  - spec/models/public_toilets_snapshot_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/route_page/stop_sequence_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/models/route_page/end_map_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/components/load_chart_component_spec.rb
+  - spec/system/load_chart_hover_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
+  - spec/models/map_tiles_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/requests/not_found_page_spec.rb
+  - spec/components/stop_sequence_component_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/route_page/facilities_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/components/route_coverage_component_spec.rb
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/requests/easter_eggs_spec.rb
+-->
+
+---
+### Requirement: Route name and Id in the header
+
+When the page covers stored days, the page heading SHALL be the route name of the latest covered day alone, without the route's Id. The line under the heading SHALL give the departure and destination of the latest covered day followed by the label 路線 Id and the route's Id, so that the Id appears once in the header.
+
+#### Scenario: Name alone, Id beside the departure and destination
+
+- **WHEN** route 9001's latest covered day has route name 測試幹線, departure 甲站 and destination 戊站
+- **THEN** the page heading reads 測試幹線, and the line under it reads 甲站－戊站 followed by 路線 Id 9001
+
+#### Scenario: Selected day not stored
+
+- **WHEN** the selected day is not stored for the route
+- **THEN** the page shows neither the heading with the route name nor the line with the Id, and states that the day has no data as the requirement "Day coverage" describes
+
+<!-- @trace
+source: 02-route-stop-sequence
+updated: 2026-10-24
+code:
+  - app/models/route_day_end_cell.rb
+  - config/locales/en.yml
+  - output/branding-v2/a-bus/logo.png
+  - app/components/route_coverage_component.html.erb
+  - app/components/route_list_component.yml
+  - app/models/route_day_end.rb
+  - bin/health-card
+  - app/frontend/entrypoints/application.js
+  - app/controllers/routes_controller.rb
+  - db/schema.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - analysis/params.sql
+  - app/models/route_day_end_toilet.rb
+  - app/components/stop_sequence_component.html.erb
+  - app/components/stop_sequence_component.yml
+  - app/models/route_page/stop_sequence.rb
+  - app/components/section_nav_component.yml
+  - app/models/route_day_loader.rb
+  - app/components/attribution_component.rb
+  - config/map.yml
+  - public/robots.txt
+  - docs/data-sources.md
+  - app/components/turnaround_facilities_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
+  - app/components/turnaround_facilities_component.html.erb
+  - spec/support/duckdb.rb
+  - app/views/routes/show.html.erb
+  - .ruby-version
+  - app/models/derived_load_command.rb
+  - app/components/layover_chart_component.yml
+  - Dockerfile
+  - app/frontend/stylesheets/application.css
+  - app/components/home_hero_component.yml
+  - app/components/load_chart_component.html.erb
+  - app/models/map_tiles.rb
+  - config/locales/tw.yml
+  - app/components/data_limitations_component.yml
+  - app/components/section_nav_component.rb
+  - app/views/layouts/application.html.erb
+  - app/components/attribution_component.yml
+  - output/branding-v2/a-bus/favicon-preview.png
+  - Gemfile
+  - app/models/route_day.rb
+  - package.json
+  - app/frontend/rest_command.js
+  - app/models/route_page/end_map.rb
+  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
+  - analysis/turnaround_facilities.sql
+  - analysis/derived_export.sql
+  - app/components/end_map_component.html.erb
+  - app/components/route_coverage_component.yml
+  - app/frontend/end_map/runtime.js
+  - app/frontend/hero/scene.js
+  - app/components/home_hero_component.html.erb
+  - app/components/end_map_component.rb
+  - app/components/end_map_component.yml
+  - config/deploy.yml
+  - app/models/route_page/facilities.rb
+  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
+  - public/404.html
+  - output/branding-v2/a-bus/favicon.ico
+  - analysis/README.md
+  - spec/fixtures/analysis/README.md
+  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
+  - spec/factories/route_day_end_toilets.rb
+  - spec/factories/route_days.rb
+  - app/components/load_chart_component.rb
+  - lib/tasks/external.rake
+  - app/components/attribution_component.html.erb
+  - app/components/turnaround_facilities_component.yml
+  - spec/factories/route_day_end_cells.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
+  - app/assets/images/home-hero-wide.webp
+  - app/assets/images/home-hero-narrow.webp
+  - Gemfile.lock
+  - app/components/stop_sequence_component.rb
+  - config/initializers/mime_types.rb
+  - spec/factories/route_day_ends.rb
+  - public/turnaround/og-image-v2.jpg
+  - app/frontend/hero/runtime.js
+  - app/models/public_toilets_snapshot.rb
+  - app/components/route_list_component.html.erb
+tests:
+  - spec/models/route_day_loader_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/system/rest_command_spec.rb
+  - spec/models/public_toilets_snapshot_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/route_page/stop_sequence_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/models/route_page/end_map_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/components/load_chart_component_spec.rb
+  - spec/system/load_chart_hover_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
+  - spec/models/map_tiles_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/requests/not_found_page_spec.rb
+  - spec/components/stop_sequence_component_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/route_page/facilities_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/components/route_coverage_component_spec.rb
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/requests/easter_eggs_spec.rb
 -->
