@@ -2,9 +2,10 @@
 
 # The load profile of each direction as a line of median on-board counts
 # along the stop sequence, one time band shown at a time, with the MRT overlap
-# stretches drawn as shaded spans. All bands of a direction share one vertical
-# scale so switching bands keeps heights comparable. A stop without a count in
-# a band breaks that band's line; nothing is filled in.
+# stretches drawn as shaded spans, each numbered in stop order and named in a
+# list below the chart. All bands of a direction share one vertical scale so
+# switching bands keeps heights comparable. A stop without a count in a band
+# breaks that band's line; nothing is filled in.
 class LoadChartComponent < ApplicationComponent
   BANDS = %w[morning_peak daytime evening_peak other].freeze
   DEFAULT_BAND = BANDS.first
@@ -15,6 +16,8 @@ class LoadChartComponent < ApplicationComponent
   RIGHT = 16
   TOP = 30
   BOTTOM = 36
+  MARKER_RADIUS = 8
+  MARKER_Y = TOP - 12
 
   Chart = Data.define(:go_back, :stops, :medians, :ranges)
 
@@ -72,6 +75,9 @@ class LoadChartComponent < ApplicationComponent
   def span_x(chart, range) = (x(chart, range.first) - (step(chart) / 2)).round(1)
 
   def span_width(chart, range) = (x(chart, range.last) - x(chart, range.first) + step(chart)).round(1)
+
+  # The middle of a span, where its number is drawn.
+  def span_center_x(chart, range) = (span_x(chart, range) + (span_width(chart, range) / 2)).round(1)
 
   def stop_name(chart, seq) = chart.stops.find { it.seq == seq }&.stop_name
 
