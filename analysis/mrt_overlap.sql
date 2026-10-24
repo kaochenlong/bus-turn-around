@@ -8,7 +8,8 @@
 -- Reads stops from stage 10 and the variable mrt_exits_path, a UTF-8
 -- snapshot written by bin/rails external:mrt_exits. Creates:
 --   mrt_exits           the snapshot's entrances
---   stop_mrt_distances  per stop: coordinates, nearest entrance, metres
+--   stop_mrt_distances  per stop of every route Id of the run: coordinates,
+--                       nearest entrance, metres
 
 -- Great-circle distance in metres on a sphere of radius 6,371,000 m.
 CREATE OR REPLACE MACRO haversine_meters(lat1, lon1, lat2, lon2) AS
@@ -27,7 +28,8 @@ FROM read_csv(getvariable('mrt_exits_path'), header = true, columns = {
 -- Of two entrances at the same distance, the one first by name wins, so the
 -- result does not depend on row order.
 CREATE OR REPLACE TABLE stop_mrt_distances AS
-SELECT s.go_back,
+SELECT s.route_id,
+       s.go_back,
        s.seq,
        s.latitude,
        s.longitude,
@@ -36,6 +38,6 @@ SELECT s.go_back,
 FROM stops s
 CROSS JOIN mrt_exits e
 QUALIFY row_number() OVER (
-    PARTITION BY s.go_back, s.seq
+    PARTITION BY s.route_id, s.go_back, s.seq
     ORDER BY haversine_meters(s.latitude, s.longitude, e.latitude, e.longitude), e.exit_name
 ) = 1;

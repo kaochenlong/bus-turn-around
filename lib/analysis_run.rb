@@ -40,10 +40,13 @@ module AnalysisRun
     stdout.strip.empty? ? [] : JSON.parse(stdout)
   end
 
+  # An Array becomes a DuckDB list literal, such as [16111, 19108] for the
+  # route Ids of one page.
   def sql_literal(value)
     case value
     when Integer then value.to_s
     when Date then "DATE '#{value.iso8601}'"
+    when Array then "[#{value.map { sql_literal(it) }.join(', ')}]"
     else "'#{value.to_s.gsub("'", "''")}'"
     end
   end

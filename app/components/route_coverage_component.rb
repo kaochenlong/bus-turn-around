@@ -13,6 +13,10 @@ class RouteCoverageComponent < ApplicationComponent
 
   def route_day = covered.last
 
+  # Every route Id the page counts as one route, the page route first, joined
+  # by 「・」; a page without member routes reads as its Id alone.
+  def route_ids_text = RoutePage.member_route_ids(@coverage.route_id).join("・")
+
   def range_options = RoutePage::Coverage::RANGES.keys
 
   # Where the link to the other day type goes; nil when there is no stored day

@@ -20,6 +20,18 @@ RSpec.describe DataLimitationsComponent, type: :component do
     end
   end
 
+  it "有成員路線的頁多一條合算說明，點名兩個 Id，附涵蓋日子裡每個 Id 的趟次數" do
+    rendered = render_inline(described_class.new(member_trips: [ [ 9001, 1 ], [ 9050, 2 ] ]))
+    note = rendered.at_css("[data-section=limitations] li[data-member-routes]")&.text&.squish
+    expect([ note&.include?("路線 Id 9001 與 9050"), note&.include?("9001 1 趟、9050 2 趟"), rendered.css("[data-section=limitations] li").size ])
+      .to eq([ true, true, sidecar.fetch("items").size + 1 ])
+  end
+
+  it "只有一個 Id 的路線沒有那一條" do
+    items = rendered_items(member_trips: [ [ 10712, 5 ] ])
+    expect(items).to eq(sidecar.fetch("items"))
+  end
+
   it "首頁那份帶上框線；路線頁那份放在卡片裡，不帶上框線" do
     sections = %i[home route].map { |scope| render_inline(described_class.new(scope:)).at_css("section[data-section=limitations]") }
     expect(sections.map { it.classes.include?("border-t") }).to eq([ true, false ])

@@ -7,10 +7,10 @@ tw: &tw
   submit: 重算
   coverage_html: "%{days} 天裡，停車那一端量到 %{layovers} 次折返停留，這段期間總共跑了 %{trips} 趟。"
   pass_through_html: "開過去就走那一端另外量到 %{layovers} 次折返停留，車在那裡不會停下來，不算休息的機會，所以沒有算進試算。"
-  lower: 只補不足的部分
-  upper: 每次都加滿
-  vehicle_hours: 每天多幾車時
-  peak_vehicles: 最忙的那個小時多幾台車
+  lower: 只把不夠的補到 %{minutes} 分鐘
+  upper: 每次都多留 %{minutes} 分鐘
+  vehicle_hours: 每天要多花幾車時
+  peak_vehicles: 最忙的那個小時要多派幾台車
   bounds_note: 折返停留包含回場、加油、等發車，只是休息時間的上限，所以真正的成本會落在這兩欄之間。車數是按那個小時平均估出來的，實際排班可能會不一樣。
   achieved: 目前停留不少於 %{minutes} 分鐘的比例
   vehicles_per_day: 目前每天平均用到幾台車
@@ -25,8 +25,8 @@ en:
   submit: Recalculate
   coverage_html: "%{layovers} layovers measured at the ends where buses stop over %{days} days, out of %{trips} trips."
   pass_through_html: "%{layovers} more layovers were measured at the end where buses drive on: buses do not stop there, so they are not rest opportunities and are left out of the estimate."
-  lower: Top up the shortfall
-  upper: Add to every layover
+  lower: Top up the shortfall to %{minutes} minutes
+  upper: Add %{minutes} minutes to every layover
   vehicle_hours: Added vehicle-hours per day
   peak_vehicles: Added vehicles in the busiest hour
   bounds_note: A layover includes returning to the depot, refuelling and waiting, so it is an upper bound on rest and the real cost lies between the two columns. Vehicles are an hourly average, not a schedule.

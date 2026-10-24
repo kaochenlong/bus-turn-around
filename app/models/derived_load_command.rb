@@ -1,7 +1,10 @@
 # bin/rails derived:load: writes one route's Taipei days into the derived
-# tables, oldest first, one RouteDayLoader call per day. A range stops at the
-# first day that fails; the days written before it stay. The raw data root
-# comes only from TURNAROUND_DATA, so no host path is written into the repo.
+# tables, oldest first, one RouteDayLoader call per day, with the member
+# routes its page counts with it. A route listed under another route's
+# member_routes has no page and is a usage error that names the page route.
+# A range stops at the first day that fails; the days written before it stay.
+# The raw data root comes only from TURNAROUND_DATA, so no host path is
+# written into the repo.
 class DerivedLoadCommand
   USAGE = <<~TEXT.freeze
     用法：bin/rails derived:load ROUTE=<路線 Id> DAY=<YYYY-MM-DD>
@@ -37,7 +40,12 @@ class DerivedLoadCommand
     usage!("沒有 ROUTE 或格式不對") unless ROUTE_ID.match?(route.to_s)
     usage!("沒有 TURNAROUND_DATA") if data_root.to_s.empty?
     days = day ? [ parse_day(day) ] : day_range(from, to)
-    [ Integer(route), days ]
+    route_id = Integer(route)
+    if (page_route_id = RoutePage.member_of(route_id))
+      raise Failure, "#{route_id} 是 #{page_route_id} 那一頁的附屬路線，請用 ROUTE=#{page_route_id}"
+    end
+
+    [ route_id, days ]
   end
 
   def day_range(from, to)
@@ -73,7 +81,7 @@ class DerivedLoadCommand
 
   def load_day(route_id, day, duckdb)
     check_day(day)
-    counts = RouteDayLoader.new(route_id:, day:, data_root:, duckdb:, out: @out).call
+    counts = RouteDayLoader.new(route_id:, day:, data_root:, duckdb:, out: @out, member_route_ids: RoutePage.member_route_ids(route_id)).call
     @out.puts("#{day.iso8601} 寫入：趟次 #{counts[:trips]}、折返停留 #{counts[:layovers]}、趟次站 #{counts[:trip_stop_counts]}、" \
               "兩端公廁 #{counts[:end_toilets]} 間、靜止格 #{counts[:end_cells]} 格")
   end

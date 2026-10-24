@@ -1,22 +1,31 @@
 -- Stage 10: load one route and one Taipei day from the raw n-gear files.
 --
--- Reads the variables data_root, route_id, day and static_day, plus the
--- window constants of params.sql. Creates:
+-- Reads the variables data_root, route_id, day and static_day, optionally
+-- member_route_ids, plus the window constants of params.sql. A run works on
+-- a set of route Ids: member_route_ids lists the page route first, then the
+-- member routes counted with it on one page; without it the set is route_id
+-- alone. Events map to their own route Id and its stop list; only the page
+-- route names the run where one route must. Creates:
 --   input_files          the hourly files read, per feed
---   routes               the GetRoute.gz rows of the requested route
---   bus_events           bus_event records of the route's sub-routes, deduplicated
+--   routes               the sub-routes of the run's routes, one row each
+--   bus_events           bus_event records of the route's sub-routes, deduplicated,
+--                        each with the StationID of the vehicle's depot
 --   seat_events          bus_seat_event records of the route's sub-routes, deduplicated
 --   other_route_events   bus_event records of the route's vehicles on other routes,
 --                        RouteID 0 left out, deduplicated
 --   load_counts          records read and removed per feed, after the route filter
---   stops                the route's GetStop.gz stop list, both directions, with coordinates
+--   stops                the GetStop.gz stop lists of the run's routes, both
+--                        directions, with coordinates and stop location
 --   path_stops           the GetPathDetail.gz stops of the route's sub-routes
 --   stop_events          bus_events mapped to the route and the stop's seqNo
 --   unknown_stop_events  bus_events whose stop is not in their direction's list
---   sequence_check       per sub-route: directions compared and whether its
---                        stop sequence equals the route's (a view)
+--   sequence_check       per sub-route: its route Id, the directions compared
+--                        and whether its stop sequence equals that route's (a view)
 
 SET VARIABLE static_dir = getvariable('data_root') || '/static/' || strftime(getvariable('static_day'), '%Y-%m-%d');
+
+-- The route Ids of the run; see above.
+SET VARIABLE route_ids = coalesce(getvariable('member_route_ids'), [getvariable('route_id')]);
 
 -- The window covers the hours [day - lookback, day + 1 day + overflow), taken
 -- from the day directory and the hour in the file name.
@@ -57,8 +66,17 @@ SET VARIABLE seat_event_files = (SELECT list(file ORDER BY file) FROM input_file
 
 -- Static snapshots are one JSON object whose rows sit in the BusInfo array.
 -- The object limit is set explicitly instead of relying on the default.
+--
+-- One row per sub-route. GetRoute.gz can list a sub-route more than once, one
+-- row per operator of a joint route, alike in every column read here and
+-- different only in providerId and providerName: in the snapshot of
+-- 2026-10-24, 55 (Id, pathAttributeId) pairs had more than one row, and each
+-- sub-route of route 307 had four. Every table below that joins routes on
+-- path_attribute_id would otherwise count an event once per duplicate row.
+-- bin/health-card and bin/rails derived:load both run this file.
 CREATE OR REPLACE TABLE routes AS
-SELECT r.Id AS route_id,
+SELECT DISTINCT
+       r.Id AS route_id,
        r.pathAttributeId AS path_attribute_id,
        r.nameZh AS route_name,
        r.pathAttributeName AS path_attribute_name,
@@ -68,11 +86,22 @@ FROM (
     SELECT unnest(BusInfo) AS r
     FROM read_json(getvariable('static_dir') || '/GetRoute.gz', maximum_object_size = 268435456)
 )
-WHERE r.Id = getvariable('route_id');
+WHERE list_contains(getvariable('route_ids'), r.Id);
+
+-- A route Id of the run without a row in GetRoute.gz stops the run: left
+-- alone, every event of that route would silently be dropped.
+SET VARIABLE route_ids_checked = (
+    SELECT CASE WHEN count(*) > 0
+                THEN error('GetRoute.gz 沒有路線 Id ' || string_agg(CAST(id AS VARCHAR), '、' ORDER BY id) || ' 的列')
+                ELSE true END
+    FROM (SELECT unnest(getvariable('route_ids')) AS id)
+    WHERE id NOT IN (SELECT route_id FROM routes)
+);
 
 -- Raw records are read with explicit VARCHAR columns, so an hour file whose
 -- values are all null or all strings cannot change a column's type. Records
--- of other routes are dropped before anything else.
+-- of other routes are dropped before anything else. StationID is the depot
+-- the vehicle belongs to; analysis/depots.sql reads it.
 CREATE OR REPLACE TABLE raw_bus_events AS
 SELECT BusID AS bus_id,
        TRY_CAST(RouteID AS BIGINT) AS path_attribute_id,
@@ -81,6 +110,7 @@ SELECT BusID AS bus_id,
        TRY_CAST(CarOnStop AS INTEGER) AS car_on_stop,
        TRY_CAST(DutyStatus AS INTEGER) AS duty_status,
        TRY_CAST(BusStatus AS INTEGER) AS bus_status,
+       TRY_CAST(StationID AS BIGINT) AS station_id,
        CAST(DataTime AS TIMESTAMP) AS data_time,
        CAST(_fetched_at AS TIMESTAMPTZ) AS fetched_at,
        filename AS source_file
@@ -90,7 +120,7 @@ FROM read_json(
     filename = true,
     columns = {
         BusID: 'VARCHAR', RouteID: 'VARCHAR', GoBack: 'VARCHAR', StopID: 'VARCHAR', CarOnStop: 'VARCHAR',
-        DutyStatus: 'VARCHAR', BusStatus: 'VARCHAR', DataTime: 'VARCHAR', _fetched_at: 'VARCHAR'
+        DutyStatus: 'VARCHAR', BusStatus: 'VARCHAR', StationID: 'VARCHAR', DataTime: 'VARCHAR', _fetched_at: 'VARCHAR'
     }
 )
 WHERE TRY_CAST(RouteID AS BIGINT) IN (SELECT path_attribute_id FROM routes);
@@ -191,12 +221,13 @@ SELECT s.routeId AS route_id,
        s.Id AS stop_id,
        s.nameZh AS stop_name,
        TRY_CAST(s.latitude AS DOUBLE) AS latitude,
-       TRY_CAST(s.longitude AS DOUBLE) AS longitude
+       TRY_CAST(s.longitude AS DOUBLE) AS longitude,
+       s.stopLocationId AS stop_location_id
 FROM (
     SELECT unnest(BusInfo) AS s
     FROM read_json(getvariable('static_dir') || '/GetStop.gz', maximum_object_size = 268435456)
 )
-WHERE s.routeId = getvariable('route_id');
+WHERE list_contains(getvariable('route_ids'), s.routeId);
 
 CREATE OR REPLACE TABLE path_stops AS
 SELECT p.pathAttributeId AS path_attribute_id,
@@ -220,6 +251,7 @@ SELECT e.bus_id,
        e.car_on_stop,
        e.duty_status,
        e.bus_status,
+       e.station_id,
        e.data_time,
        e.source_file
 FROM bus_events e
@@ -235,8 +267,9 @@ WHERE NOT EXISTS (
     WHERE s.route_id = r.route_id AND s.go_back = e.go_back AND s.stop_id = e.stop_id
 );
 
--- Merging sub-routes is checked on every run, not assumed. The directions
--- compared are those of the route's stops that appear in the sub-route; the
+-- Merging sub-routes is checked on every run, not assumed. A sub-route is
+-- compared with the stop list of the route Id it belongs to. The directions
+-- compared are those of that route's stops that appear in the sub-route; the
 -- comparison is on stop order only, because sequenceNo restarts at 0 for each
 -- sub-route. A sub-route spanning both directions is compared with the whole
 -- route, ordered by seqNo.
@@ -249,20 +282,24 @@ WITH path_lists AS (
 path_directions AS (
     SELECT p.path_attribute_id, list(DISTINCT s.go_back ORDER BY s.go_back) AS directions
     FROM path_stops p
-    JOIN stops s ON s.stop_id = p.stop_id
+    JOIN routes r USING (path_attribute_id)
+    JOIN stops s ON s.route_id = r.route_id AND s.stop_id = p.stop_id
     GROUP BY p.path_attribute_id
 ),
 compared AS (
-    SELECT r.path_attribute_id,
+    SELECT r.route_id,
+           r.path_attribute_id,
            r.path_attribute_name,
            coalesce(d.directions, []::INTEGER[]) AS directions,
            l.path_stop_ids,
-           (SELECT list(s.stop_id ORDER BY s.seq) FROM stops s WHERE list_contains(d.directions, s.go_back)) AS route_stop_ids
+           (SELECT list(s.stop_id ORDER BY s.seq) FROM stops s
+            WHERE s.route_id = r.route_id AND list_contains(d.directions, s.go_back)) AS route_stop_ids
     FROM routes r
     LEFT JOIN path_lists l USING (path_attribute_id)
     LEFT JOIN path_directions d USING (path_attribute_id)
 )
-SELECT path_attribute_id,
+SELECT route_id,
+       path_attribute_id,
        path_attribute_name,
        directions,
        coalesce(len(directions) > 0 AND path_stop_ids = route_stop_ids, false) AS identical

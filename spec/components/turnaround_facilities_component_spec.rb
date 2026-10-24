@@ -6,7 +6,10 @@ RSpec.describe TurnaroundFacilitiesComponent, type: :component do
   # Direction 0 trips end at a pass-through end and direction 1 trips at a stopping end.
   def route_ends = RoutePage::Ends.from_config({ 0 => "pass_through", 1 => "stop" }, route_id: 9001)
 
-  def render_facilities = render_inline(described_class.new(facilities: RoutePage::Facilities.new(RouteDay.order(:day), ends: route_ends)))
+  def render_facilities
+    route_days = RouteDay.order(:day)
+    render_inline(described_class.new(facilities: RoutePage::Facilities.new(route_days, ends: route_ends), depots: RoutePage::Depots.new(route_days)))
+  end
 
   # The text of each named data-value inside each end's part, in direction order.
   def values(rendered, *names) = rendered.css("[data-end]").map { |part| names.map { part.at_css("[data-value=#{it}]")&.text&.squish } }
@@ -104,5 +107,67 @@ RSpec.describe TurnaroundFacilitiesComponent, type: :component do
     create(:route_day)
     rendered = render_facilities
     expect([ rendered.css("[data-needs-reload]").size, rendered.css("[data-end]").size ]).to eq([ 1, 0 ])
+  end
+
+  describe "車輛所屬調度站" do
+    # The day's depots of 測試客運, the test configuration's three cases: 測試站
+    # with scores, 測試二站 not in the appendix and 測試三站 not checked.
+    def store_depots
+      route_day = store_day.first.route_day
+      [ [ 19001, "測試站", 4, 7 ], [ 19002, "測試二站", 2, 3 ], [ 19003, "測試三站", 1, 2 ] ].each do |station_id, station_name, n_buses, n_trips|
+        create(:route_day_depot, route_day:, station_id:, station_name:, n_buses:, n_trips:)
+      end
+    end
+
+    let(:rendered) { store_depots.then { render_facilities } }
+
+    def depot(status) = rendered.at_css("[data-depots] [data-depot-status=#{status}]")
+
+    it "在兩端之後，車數多的在前：有分數、不在名單、還沒對" do
+      expect(rendered.css("[data-depots] [data-depot]").map { it["data-depot-status"] }).to eq(%w[scored not_in_appendix unchecked])
+    end
+
+    it "有分數的那一站寫名稱、車數與趟次" do
+      expect(depot(:scored).at_css("[data-depot-name]").text.squish).to eq("測試客運 測試站・4 輛・7 趟")
+    end
+
+    it "九項各一個分數，兩欄相同寫一次、不同寫「a／b」" do
+      scores = depot(:scored).css("[data-score]").to_h { [ it["data-score"], it.text.strip ] }
+      expect([ scores.size, scores.values_at("調度室環境", "休憩室空間及環境", "盥洗室環境", "總分") ]).to eq([ 9, %w[8／9 7 5／4 98／97] ])
+    end
+
+    it "有分數的那一站寫檢查日期、附錄頁碼，連到報告書的公告頁" do
+      part = depot(:scored)
+      expect([ part.at_css("[data-value=inspected-on]").text, part.at_css("[data-value=printed-page]").text, part.at_css("a")["href"] ])
+        .to eq([ "12月2日", "A-99", RoutePage::DepotInspections.current.page_url ])
+    end
+
+    it "不在名單的那一站寫明不在 115 年第 1 期的名單，沒有分數" do
+      part = depot(:not_in_appendix)
+      expect([ part.at_css("[data-not-in-appendix]").text.include?("115 年第 1 期"), part.css("[data-score]").size ]).to eq([ true, 0 ])
+    end
+
+    it "還沒對的那一站沒有分數" do
+      expect(depot(:unchecked).css("[data-score]").size).to eq(0)
+    end
+
+    it "寫明車數與趟次是哪一天的" do
+      expect(rendered.at_css("[data-depots] [data-depots-day]")["data-depots-day"]).to eq("2026-10-19")
+    end
+
+    it "不出現判定好壞的字樣" do
+      expect(%w[達標 不足 合格 優良 不佳 良好].select { rendered.at_css("[data-depots]").text.include?(it) }).to eq([])
+    end
+  end
+
+  it "調度站的名稱是空的：寫營業站 Id 與 StationID" do
+    create(:route_day_depot, route_day: store_day.first.route_day, station_id: 19005, provider_name: "", station_name: "")
+    expect(render_facilities.at_css("[data-depot] [data-depot-name]").text.squish).to start_with("營業站 Id 19005・")
+  end
+
+  it "涵蓋的日子有兩端與公廁、沒有調度站的列：兩端照常，調度站那一段只有一句要重新載入" do
+    store_day_with_toilets
+    rendered = render_facilities
+    expect([ rendered.css("[data-end]").size, rendered.css("[data-depots] [data-depots-needs-reload]").size, rendered.css("[data-depot]").size ]).to eq([ 2, 1, 0 ])
   end
 end

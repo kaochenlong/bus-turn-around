@@ -63,6 +63,38 @@ RSpec.describe "Routes", type: :request do
     expect([ response.status, response.body ]).to eq([ 404, Rails.public_path.join("404.html").read ])
   end
 
+  it "成員路線 9050（掛在 9001 底下）沒有自己的頁：回 404，內容是 public/404.html" do
+    get route_path(9050)
+    expect([ response.status, response.body ]).to eq([ 404, Rails.public_path.join("404.html").read ])
+  end
+
+  it "有成員的路線，頁首起迄那一行接著這一頁全部的路線 Id" do
+    store_days("2026-10-19")
+    get route_path(9001)
+    expect(page.at_css("[data-route-id]").parent.text.squish).to eq("甲站－戊站 路線 Id 9001・9050")
+  end
+
+  # A complete trip of the route day on the given route Id, starting at `start`.
+  def add_member_trip(route_day, route_id, start)
+    start_time = Time.zone.parse("#{route_day.day} #{start}")
+    route_day.trips.create!(route_id:, bus_id: "TEST-0005", path_attribute_id: route_id, go_back: 0, band: "other", start_time:,
+                            end_time: start_time + 50.minutes, first_seq: 0, last_seq: 4, n_events: 5, n_stops_observed: 5,
+                            completeness: "complete", start_from_arrival: false, end_from_departure: false)
+  end
+
+  it "有成員的路線，資料限制多一條合算說明，寫涵蓋日子裡每個 Id 的趟次：9001 1 趟、9050 2 趟" do
+    route_day = create(:route_day, day: Date.new(2026, 10, 23))
+    [ [ 9050, "07:00" ], [ 9001, "08:00" ], [ 9050, "09:00" ] ].each { |route_id, start| add_member_trip(route_day, route_id, start) }
+    get route_path(9001)
+    expect(page.at_css("[data-section=limitations] li[data-member-routes]")&.text).to include("9001 1 趟、9050 2 趟")
+  end
+
+  it "沒有成員的路線沒有合算說明那一條" do
+    create(:route_day, route_id: 10712, route_name: "251", departure: "深坑", destination: "臺北車站")
+    get route_path(10712)
+    expect([ response.status, page.css("[data-section=limitations] li[data-member-routes]").size ]).to eq([ 200, 0 ])
+  end
+
   it "沒給 day、range 與 buffer 時，顯示最新一天、範圍是一天、緩衝 15 分鐘" do
     store_days("2026-10-19", "2026-10-20")
     get route_path(9001)
@@ -211,6 +243,43 @@ RSpec.describe "Routes", type: :request do
       table = cells("[data-shares] tr[data-direction]", 3)
       expect([ key_numbers("mrt-share", "data-direction"), table.count { it.last.match?(/\d/) } ]).to eq([ table, 2 ])
     end
+
+    it "設施卡列出那一天唯一的調度站：測試客運 測試站、4 輛、27 趟，照 test 設定有分數" do
+      depots = page.css("[data-section=facilities] [data-depots] [data-depot]")
+      expect(depots.map { [ it["data-depot-status"], it.at_css("[data-depot-name]").text.squish ] }).to eq([ [ "scored", "測試客運 測試站・4 輛・27 趟" ] ])
+    end
+
+    def route_map_data = JSON.parse(page.at_css("[data-route-map] script[data-route-map-data]").text)
+
+    it "站序卡裡，路線圖的容器在標題之後、收起的清單之前，不在清單裡面" do
+      card = page.at_css("[data-section=stop-sequence]")
+      expect([ card.css("h2 ~ [data-route-map] ~ details[data-stop-sequence]:not([open])").size, card.css("details [data-route-map]").size ]).to eq([ 1, 0 ])
+    end
+
+    it "沒有腳本時，路線圖的容器是 pending，裡面有那一句與地圖資料，站序清單每一站都在" do
+      map = page.at_css("[data-route-map]")
+      expect([ map["data-map"], map.css("[data-map-note]").size, map.css("script[data-route-map-data]").size, page.css("details[data-stop-sequence] li").size ])
+        .to eq([ "pending", 1, 1, 10 ])
+    end
+
+    it "路線圖的資料：兩條線各 5 點，去程起站甲站 (25.05, 121.5)、末站戊站 (25.06, 121.5)，返程起站戊站對面、末站甲站" do
+      ends = route_map_data["endStops"].map { |stops| stops.values_at("first", "last").map { it.values_at("name", "lat", "lon") } }
+      expect([ route_map_data["lines"].map { it["points"].size }, ends ])
+        .to eq([ [ 5, 5 ], [ [ [ "甲站", 25.05, 121.5 ], [ "戊站", 25.06, 121.5 ] ], [ [ "戊站對面", 25.06, 121.5003 ], [ "甲站", 25.05, 121.5003 ] ] ] ])
+    end
+
+    it "路線圖下面那一行只寫公運處更新日 2023-12-29，沒有快照日 2026-10-19" do
+      source = page.at_css("[data-route-map] + p[data-route-shape-source]")
+      expect([ source["data-updated-on"], source.key?("data-static-day"), source.text.include?("2023-12-29"), source.text.include?("2026-10-19") ])
+        .to eq([ "2023-12-29", false, true, false ])
+    end
+  end
+
+  it "涵蓋的日子都沒有路線軌跡：站序卡沒有路線圖容器，寫那一句，站序清單照樣列出" do
+    store_days("2026-10-19").then { add_last_stops(RouteDay.sole) }
+    get route_path(9001), params: { day: "2026-10-19" }
+    card = page.at_css("[data-section=stop-sequence]")
+    expect([ card.css("[data-route-map]").size, card.css("[data-no-route-shape]").size, card.css("details[data-stop-sequence] li").size ]).to eq([ 0, 1, 2 ])
   end
 
   it "兩端都停車的 9001，折返停留兩列都標停車" do

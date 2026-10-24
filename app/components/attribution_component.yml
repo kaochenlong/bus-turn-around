@@ -1,15 +1,18 @@
 ---
-# The statement, the MRT line, the office calendar line and the public toilet
-# line are the licence's required wording: en uses the same text, untranslated
-# (docs/data-sources.md, 授權).
+# The statement, the MRT line, the office calendar line, the public toilet
+# line and the evaluation report line are the licence's required wording: en
+# uses the same text, untranslated (docs/data-sources.md, 授權 and 其他外部資料).
+# The evaluation report line names the report whose depot inspection scores
+# the route pages show, the newest term of config/depot_inspections.yml.
 tw: &tw
   statement: &statement
-    - 臺北市公共運輸處 2026 臺北市公車開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent）、路線（GetRoute）、站牌（GetStop）、附屬路線與路線對應（GetPathDetail），見 Data.Taipei 平台 API 說明文件 V6.3
+    - 臺北市公共運輸處 2026 臺北市公車開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent）、路線（GetRoute）、站牌（GetStop）、附屬路線與路線對應（GetPathDetail）、公車路線軌跡（GetBusShape）、業者營運基本資料（GetProvider），見 Data.Taipei 平台 API 說明文件 V6.3
     - 此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。
     - 政府資料開放授權條款：https://data.gov.tw/license
   mrt_exits: &mrt_exits 臺北大眾捷運股份有限公司 捷運車站出入口座標（data.gov.tw/dataset/128428），依政府資料開放授權條款第 1 版釋出
   office_calendar: &office_calendar 行政院人事行政總處 中華民國政府行政機關辦公日曆表（data.gov.tw/dataset/14718），依政府資料開放授權條款第 1 版釋出
   public_toilets: &public_toilets 環境部 全國公廁建檔資料（data.gov.tw/dataset/30794），依政府資料開放授權條款第 1 版釋出
+  evaluation_report: &evaluation_report 臺北市公共運輸處 115年第1期臺北市市區公車營運服務指標評鑑總體報告書（pto.gov.taipei 公車評鑑專區），依該網站政府網站資料開放宣告（政府資料開放授權條款第 1 版）利用
   no_endorsement: 提供資料不代表該機關推薦、同意或核准本專案。
 zh-TW:
   <<: *tw
@@ -18,4 +21,5 @@ en:
   mrt_exits: *mrt_exits
   office_calendar: *office_calendar
   public_toilets: *public_toilets
+  evaluation_report: *evaluation_report
   no_endorsement: Providing the data does not mean the agency recommends, agrees with or approves this project.

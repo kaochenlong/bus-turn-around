@@ -9,11 +9,16 @@ RSpec.describe RouteCoverageComponent, type: :component do
 
   def render_coverage(**params) = render_inline(described_class.new(coverage: RoutePage::Coverage.new(route_id: 9001, **params)))
 
-  it "h1 只有路線名稱，路線 Id 接在起迄那一行的後面" do
+  it "h1 只有路線名稱，起迄那一行後面接著這一頁全部的路線 Id：test 設定的 9001 掛 9050" do
     header = render_coverage(day: "2026-10-19")
     route_id = header.at_css("[data-route-id]")
     expect([ header.at_css("h1")&.text, route_id&.text, route_id&.parent&.name, route_id&.parent&.text&.include?("甲站－戊站") ])
-      .to eq([ "測試幹線", "路線 Id 9001", "p", true ])
+      .to eq([ "測試幹線", "路線 Id 9001・9050", "p", true ])
+  end
+
+  it "只有一個 Id 的路線，那一行一字不變" do
+    allow(RoutePage).to receive(:member_route_ids).with(9001).and_return([ 9001 ])
+    expect(render_coverage(day: "2026-10-19").at_css("[data-route-id]").text).to eq("路線 Id 9001")
   end
 
   it "選的那一天沒有資料時，沒有路線名稱的 h1，也沒有路線 Id" do

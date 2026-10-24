@@ -25,6 +25,18 @@ tw: &tw
   days_html: 用的是 %{located_day} 的位置，公廁資料是那一天用的 %{snapshot_day} 快照。
   days_without_location_html: 涵蓋的日子裡有 %{count} 天量不到這一端的位置。
   no_location_html: 量不到位置：這幾天的折返停留期間都沒有車輛靜止的 GPS 回報，所以不列公廁。最近一天有 %{layovers} 筆折返停留。
+  depots_title: 車輛所屬調度站
+  depots_note: 調度站是車輛所屬、駕駛報到的營業站，不一定是折返點。分數是公運處 %{term}評鑑到站檢查的結果，照報告書附錄抄錄，兩欄是報告書印的兩欄。
+  depots_needs_reload: 這幾天的資料還沒有調度站，重新執行 bin/rails derived:load 後就會出現。
+  term: "%{year} 年第 %{period} 期"
+  depot_name: "%{provider} %{station}"
+  unnamed_depot: 營業站 Id %{id}
+  depot_html: "%{name}・%{buses} 輛・%{trips} 趟"
+  inspected_html: 檢查日期 %{date}・附錄 %{page}（印作「%{printed_as}」）・%{report}
+  report_link: 報告書公告頁
+  not_in_appendix: 不在 %{term}的查核名單
+  unchecked: 這個調度站還沒對過查核名單
+  depots_day_html: 車數與趟次是 %{day} 一天的。
 zh-TW:
   <<: *tw
 en:
@@ -53,3 +65,15 @@ en:
   days_html: Location of %{located_day}; toilet data from the snapshot of %{snapshot_day} used that day.
   days_without_location_html: "%{count} of the covered days have no location for this end."
   no_location_html: "No location: no vehicle reported standing still during the layovers of these days, so no toilets are listed. The latest day had %{layovers} layovers."
+  depots_title: Depots the vehicles belong to
+  depots_note: A depot is the operator's station the vehicles belong to and the drivers report to, not necessarily the turnaround point. The scores are what 臺北市公共運輸處 recorded when it inspected the station for the evaluation of %{term}, copied from the report's appendix; the two columns are the two the report prints.
+  depots_needs_reload: These days have no depots yet; run bin/rails derived:load again to add them.
+  term: term %{year}-%{period}
+  depot_name: "%{provider} %{station}"
+  unnamed_depot: Station Id %{id}
+  depot_html: "%{name}・%{buses} vehicles・%{trips} trips"
+  inspected_html: Inspected on %{date}・appendix page %{page} (printed as “%{printed_as}”)・%{report}
+  report_link: Report announcement
+  not_in_appendix: Not in the inspection list of %{term}
+  unchecked: Not checked against the inspection list yet
+  depots_day_html: Vehicles and trips are those of %{day}.

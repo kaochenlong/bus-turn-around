@@ -1,0 +1,31 @@
+---
+tw: &tw
+  note: 地圖要等網頁的腳本載入才會出現，載不到時就只有這一句；每一站都在下面的清單裡。
+  source: 資料來源：臺北市公共運輸處公車路線軌跡，%{updated_on} 更新。
+  no_shape: 這幾天的快照沒有這條路線的路線軌跡。
+  labels:
+    directions:
+      "0": 去程
+      "1": 返程
+    first_stop:
+      "0": 去程起站
+      "1": 返程起站
+    last_stop:
+      "0": 去程末站
+      "1": 返程末站
+zh-TW:
+  <<: *tw
+en:
+  note: The map appears once the page's scripts load; if they cannot load, only this sentence stays. Every stop is in the list below.
+  source: "Source: route shapes of the Taipei City Public Transportation Office, updated %{updated_on}."
+  no_shape: The snapshots of these days have no route shape for this route.
+  labels:
+    directions:
+      "0": Outbound
+      "1": Inbound
+    first_stop:
+      "0": Outbound first stop
+      "1": Inbound first stop
+    last_stop:
+      "0": Outbound last stop
+      "1": Inbound last stop

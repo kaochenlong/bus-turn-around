@@ -4,5 +4,8 @@
     <% items.each do |item| %>
       <li><%= item %></li>
     <% end %>
+    <% if member_item %>
+      <li data-member-routes><%= member_item %></li>
+    <% end %>
   </ul>
 </section>

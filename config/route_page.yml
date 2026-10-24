@@ -47,10 +47,32 @@ shared:
         # within 112 m of the nearer stop, and the longest standstill in each
         # had a median of 3.5 minutes.
         1: stop
+    16111:
+      # 307 counts 307西藏三民 (19108) with it: same two ends, a different
+      # street in the middle; see docs/spectra/changes/02-route-307-page.
+      member_routes: [19108]
+      ends:
+        # Verified 2026-10-24 on the data of 2026-10-22, the two route Ids
+        # paired together: outbound trips end at 莊敬里 and the next trip
+        # leaves 莊敬里, 34 m away. The 215 layovers there had a median of
+        # 13.3 minutes; in 168 of them the bus stood still for at least
+        # 2 minutes (median longest standstill 4.8 minutes), at a spot about
+        # 300 m from the stop where no stop is registered.
+        0: stop
+        # Verified 2026-10-24 on the data of 2026-10-22: inbound trips end at
+        # 臺北客運板橋前站(藝文) and the next trip leaves the same stop. The
+        # 225 layovers there had a median of 14.4 minutes; in 198 of them the
+        # bus stood still for at least 2 minutes (median longest standstill
+        # 11.0 minutes), and nine of ten standstill reports were within 50 m
+        # of the stop.
+        1: stop
 
 test:
   routes:
     9001: # Both ends stop, so the fixture numbers do not change.
+      # 9050 is the fixture's member route: its own route Id, one stop
+      # different from 9001, counted with 9001 on the same page.
+      member_routes: [9050]
       ends:
         0: stop
         1: stop

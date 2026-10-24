@@ -14,6 +14,10 @@ tw: &tw
     - 開過去就走的那一端車不停，位置以末站計。
     - 公廁是環境部每月更新的全國建檔資料，一列是一間廁所，頁面把同一個地址的廁所併成一處。距離是直線距離，不是走路的距離。資料沒有開放時段，也看不出駕駛能不能借用。
     - 地圖上的方塊是約 20 公尺見方的格子，只畫一天內有 3 台以上的車停過的格子，少於 3 台車的格子不畫。深淺合計的是每 10 秒一筆的 GPS 靜止回報，不是停了多久，也不是休息。底圖是外部來源的資料，照原樣顯示。
+    - 站序那一塊的路線圖，畫的是臺北市公共運輸處登記的路線軌跡，不是 GPS 量到的，所以臨時改道、繞路不會出現在圖上。登記的軌跡也可能比站序舊。
+    - 調度站查核分數是公運處評鑑時到業者營業站檢查的結果，不是折返點的設施；車在折返停留期間有沒有回調度站，資料量不到。分數照報告書附錄抄錄，兩欄是報告書印的兩欄，不平均、不解讀；名單只有這一期受檢的營業站，不在名單不代表沒有休息設施。
+  member_item: "這一頁把路線 Id %{page_id} 與 %{members} 算成一條路線：趟次、行駛時間、折返停留、來回一趟、週期、換休息試算把這幾個 Id 的車合在一起算；沿線載客圖、捷運重疊與站序只用 %{page_id} 的站序，%{members} 在兩條都停的站的車上人數併進去，只有 %{members} 才停的站不畫。涵蓋的日子裡 %{trip_counts}。"
+  member_trips: "%{id} %{count} 趟"
   home_title: 資料限制
   home_items:
     - 車不等於人：資料只認得車牌，認不出是哪個駕駛，折返停留也只是駕駛休息時間的上限。
@@ -37,6 +41,10 @@ en:
     - At an end where buses drive on, they do not stop, so the location is the last stop.
     - "Toilets come from the national registry of the Ministry of Environment, updated monthly, with one row per toilet; the page groups toilets at one address into one place. Distances are straight-line, not walking distances. The data has no opening hours and says nothing about whether a driver may use a toilet."
     - The squares on the maps are cells of about 20 metres that at least three vehicles stood in on a day; cells with fewer vehicles are not drawn. Their shade sums GPS standstill reports taken every 10 seconds and is neither minutes stood nor rest. The basemap is third-party data shown as it is.
+    - The route map in the stop sequence block draws the route shape the Taipei City Public Transportation Office registers, not measured GPS, so temporary detours and diversions do not appear on it. The registered shape can be older than the stop list.
+    - "The depot inspection scores are what the Taipei City Public Transportation Office recorded when it inspected the operators' stations for its evaluation, not the facilities of the turnaround point; whether a vehicle returns to its depot during a layover is not measured. The scores are copied from the report's appendix with the two columns it prints kept apart, neither averaged nor interpreted; the list covers only the stations inspected that term, so a station not on it is not known to lack rest facilities."
+  member_item: "This page counts route Ids %{page_id} and %{members} as one route: trips, run times, layovers, round trips, cycles and the rest trade-off pool the vehicles of these Ids; the load chart, the MRT overlap and the stop sequence use the stops of %{page_id}, with the on-board counts of %{members} pooled at the stops both serve and the stops only %{members} serves left out. Over the covered days: %{trip_counts}."
+  member_trips: "%{id}: %{count} trips"
   home_title: Data limitations
   home_items:
     - "A vehicle is not a driver: the data identifies plates, not drivers, and a layover is an upper bound on rest."

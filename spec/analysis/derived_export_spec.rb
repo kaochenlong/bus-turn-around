@@ -1,21 +1,27 @@
 require "spec_helper"
+require "csv"
 require "fileutils"
+require "json"
 require_relative "../support/duckdb"
 require_relative "../../lib/analysis_run"
 
 RSpec.describe "analysis/derived_export.sql" do
-  # Runs every stage, mrt_overlap.sql, turnaround_facilities.sql and
-  # derived_export.sql on the fixture day with both ends stopping, returns the
-  # derived CSV files as { name => bytes }. `public_toilets_path` replaces the
-  # fixture's toilet snapshot.
-  def export(public_toilets_path: fixture_path("external/public-toilets/2026-10-19.csv"))
+  # Runs every stage, mrt_overlap.sql, turnaround_facilities.sql,
+  # route_shape.sql, depots.sql and derived_export.sql on the fixture day with
+  # both ends stopping, returns the derived CSV files as { name => bytes }.
+  # `public_toilets_path` replaces the fixture's toilet snapshot,
+  # `bus_shape_path` its route shapes file and `provider_path` its operators
+  # and stations file.
+  def export(public_toilets_path: fixture_path("external/public-toilets/2026-10-19.csv"),
+             bus_shape_path: fixture_path("static/2026-10-19/GetBusShape.gz"),
+             provider_path: fixture_path("static/2026-10-19/GetProvider.gz"), **variables)
     Dir.mktmpdir("derived-export") do |dir|
       derived_dir = File.join(dir, "derived").tap { FileUtils.mkdir_p(it) }
       variables = DuckdbHelpers::FIXTURE_VARIABLES.merge(
         inspect_dir: dir, derived_dir:, mrt_exits_path: fixture_path("external/taipei-mrt-exits/2026-10-19.csv"), mrt_exits_day: Date.new(2026, 10, 19),
-        public_toilets_path:, public_toilets_day: Date.new(2026, 10, 19), end_nature_0: "stop", end_nature_1: "stop"
-      )
-      AnalysisRun.run("duckdb", variables, extra_files: %w[mrt_overlap.sql turnaround_facilities.sql derived_export.sql])
+        public_toilets_path:, public_toilets_day: Date.new(2026, 10, 19), end_nature_0: "stop", end_nature_1: "stop", bus_shape_path:, provider_path:
+      ).merge(variables)
+      AnalysisRun.run("duckdb", variables, extra_files: %w[mrt_overlap.sql turnaround_facilities.sql route_shape.sql depots.sql derived_export.sql])
       Dir.children(derived_dir).sort.to_h { [ it, File.binread(File.join(derived_dir, it)) ] }
     end
   end
@@ -24,21 +30,25 @@ RSpec.describe "analysis/derived_export.sql" do
 
   let(:files) { export }
   let(:expected_headers) do
-    { "end_cells.csv" => "go_back,cell_latitude,cell_longitude,n_records,n_buses,n_layovers",
+    { "depots.csv" => "station_id,provider_name,station_name,n_buses,n_trips",
+      "end_cells.csv" => "go_back,cell_latitude,cell_longitude,n_records,n_buses,n_layovers",
       "end_toilets.csv" => "go_back,name,category,address,latitude,longitude,meters",
       "ends.csv" => "go_back,end_seq,end_stop_name,end_latitude,end_longitude,location_source,latitude,longitude," \
                     "n_layovers,n_located_layovers,n_standstill_records,end_stop_meters",
       "layovers.csv" => "bus_id,go_back,end_time,next_start_time",
-      "route_day.csv" => "route_id,day,route_name,departure,destination,static_day,mrt_exits_day,public_toilets_day",
-      "stops.csv" => "go_back,seq,stop_name,latitude,longitude,nearest_exit_name,nearest_exit_meters",
+      "route_day.csv" => "route_id,day,route_name,departure,destination,static_day,mrt_exits_day,public_toilets_day,member_names",
+      "shapes.csv" => "go_back,shape_updated_at,points,issue",
+      "stops.csv" => "go_back,seq,stop_name,latitude,longitude,nearest_exit_name,nearest_exit_meters,route_id,stop_location_id",
       "trip_stop_counts.csv" => "bus_id,start_time,seq,on_board",
       "trips.csv" => "bus_id,path_attribute_id,go_back,band,start_time,end_time,first_seq,last_seq,n_events," \
-                     "n_stops_observed,completeness,start_from_arrival,end_from_departure" }
+                     "n_stops_observed,completeness,start_from_arrival,end_from_departure,route_id" }
   end
+  # The member day 2026-10-23 with 9050 counted with 9001 (see the fixture README's last section).
+  let(:member_files) { export(member_route_ids: [ 9001, 9050 ], day: Date.new(2026, 10, 23), static_day: Date.new(2026, 10, 23)) }
 
   def rows(name, from = files) = from.fetch(name).dup.force_encoding(Encoding::UTF_8).lines.drop(1).map(&:chomp)
 
-  it "寫出八個檔，欄位名照固定順序" do
+  it "寫出十個檔，欄位名照固定順序" do
     expect(files.transform_values { it.lines.first.chomp }).to eq(expected_headers)
   end
 
@@ -53,12 +63,46 @@ RSpec.describe "analysis/derived_export.sql" do
     )
   end
 
-  it "路線日帶路線 Id、資料日、路線名稱、起迄、靜態快照日、捷運出入口快照日與公廁快照日" do
-    expect(rows("route_day.csv").first).to eq("9001,2026-10-19,測試幹線,甲站,戊站,2026-10-19,2026-10-19,2026-10-19")
+  it "路線日帶路線 Id、資料日、路線名稱、起迄、靜態快照日、捷運出入口快照日與公廁快照日；沒有成員時 member_names 是 {}" do
+    expect(rows("route_day.csv").first).to eq("9001,2026-10-19,測試幹線,甲站,戊站,2026-10-19,2026-10-19,2026-10-19,{}")
   end
 
-  it "站牌帶經緯度與最近的捷運出入口：去程丙站在出入口上，0.0 公尺" do
-    expect(rows("stops.csv")[2]).to eq("0,2,丙站,25.055,121.5,丙站捷運出口1,0.0")
+  it "站牌帶經緯度與最近的捷運出入口，尾端是路線 Id 與站位：去程丙站在出入口上，0.0 公尺" do
+    expect(rows("stops.csv")[2]).to eq("0,2,丙站,25.055,121.5,丙站捷運出口1,0.0,9001,81002")
+  end
+
+  describe "成員日 2026-10-23，9001 掛成員路線 9050" do
+    it "站序 20 列：9001 的 10 列在前、9050 的 10 列在後，各帶路線 Id 與站位，9050 的己站有自己的出入口距離" do
+      stops = rows("stops.csv", member_files)
+      expect([ stops.size, stops.map { it.split(",")[7] }.uniq, stops[12] ]).to eq([ 20, %w[9001 9050], "0,2,己站,25.055,121.501,丙站捷運出口1,100.7,9050,85002" ])
+    end
+
+    it "3 趟依序帶路線 Id 9050、9001、9050" do
+      expect(rows("trips.csv", member_files).map { it.split(",").values_at(1, -1) }).to eq([ %w[9050 9050], %w[9001 9001], %w[9050 9050] ])
+    end
+
+    it "路線日的名稱與起迄是 9001 的，member_names 是 9050 的名稱" do
+      fields = CSV.parse_line(rows("route_day.csv", member_files).first)
+      expect([ fields.values_at(0, 2, 3, 4), JSON.parse(fields.last) ]).to eq([ %w[9001 測試幹線 甲站 戊站], { "9050" => "測試幹線經己站" } ])
+    end
+
+    it "趟次站的 seq 是 9001 的站序：13 列，沒有 seq 2（己站的兩筆不寫）" do
+      counts = rows("trip_stop_counts.csv", member_files)
+      expect([ counts.size, counts.map { it.split(",")[2] }.uniq.sort ]).to eq([ 13, %w[0 1 3 4 5 6 7 8 9] ])
+    end
+
+    it "調度站一列：兩條路線 Id 的 3 趟都算進 TEST-0005 的 19001，1 台車" do
+      expect(rows("depots.csv", member_files)).to eq([ "19001,測試客運,測試站,1,3" ])
+    end
+  end
+
+  it "調度站一列：19001、測試客運、測試站、4 台車、27 趟" do
+    expect(rows("depots.csv")).to eq([ "19001,測試客運,測試站,4,27" ])
+  end
+
+  it "GetProvider.gz 的替代檔 BusInfo 是空的：調度站照樣一列，兩個名稱是加引號的空字串" do
+    stored = Dir.mktmpdir { rows("depots.csv", export(provider_path: File.join(it, "providers.json").tap { |path| File.write(path, '{"BusInfo":[]}') })) }
+    expect(stored).to eq([ '19001,"","",4,27' ])
   end
 
   it "兩端各一列，照方向排：末站、位置的來源與座標、三個查核數字與靜止回報筆數" do
@@ -94,7 +138,19 @@ RSpec.describe "analysis/derived_export.sql" do
     expect(stored.map { it.split(",").values_at(1, 6) }).to eq([ %w[乙公廁 120.0], %w[甲公廁 120.0] ])
   end
 
-  it "連跑兩次，八個檔位元組相同" do
+  it "路線軌跡兩列，照方向排：更新時間帶 +08:00，點是緯度、經度的 JSON 陣列，沒有 issue" do
+    expect(rows("shapes.csv")).to eq(
+      [ "0,2023-12-29 09:46:21+08:00,\"[[25.05,121.5],[25.0525,121.5],[25.055,121.5],[25.0575,121.5],[25.06,121.5]]\",",
+        "1,2023-12-29 09:48:24+08:00,\"[[25.06,121.5003],[25.0575,121.5003],[25.055,121.5003],[25.0525,121.5003],[25.05,121.5003]]\"," ]
+    )
+  end
+
+  it "沒有路線軌跡的方向照樣一列：更新時間與點是空的，issue 寫原因" do
+    stored = Dir.mktmpdir { rows("shapes.csv", export(bus_shape_path: File.join(it, "shapes.json").tap { |path| File.write(path, "[]") })) }
+    expect(stored).to eq([ "0,,,no_row", "1,,,no_row" ])
+  end
+
+  it "連跑兩次，十個檔位元組相同" do
     expect(export).to eq(files)
   end
 end

@@ -76,6 +76,10 @@ RSpec.describe "analysis/10_load.sql" do
   end
 
   describe "附屬路線對回路線與方向" do
+    it "GetRoute.gz 裡附屬路線 9002 有兩列時，routes 仍是 9001、9002、9003 各一列" do
+      expect(load_rows("SELECT path_attribute_id FROM routes ORDER BY 1").map { it["path_attribute_id"] }).to eq([ 9001, 9002, 9003 ])
+    end
+
     it "附屬路線 9002 的事件對回路線 9001" do
       expect(load_rows("SELECT DISTINCT route_id FROM stop_events WHERE path_attribute_id = 9002")).to eq([ { "route_id" => 9001 } ])
     end
@@ -98,6 +102,50 @@ RSpec.describe "analysis/10_load.sql" do
         SELECT (SELECT count(*) FROM stop_events) + (SELECT count(*) FROM unknown_stop_events) = (SELECT count(*) FROM bus_events) AS all_accounted
       SQL
       expect(rows).to eq([ { "all_accounted" => true } ])
+    end
+  end
+
+  describe "成員日 2026-10-23，9001 掛成員路線 9050" do
+    def member_rows(query, member_route_ids: [ 9001, 9050 ])
+      load_rows(query, member_route_ids:, day: Date.new(2026, 10, 23), static_day: Date.new(2026, 10, 23))
+    end
+
+    it "routes 是 9001 的三條附屬路線加 9050，各對回自己的路線 Id" do
+      rows = member_rows("SELECT route_id, path_attribute_id FROM routes ORDER BY path_attribute_id")
+      expect(rows.map(&:values)).to eq([ [ 9001, 9001 ], [ 9001, 9002 ], [ 9001, 9003 ], [ 9050, 9050 ] ])
+    end
+
+    it "stops 兩條路線各 10 站，帶站位：第三站 9001 是 81002、9050 是 85002" do
+      rows = member_rows("SELECT route_id, count(*) AS n, min(stop_location_id) FILTER (WHERE seq = 2) AS third FROM stops GROUP BY route_id ORDER BY route_id")
+      expect(rows.map(&:values)).to eq([ [ 9001, 10, 81002 ], [ 9050, 10, 85002 ] ])
+    end
+
+    it "RouteID 9050 的事件對回路線 9050，站序用 9050 自己的：己站 95002 是去程 seq 2" do
+      rows = member_rows("SELECT DISTINCT route_id, go_back, seq FROM stop_events WHERE stop_id = 95002")
+      expect(rows).to eq([ { "route_id" => 9050, "go_back" => 0, "seq" => 2 } ])
+    end
+
+    it "TEST-0005 的 9050 記錄不算別條路線：other_route_events 沒有它" do
+      expect(member_rows("SELECT count(*) AS n FROM other_route_events WHERE bus_id = 'TEST-0005'")).to eq([ { "n" => 0 } ])
+    end
+
+    it "站序比對帶路線 Id：9050 跟 9050 自己的站序比，兩個方向都一樣，己站不在 9001 的站序上也沒關係" do
+      rows = member_rows("SELECT route_id, path_attribute_id, directions, identical FROM sequence_check ORDER BY path_attribute_id")
+      expect(rows.map(&:values)).to eq([ [ 9001, 9001, [ 0, 1 ], true ], [ 9001, 9002, [ 0 ], true ], [ 9001, 9003, [ 1 ], false ], [ 9050, 9050, [ 0, 1 ], true ] ])
+    end
+
+    it "清單裡的路線在 GetRoute.gz 沒有列時整個跑不下去，訊息寫出那個 Id" do
+      expect { member_rows("SELECT 1", member_route_ids: [ 9001, 9060 ]) }.to raise_error(RuntimeError, /9060/)
+    end
+
+    it "2026-10-19 掛 9050：stops 多 9050 的 10 站，讀到的事件筆數不變" do
+      rows = load_rows("SELECT (SELECT count(*) FROM stops) AS n_stops, (SELECT n_read FROM load_counts WHERE feed = 'bus_event') AS n_read", member_route_ids: [ 9001, 9050 ])
+      expect(rows).to eq([ { "n_stops" => 20, "n_read" => 276 } ])
+    end
+
+    it "沒給 member_route_ids 時只有 route_id 那一條：stops 10 站、routes 三列" do
+      rows = load_rows("SELECT (SELECT count(*) FROM stops) AS n_stops, (SELECT count(*) FROM routes) AS n_routes")
+      expect(rows).to eq([ { "n_stops" => 10, "n_routes" => 3 } ])
     end
   end
 

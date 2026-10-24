@@ -1,0 +1,8 @@
+<% if available? %>
+  <div data-route-map data-map="pending" x-data="routeMap" aria-hidden="true"
+       data-tile-url="<%= tiles.url %>" data-tile-attribution="<%= tiles.attribution %>" data-max-zoom="<%= tiles.max_zoom %>" data-labels="<%= labels_json %>" data-base-map-labels="<%= base_map_labels_json %>"
+       class="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100"><script type="application/json" data-route-map-data><%= data_json.html_safe %></script><p data-map-note class="absolute inset-0 items-center justify-center p-4 text-center text-label text-slate-500"><%= t(".note") %></p><div data-map-canvas class="h-60 sm:h-72"></div></div>
+  <p data-route-shape-source data-updated-on="<%= updated_on %>" class="mt-2 mb-5 text-label text-slate-500 sm:mb-6"><%= t(".source", updated_on:) %></p>
+<% else %>
+  <p data-no-route-shape class="mb-5 text-slate-600 sm:mb-6"><%= t(".no_shape") %></p>
+<% end %>

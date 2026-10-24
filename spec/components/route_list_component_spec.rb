@@ -11,12 +11,26 @@ RSpec.describe RouteListComponent, type: :component do
 
   def render_list = render_inline(described_class.new(route_list: HomePage::RouteList.new))
 
-  it "有資料的 9001：名稱那一行只有路線名，起迄那一行接著路線 Id，再來是最新一天和星期與那天的日型別，整張連到路線頁" do
+  it "有資料的 9001：名稱那一行只有路線名，起迄那一行接著這一頁全部的路線 Id（test 設定掛 9050），再來是最新一天和星期與那天的日型別，整張只連到 9001 的路線頁" do
     store_days("2026-10-19", "2026-10-20")
     card = render_list.at_css("[data-route='9001'][data-latest-day='2026-10-20']")
     route_id = card.at_css("[data-route-id]")
     expect([ card.at_css("p").text, route_id&.text, route_id&.parent&.text&.include?("甲站－戊站"), card.text, card["data-day-type"], card["href"] ])
-      .to match([ "測試幹線", "路線 Id 9001", true, include("2026-10-20（二）#{I18n.t('day_types.weekday')}"), "weekday", "/routes/9001" ])
+      .to match([ "測試幹線", "路線 Id 9001・9050", true, include("2026-10-20（二）#{I18n.t('day_types.weekday')}"), "weekday", "/routes/9001" ])
+  end
+
+  it "成員路線 9050 沒有自己的卡；只有一個 Id 的路線那一行一字不變" do
+    allow(RoutePage).to receive(:member_route_ids).and_call_original
+    allow(RoutePage).to receive(:member_route_ids).with(9001).and_return([ 9001 ])
+    store_days("2026-10-20")
+    rendered = render_list
+    expect([ rendered.css("[data-route='9050']").size, rendered.at_css("[data-route='9001'] [data-route-id]").text ]).to eq([ 0, "路線 Id 9001" ])
+  end
+
+  it "有成員但還沒有資料的路線：卡上寫全部的路線 Id、標成沒有資料、沒有連結" do
+    allow(RoutePage).to receive(:route_ids).and_return([ 9001 ])
+    card = render_list.at_css("[data-route='9001'][data-no-data]")
+    expect([ card&.at_css("p")&.text, card&.css("a")&.size ]).to eq([ "路線 Id 9001・9050", 0 ])
   end
 
   it "最新一天是假日 10-26 時，卡上的日期後面接假日" do

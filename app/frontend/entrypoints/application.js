@@ -57,56 +57,66 @@ function webgl2Available() {
 // is loaded.
 const MAP_VISIBLE_SHARE = 0.25
 
-// One end's map in the turnaround facilities block. The page is complete
-// without it: every number of the end is in the text above, and the
-// container's sentence stays until the map, loaded on demand once a quarter of
-// the container is in view, is drawn, and stays when it cannot be.
-Alpine.data("endMap", () => ({
-  map: null,
+// A map container's Alpine component. `load` imports the module whose draw()
+// draws the map; it runs once a quarter of the container is in view. The page
+// is complete without the map: the container's sentence stays until the map
+// is drawn, and stays when it cannot be. Each caller writes out its own
+// import(), so that Vite gives each kind of map a chunk of its own.
+function lazyMap(load) {
+  return {
+    map: null,
 
-  init() {
-    // Turbo caches the page as the server sent it: the map is let go, and the
-    // state goes back to pending.
-    this.restoreBeforeCache = () => {
-      this.release()
-      this.$el.dataset.map = "pending"
-    }
-    document.addEventListener("turbo:before-cache", this.restoreBeforeCache)
+    init() {
+      // Turbo caches the page as the server sent it: the map is let go, and the
+      // state goes back to pending.
+      this.restoreBeforeCache = () => {
+        this.release()
+        this.$el.dataset.map = "pending"
+      }
+      document.addEventListener("turbo:before-cache", this.restoreBeforeCache)
 
-    // Judged by the share of the container inside: isIntersecting would be
-    // true for any sliver.
-    this.observer = new IntersectionObserver((entries) => {
-      if (entries.at(-1).intersectionRatio < MAP_VISIBLE_SHARE) return
+      // Judged by the share of the container inside: isIntersecting would be
+      // true for any sliver.
+      this.observer = new IntersectionObserver((entries) => {
+        if (entries.at(-1).intersectionRatio < MAP_VISIBLE_SHARE) return
+        this.observer.disconnect()
+        this.loadMap()
+      }, { threshold: MAP_VISIBLE_SHARE })
+      this.observer.observe(this.$el)
+    },
+
+    async loadMap() {
+      this.$el.dataset.map = "loading"
+      try {
+        const { draw } = await load()
+        if (!this.$el.isConnected) return
+        this.map = draw(this.$el)
+        this.$el.dataset.map = "ready"
+      } catch (error) {
+        this.$el.dataset.map = "static"
+        reportError(error)
+      }
+    },
+
+    release() {
+      this.map?.dispose()
+      this.map = null
+    },
+
+    destroy() {
+      document.removeEventListener("turbo:before-cache", this.restoreBeforeCache)
       this.observer.disconnect()
-      this.load()
-    }, { threshold: MAP_VISIBLE_SHARE })
-    this.observer.observe(this.$el)
-  },
+      this.release()
+    },
+  }
+}
 
-  async load() {
-    this.$el.dataset.map = "loading"
-    try {
-      const { draw } = await import("../end_map/runtime.js")
-      if (!this.$el.isConnected) return
-      this.map = draw(this.$el)
-      this.$el.dataset.map = "ready"
-    } catch (error) {
-      this.$el.dataset.map = "static"
-      reportError(error)
-    }
-  },
+// One end's map in the turnaround facilities block; every number of the end
+// is in the text above it.
+Alpine.data("endMap", () => lazyMap(() => import("../end_map/runtime.js")))
 
-  release() {
-    this.map?.dispose()
-    this.map = null
-  },
-
-  destroy() {
-    document.removeEventListener("turbo:before-cache", this.restoreBeforeCache)
-    this.observer.disconnect()
-    this.release()
-  },
-}))
+// The route map of the stop sequence block; every stop is in the list below it.
+Alpine.data("routeMap", () => lazyMap(() => import("../route_map/runtime.js")))
 
 // Turbo replaces the whole <body> when it renders a new page, and Alpine only
 // cleans up a removed node it initialised itself, never <body>; without this

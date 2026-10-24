@@ -24,6 +24,16 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
     end
   end
 
+  it "ROUTE 是別條路線的成員（test 設定的 9050 掛在 9001 底下）：說它是 9001 那一頁的附屬路線、請用 ROUTE=9001，結束碼非零、什麼都不寫" do
+    status, out = run_command("ROUTE" => "9050", "DAY" => "2026-10-23")
+    expect([ status.zero?, out.lines.first.chomp, stored_days ]).to eq([ false, "9050 是 9001 那一頁的附屬路線，請用 ROUTE=9001", [] ])
+  end
+
+  it "ROUTE 是有成員的頁面路線時，成員的趟次一起寫進同一個路線日：2026-10-23 的 9001 寫入 3 趟" do
+    status, out = run_command("DAY" => "2026-10-23")
+    expect([ status, out.lines.first[/趟次 \d+/], RouteDay.sole.member_names, Trip.pluck(:route_id).tally ]).to eq([ 0, "趟次 3", { "9050" => "測試幹線經己站" }, { 9050 => 2, 9001 => 1 } ])
+  end
+
   it "PATH 裡沒有 duckdb：說明需要 DuckDB CLI 與安裝方式，結束碼非零" do
     status, out = run_command("DAY" => "2026-10-19", "PATH" => path_without_duckdb)
     expect([ status.zero?, out.include?("brew install duckdb"), stored_days ]).to eq([ false, true, [] ])
@@ -61,6 +71,18 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
         status, out = Dir.mktmpdir { run_command("DAY" => "2026-10-19", "TURNAROUND_DATA" => data_root(it, **options)) }
         expect([ status.zero?, out.lines.first.include?(message), stored_days ]).to eq([ false, true, [] ])
       end
+    end
+
+    # Like data_root, with a static snapshot of 2026-10-19 that has every fixture file but GetProvider.gz.
+    def data_root_without_providers(dir)
+      static = File.join(data_root(dir, feeds: %w[bus_event bus_seat_event bus_data]), "static/2026-10-19").tap { FileUtils.mkdir_p(it) }
+      %w[GetRoute.gz GetStop.gz GetPathDetail.gz GetBusShape.gz].each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, "static/2026-10-19", it), File.join(static, it)) }
+      dir
+    end
+
+    it "靜態快照沒有 GetProvider.gz：那一天照樣寫入，先印缺檔那一行" do
+      status, out = Dir.mktmpdir { run_command("DAY" => "2026-10-19", "TURNAROUND_DATA" => data_root_without_providers(it)) }
+      expect([ status, out.lines.first.include?("GetProvider.gz"), stored_days ]).to eq([ 0, true, [ "2026-10-19" ] ])
     end
   end
 

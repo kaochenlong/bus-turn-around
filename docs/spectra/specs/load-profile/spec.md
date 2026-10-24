@@ -523,3 +523,190 @@ tests:
   - spec/analysis/cli_spec.rb
   - spec/analysis/load_spec.rb
 -->
+
+---
+### Requirement: Counts of member route trips at shared stops
+
+For a trip of a member route, each stop's on-board count SHALL be attributed to the page route's stop of the same direction that has the same `stopLocationId` in the day's `GetStop.gz`, and SHALL carry that stop's sequence number in the health card's profile and in the stored trip stop counts. A count at a stop the page route does not serve in that direction SHALL be left out of the profile and of the stored counts, and SHALL be counted in the quality report as an unmatched count. Counts of the page route's own trips SHALL keep their sequence numbers. Net boarding SHALL be computed on each trip's own stop list before this attribution, so that a count at a stop only the member route serves still takes part in the net boarding of its trip.
+
+#### Scenario: Shared stop pooled
+
+- **WHEN** the run is for route 9001 with member route 9050 on 2026-10-23, and TEST-0005's two 9050 trips in direction 0 carry 5 and 4 at 乙站, route 9050's sequence 1 with `stopLocationId` 81001, which is also route 9001's sequence 1 of direction 0
+- **THEN** direction 0 at sequence 1 has two trips with counts 5 and 4, stored under route 9001's sequence 1
+
+##### Example: direction 0 of the member day
+
+| Route 9001 sequence | Stop | Trips with a count | Counts |
+| --- | --- | --- | --- |
+| 0 | 甲站 | 2 | 3, 2 |
+| 1 | 乙站 | 2 | 5, 4 |
+| 2 | 丙站 | 0 | none: route 9050 does not serve it and no 9001 trip ran direction 0 that day |
+| 3 | 丁站 | 2 | 6, 5 |
+| 4 | 戊站 | 2 | 2, 1 |
+
+#### Scenario: Stop only the member route serves
+
+- **WHEN** TEST-0005's 9050 trips carry 7 and 6 at 己站 (`stopLocationId` 85002), which route 9001 does not serve
+- **THEN** neither count appears in the profile or in the stored counts, and the quality report counts 2 unmatched counts
+
+#### Scenario: Page route counts unchanged
+
+- **WHEN** TEST-0005's 9001 trip in direction 1 carries 4, 6, 5, 3 and 1 at sequences 5 to 9
+- **THEN** those counts keep sequences 5 to 9
+
+#### Scenario: Net boarding before attribution
+
+- **WHEN** TEST-0005's first 9050 trip carries 5 at 乙站 (sequence 1 of route 9050), 7 at 己站 (sequence 2) and 6 at 丁站 (sequence 3)
+- **THEN** the trip's net boarding at 己站 is 2 and at 丁站 is -1, each with a span of 1
+
+<!-- @trace
+source: 02-route-307-page
+updated: 2026-10-24
+code:
+  - db/migrate/20261024050300_require_route_id_on_derived_rows.rb
+  - app/components/turnaround_facilities_component.rb
+  - analysis/10_load.sql
+  - bin/health-card
+  - spec/fixtures/analysis/README.md
+  - analysis/params.sql
+  - spec/fixtures/analysis/bus_event/2026-10-23/07.jsonl
+  - app/components/turnaround_facilities_component.yml
+  - analysis/60_export.sql
+  - docs/background.md
+  - app/models/route_day.rb
+  - analysis/50_quality.sql
+  - app/components/data_limitations_component.yml
+  - spec/factories/route_day_ends.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetPathDetail.gz
+  - README.md
+  - app/components/data_limitations_component.rb
+  - db/migrate/20261024035750_create_route_day_shapes.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetProvider.gz
+  - analysis/depots.sql
+  - spec/fixtures/analysis/static/2026-10-19/GetBusShape.gz
+  - app/components/stop_sequence_component.yml
+  - spec/fixtures/analysis/bus_data/2026-10-23/07.jsonl
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/07.jsonl
+  - app/components/attribution_component.html.erb
+  - app/models/trip.rb
+  - app/frontend/maps/base_map.js
+  - app/models/route_page/route_shape.rb
+  - app/models/route_page/stop_sequence.rb
+  - config/depot_inspections.yml
+  - analysis/40_load_profile.sql
+  - analysis/route_shape.sql
+  - spec/factories/route_day_shapes.rb
+  - db/schema.rb
+  - app/models/route_page/depots.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetBusShape.gz
+  - app/models/route_page/depot_inspections.rb
+  - db/migrate/20261024062215_create_route_day_depots.rb
+  - app/models/route_day_depot.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetRoute.gz
+  - app/components/end_map_component.html.erb
+  - app/models/route_day_loader.rb
+  - config/locales/en.yml
+  - analysis/README.md
+  - spec/fixtures/analysis/bus_event/2026-10-23/08.jsonl
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/09.jsonl
+  - app/components/route_map_component.html.erb
+  - spec/factories/route_day_depots.rb
+  - spec/factories/route_day_end_cells.rb
+  - app/components/attribution_component.yml
+  - spec/fixtures/analysis/static/2026-10-23/GetRoute.gz
+  - app/models/route_page/load_profile.rb
+  - app/frontend/route_map/runtime.js
+  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
+  - app/components/route_map_component.rb
+  - app/models/route_page/layover_stats.rb
+  - app/models/derived_load_command.rb
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/08.jsonl
+  - db/migrate/20261024050200_backfill_route_id_on_derived_rows.rb
+  - app/frontend/entrypoints/application.js
+  - app/models/route_day_shape.rb
+  - analysis/turnaround_facilities.sql
+  - app/models/pto_assessment_snapshot.rb
+  - docs/data-sources.md
+  - app/frontend/stylesheets/application.css
+  - app/components/application_component.rb
+  - analysis/derived_export.sql
+  - spec/fixtures/analysis/static/2026-10-19/GetProvider.gz
+  - app/components/route_list_component.rb
+  - analysis/mrt_overlap.sql
+  - app/models/route_page/mrt_overlap.rb
+  - app/models/route_page/summary.rb
+  - config/route_page.yml
+  - lib/tasks/external.rake
+  - spec/factories/route_day_end_toilets.rb
+  - spec/factories/route_days.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetStop.gz
+  - app/components/route_map_component.yml
+  - spec/fixtures/analysis/bus_event/2026-10-23/09.jsonl
+  - app/models/tdx_s2s_travel_time_snapshot.rb
+  - app/components/turnaround_facilities_component.html.erb
+  - app/components/buffer_trade_component.yml
+  - app/views/routes/show.html.erb
+  - spec/fixtures/analysis/static/2026-10-23/GetPathDetail.gz
+  - db/migrate/20261024050100_add_member_route_columns_to_derived_tables.rb
+  - app/frontend/end_map/runtime.js
+  - app/models/route_day_stop.rb
+  - app/components/route_coverage_component.html.erb
+  - app/models/route_page.rb
+  - spec/fixtures/analysis/bus_event/2026-10-24/01.jsonl
+  - app/components/route_list_component.html.erb
+  - spec/support/duckdb.rb
+  - app/components/data_limitations_component.html.erb
+  - app/components/route_coverage_component.rb
+  - app/components/stop_sequence_component.html.erb
+  - config/locales/tw.yml
+  - lib/analysis_run.rb
+  - app/components/buffer_trade_component.html.erb
+  - app/components/stop_sequence_component.rb
+  - docs/decisions.md
+tests:
+  - spec/models/route_day_spec.rb
+  - spec/migrations/member_route_columns_spec.rb
+  - spec/analysis/depots_spec.rb
+  - spec/models/route_page/route_shape_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/components/data_limitations_component_spec.rb
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/analysis/load_spec.rb
+  - spec/models/route_page/depots_spec.rb
+  - spec/models/route_page/summary_spec.rb
+  - spec/analysis/card_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/models/route_page/card_consistency_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/analysis/trips_spec.rb
+  - spec/models/pto_assessment_snapshot_spec.rb
+  - spec/models/route_page/layover_stats_spec.rb
+  - spec/models/tdx_s2s_travel_time_snapshot_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/models/route_page/stop_sequence_spec.rb
+  - spec/components/attribution_component_spec.rb
+  - spec/system/route_map_spec.rb
+  - spec/components/route_coverage_component_spec.rb
+  - spec/analysis/profile_spec.rb
+  - spec/analysis/mrt_overlap_spec.rb
+  - spec/analysis/quality_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/analysis/route_shape_spec.rb
+  - spec/models/route_page/depot_inspections_spec.rb
+  - spec/analysis/layovers_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/analysis/analysis_run_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
+  - spec/components/route_map_component_spec.rb
+  - spec/models/route_page/ends_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/components/stop_sequence_component_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/analysis/cli_spec.rb
+-->

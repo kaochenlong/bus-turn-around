@@ -9,6 +9,7 @@
 #  departure           :string           not null
 #  destination         :string           not null
 #  loaded_at           :timestamptz      not null
+#  member_names        :jsonb            not null
 #  mrt_exits_day       :date
 #  office_calendar_day :date             not null
 #  public_toilets_day  :date

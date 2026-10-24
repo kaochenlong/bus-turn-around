@@ -8,12 +8,17 @@ A command-line runner that produces a one-page Markdown route health card for on
 
 ### Requirement: Invocation and parameters
 
-The system SHALL provide the executable `bin/health-card` accepting `--data DIR`, `--route ID`, `--day YYYY-MM-DD`, and optionally `--static-day YYYY-MM-DD`, `--out PATH`, `--inspect-dir DIR`. When `--data` is absent the system SHALL use the environment variable `TURNAROUND_DATA`. When `--static-day` is absent it SHALL equal `--day`. When `--out` is absent the card SHALL be written to standard output. When `--inspect-dir` is absent it SHALL be `tmp/health-card/<route>-<day>` relative to the repository root. The executable SHALL NOT load Rails.
+The system SHALL provide the executable `bin/health-card` accepting `--data DIR`, `--route ID`, `--day YYYY-MM-DD`, and optionally `--also-route ID` (repeatable, the `Id` of a member route counted with the route), `--static-day YYYY-MM-DD`, `--out PATH`, `--inspect-dir DIR`. When `--data` is absent the system SHALL use the environment variable `TURNAROUND_DATA`. When `--static-day` is absent it SHALL equal `--day`. When `--out` is absent the card SHALL be written to standard output. When `--inspect-dir` is absent it SHALL be `tmp/health-card/<route>-<day>` relative to the repository root. The executable SHALL NOT load Rails. The card's route line SHALL list the route `Id` followed by every `--also-route` `Id`, joined by 「・」.
 
 #### Scenario: Defaults applied
 
 - **WHEN** the operator runs `bin/health-card --data /x --route 9001 --day 2026-10-19`
 - **THEN** the static snapshot day is 2026-10-19, the card goes to standard output and the inspection files go to `tmp/health-card/9001-2026-10-19`
+
+#### Scenario: Member routes given
+
+- **WHEN** the operator runs `bin/health-card --data /x --route 9001 --also-route 9050 --day 2026-10-23 --static-day 2026-10-23`
+- **THEN** the run uses the route `Id`s 9001 and 9050, and the card's route line reads 測試幹線（路線 Id 9001・9050）
 
 #### Scenario: Missing required parameter
 
@@ -22,88 +27,155 @@ The system SHALL provide the executable `bin/health-card` accepting `--data DIR`
 
 
 <!-- @trace
-source: zhongshan-first-health-card
-updated: 2026-10-22
+source: 02-route-307-page
+updated: 2026-10-24
 code:
-  - spec/fixtures/analysis/bus_event/2026-10-19/08.jsonl.gz
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/16.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/13.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-20/02.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/08.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/23.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-20/00.jsonl
-  - spec/fixtures/analysis/static/2026-10-19/GetRoute.gz
-  - spec/fixtures/analysis/bus_seat_event/2026-10-20/01.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/17.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/10.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/15.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/20.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/16.jsonl
-  - analysis/30_layovers.sql
-  - spec/fixtures/analysis/bus_event/2026-10-19/00.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/14.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/17.jsonl
+  - db/migrate/20261024050300_require_route_id_on_derived_rows.rb
+  - app/components/turnaround_facilities_component.rb
   - analysis/10_load.sql
-  - Makefile
-  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
-  - analysis/20_trips.sql
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/21.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-20/02.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/11.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/07.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/11.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-20/01.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-18/21.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/00.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/07.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/19.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/09.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/22.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/19.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/23.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/22.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/14.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-20/00.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-18/23.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/09.jsonl
-  - analysis/40_load_profile.sql
-  - spec/fixtures/analysis/bus_event/2026-10-19/18.jsonl
-  - analysis/60_export.sql
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/06.jsonl
-  - spec/fixtures/analysis/static/2026-10-19/GetPathDetail.gz
-  - spec/fixtures/analysis/bus_event/2026-10-19/20.jsonl
-  - analysis/params.sql
-  - analysis/README.md
-  - spec/fixtures/analysis/bus_event/2026-10-18/22.jsonl
-  - analysis/50_quality.sql
-  - spec/support/duckdb.rb
-  - spec/fixtures/analysis/bus_seat_event/2026-10-18/22.jsonl
-  - docs/cards/15373-2026-10-19.md
-  - spec/fixtures/analysis/bus_event/2026-10-18/21.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-18/23.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/18.jsonl
-  - .rubocop.yml
-  - spec/fixtures/analysis/bus_seat_event/2026-10-19/12.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/06.jsonl
   - bin/health-card
-  - spec/fixtures/analysis/bus_event/2026-10-19/13.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/15.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/10.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/12.jsonl
-  - spec/fixtures/analysis/bus_event/2026-10-19/21.jsonl
   - spec/fixtures/analysis/README.md
+  - analysis/params.sql
+  - spec/fixtures/analysis/bus_event/2026-10-23/07.jsonl
+  - app/components/turnaround_facilities_component.yml
+  - analysis/60_export.sql
+  - docs/background.md
+  - app/models/route_day.rb
+  - analysis/50_quality.sql
+  - app/components/data_limitations_component.yml
+  - spec/factories/route_day_ends.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetPathDetail.gz
+  - README.md
+  - app/components/data_limitations_component.rb
+  - db/migrate/20261024035750_create_route_day_shapes.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetProvider.gz
+  - analysis/depots.sql
+  - spec/fixtures/analysis/static/2026-10-19/GetBusShape.gz
+  - app/components/stop_sequence_component.yml
+  - spec/fixtures/analysis/bus_data/2026-10-23/07.jsonl
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/07.jsonl
+  - app/components/attribution_component.html.erb
+  - app/models/trip.rb
+  - app/frontend/maps/base_map.js
+  - app/models/route_page/route_shape.rb
+  - app/models/route_page/stop_sequence.rb
+  - config/depot_inspections.yml
+  - analysis/40_load_profile.sql
+  - analysis/route_shape.sql
+  - spec/factories/route_day_shapes.rb
+  - db/schema.rb
+  - app/models/route_page/depots.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetBusShape.gz
+  - app/models/route_page/depot_inspections.rb
+  - db/migrate/20261024062215_create_route_day_depots.rb
+  - app/models/route_day_depot.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetRoute.gz
+  - app/components/end_map_component.html.erb
+  - app/models/route_day_loader.rb
+  - config/locales/en.yml
+  - analysis/README.md
+  - spec/fixtures/analysis/bus_event/2026-10-23/08.jsonl
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/09.jsonl
+  - app/components/route_map_component.html.erb
+  - spec/factories/route_day_depots.rb
+  - spec/factories/route_day_end_cells.rb
+  - app/components/attribution_component.yml
+  - spec/fixtures/analysis/static/2026-10-23/GetRoute.gz
+  - app/models/route_page/load_profile.rb
+  - app/frontend/route_map/runtime.js
+  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
+  - app/components/route_map_component.rb
+  - app/models/route_page/layover_stats.rb
+  - app/models/derived_load_command.rb
+  - spec/fixtures/analysis/bus_seat_event/2026-10-23/08.jsonl
+  - db/migrate/20261024050200_backfill_route_id_on_derived_rows.rb
+  - app/frontend/entrypoints/application.js
+  - app/models/route_day_shape.rb
+  - analysis/turnaround_facilities.sql
+  - app/models/pto_assessment_snapshot.rb
+  - docs/data-sources.md
+  - app/frontend/stylesheets/application.css
+  - app/components/application_component.rb
+  - analysis/derived_export.sql
+  - spec/fixtures/analysis/static/2026-10-19/GetProvider.gz
+  - app/components/route_list_component.rb
+  - analysis/mrt_overlap.sql
+  - app/models/route_page/mrt_overlap.rb
+  - app/models/route_page/summary.rb
+  - config/route_page.yml
+  - lib/tasks/external.rake
+  - spec/factories/route_day_end_toilets.rb
+  - spec/factories/route_days.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetStop.gz
+  - app/components/route_map_component.yml
+  - spec/fixtures/analysis/bus_event/2026-10-23/09.jsonl
+  - app/models/tdx_s2s_travel_time_snapshot.rb
+  - app/components/turnaround_facilities_component.html.erb
+  - app/components/buffer_trade_component.yml
+  - app/views/routes/show.html.erb
+  - spec/fixtures/analysis/static/2026-10-23/GetPathDetail.gz
+  - db/migrate/20261024050100_add_member_route_columns_to_derived_tables.rb
+  - app/frontend/end_map/runtime.js
+  - app/models/route_day_stop.rb
+  - app/components/route_coverage_component.html.erb
+  - app/models/route_page.rb
+  - spec/fixtures/analysis/bus_event/2026-10-24/01.jsonl
+  - app/components/route_list_component.html.erb
+  - spec/support/duckdb.rb
+  - app/components/data_limitations_component.html.erb
+  - app/components/route_coverage_component.rb
+  - app/components/stop_sequence_component.html.erb
+  - config/locales/tw.yml
+  - lib/analysis_run.rb
+  - app/components/buffer_trade_component.html.erb
+  - app/components/stop_sequence_component.rb
+  - docs/decisions.md
 tests:
-  - spec/analysis/quality_spec.rb
-  - spec/analysis/card_spec.rb
-  - spec/analysis/trips_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/analysis/layovers_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/migrations/member_route_columns_spec.rb
+  - spec/analysis/depots_spec.rb
+  - spec/models/route_page/route_shape_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/components/data_limitations_component_spec.rb
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/models/derived_load_command_spec.rb
   - spec/analysis/fixtures_spec.rb
-  - spec/analysis/chains_spec.rb
-  - spec/analysis/duckdb_helpers_spec.rb
-  - spec/analysis/profile_spec.rb
-  - spec/analysis/cli_spec.rb
   - spec/analysis/load_spec.rb
+  - spec/models/route_page/depots_spec.rb
+  - spec/models/route_page/summary_spec.rb
+  - spec/analysis/card_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/models/route_page/card_consistency_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/analysis/trips_spec.rb
+  - spec/models/pto_assessment_snapshot_spec.rb
+  - spec/models/route_page/layover_stats_spec.rb
+  - spec/models/tdx_s2s_travel_time_snapshot_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/models/route_page/stop_sequence_spec.rb
+  - spec/components/attribution_component_spec.rb
+  - spec/system/route_map_spec.rb
+  - spec/components/route_coverage_component_spec.rb
+  - spec/analysis/profile_spec.rb
+  - spec/analysis/mrt_overlap_spec.rb
+  - spec/analysis/quality_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/analysis/route_shape_spec.rb
+  - spec/models/route_page/depot_inspections_spec.rb
+  - spec/analysis/layovers_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/analysis/analysis_run_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
+  - spec/components/route_map_component_spec.rb
+  - spec/models/route_page/ends_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/components/stop_sequence_component_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/analysis/cli_spec.rb
 -->
 
 ---

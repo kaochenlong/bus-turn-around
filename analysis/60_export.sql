@@ -39,15 +39,22 @@ COPY (
 ) TO (getvariable('inspect_dir') || '/quality.csv') (HEADER);
 
 SELECT to_json({
+    -- The page route names the run; route_ids lists every route Id of the
+    -- run, the page route first, and the sub-routes listed are theirs.
     'route': (
         SELECT {
             'route_id': any_value(route_id),
+            'route_ids': getvariable('route_ids'),
             'name': any_value(route_name),
             'departure': any_value(departure),
             'destination': any_value(destination),
-            'sub_routes': list({'path_attribute_id': path_attribute_id, 'name': path_attribute_name} ORDER BY path_attribute_id)
+            'sub_routes': (
+                SELECT list({'path_attribute_id': path_attribute_id, 'name': path_attribute_name} ORDER BY path_attribute_id)
+                FROM routes
+            )
         }
         FROM routes
+        WHERE route_id = getvariable('route_id')
     ),
     'day': strftime(getvariable('day'), '%Y-%m-%d'),
     'static_day': strftime(getvariable('static_day'), '%Y-%m-%d'),

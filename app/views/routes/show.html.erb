@@ -11,16 +11,19 @@
 
   <% if @coverage.data? %>
     <% route_days = @coverage.route_days %>
-    <%# 摘要的重點數字與折返停留表、捷運重疊表用同一個物件，數字只算一次 %>
+    <%# 摘要的重點數字與折返停留表、捷運重疊表用同一個物件，數字只算一次；摘要與資料限制共用同一份趟次統計 %>
+    <% summary = RoutePage::Summary.new(route_days) %>
     <% layover_stats = RoutePage::LayoverStats.new(route_days) %>
     <% load_profile = RoutePage::LoadProfile.new(route_days) %>
     <% mrt_overlap = RoutePage::MrtOverlap.new(route_days) %>
     <%# 同一張卡裡的區塊之間用這條分隔線 %>
     <% divider = tag.hr(class: "mt-7 mb-5 border-slate-200 sm:mt-8 sm:mb-6") %>
-    <%= render RouteSummaryComponent.new(summary: RoutePage::Summary.new(route_days), layover_stats:, ends: @ends, mrt_overlap:) %>
+    <%= render RouteSummaryComponent.new(summary:, layover_stats:, ends: @ends, mrt_overlap:) %>
     <%= render SectionNavComponent.new %>
     <%= render CardComponent.new(id: "stops") do %>
-      <%= render StopSequenceComponent.new(stop_sequence: RoutePage::StopSequence.new(route_days), ends: @ends) %>
+      <%= render StopSequenceComponent.new(stop_sequence: RoutePage::StopSequence.new(route_days), ends: @ends) do %>
+        <%= render RouteMapComponent.new(route_shape: RoutePage::RouteShape.new(route_days)) %>
+      <% end %>
     <% end %>
     <%= render CardComponent.new(id: "layovers") do %>
       <%= render LayoverChartComponent.new(layover_distribution: RoutePage::LayoverDistribution.new(route_days), ends: @ends) %>
@@ -33,7 +36,7 @@
     <%# 地圖跟設施那一塊共用同一份設施的查詢 %>
     <% facilities = RoutePage::Facilities.new(route_days, ends: @ends) %>
     <%= render CardComponent.new(id: "facilities") do %>
-      <%= render TurnaroundFacilitiesComponent.new(facilities:, end_map: RoutePage::EndMap.new(route_days, ends: @ends, facilities:)) %>
+      <%= render TurnaroundFacilitiesComponent.new(facilities:, depots: RoutePage::Depots.new(route_days), end_map: RoutePage::EndMap.new(route_days, ends: @ends, facilities:)) %>
     <% end %>
     <%# 卡片在 turbo-frame 外面：拉桿只重新載入卡片裡的這一塊 %>
     <%= render CardComponent.new(id: "buffer") do %>
@@ -50,7 +53,7 @@
       <%= render LoadProfileTableComponent.new(load_profile:) %>
     <% end %>
     <%= render CardComponent.new(id: "limits") do %>
-      <%= render DataLimitationsComponent.new %>
+      <%= render DataLimitationsComponent.new(member_trips: summary.trips_by_route) %>
     <% end %>
   <% end %>
 </main>

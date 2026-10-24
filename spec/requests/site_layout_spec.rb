@@ -61,6 +61,12 @@ RSpec.describe "Site layout", type: :request do
     expect(page.css("footer[data-attribution] p").map { it.text.strip }).to include("測試用空白底圖")
   end
 
+  it "首頁與路線頁的頁尾都恰好有一行報告書的顯名，書名跟查核分數設定裡最新一期的報告書相同" do
+    title = RoutePage::DepotInspections.current.title
+    lines = [ root_path, route_path(9001) ].map { get(it).then { page.css("footer[data-attribution] p").count { it.text.include?(title) } } }
+    expect(lines).to eq([ 1, 1 ])
+  end
+
   it "9001 還沒有任何資料時，路線頁回 200，恰好一個顯名聲明 footer，footer 本身與裡面都沒有 data-section" do
     get route_path(9001)
     expect([ response.status, footers.size, sections_in_footer.size ]).to eq([ 200, 1, 0 ])

@@ -28,12 +28,15 @@ module HealthCard
     end
   end
 
-  Options = Data.define(:data_root, :route_id, :day, :static_day, :out, :inspect_dir)
+  # also_routes: the member routes counted with the route on one page, in
+  # the order given; the SQL runs on route_id followed by them.
+  Options = Data.define(:data_root, :route_id, :also_routes, :day, :static_day, :out, :inspect_dir)
 
   class CLI
     def initialize(argv, env)
       @argv = argv
       @env = env
+      @also_routes = []
     end
 
     def run
@@ -60,6 +63,9 @@ module HealthCard
         opts.separator ""
         opts.on("--data DIR", "原始檔的資料根目錄，省略時用環境變數 TURNAROUND_DATA")
         opts.on("--route ID", ROUTE_ID, "路線 Id，例如 15373")
+        # A repeated option overwrites its entry in the hash, so the values
+        # are collected here.
+        opts.on("--also-route ID", ROUTE_ID, "跟 --route 算成同一條、掛在同一頁的附屬路線的路線 Id，可重複") { |id| @also_routes << id }
         opts.on("--day YYYY-MM-DD", ISO_DATE, "台北日")
         opts.on("--static-day YYYY-MM-DD", ISO_DATE, "靜態快照日，省略時等於 --day")
         opts.on("--out PATH", "卡寫到這個檔，省略時寫到標準輸出")
@@ -84,8 +90,12 @@ module HealthCard
       raise usage_error("缺少 #{missing.select { |_name, value| value.nil? }.keys.join('、')}") if missing.value?(nil)
 
       route_id = Integer(values[:route], 10)
+      also_routes = @also_routes.map { Integer(it, 10) }
+      raise usage_error("--also-route 不能是 --route 自己：#{route_id}") if also_routes.include?(route_id)
+      raise usage_error("--also-route 重複：#{also_routes.tally.select { |_id, n| n > 1 }.keys.join('、')}") if also_routes.uniq.size < also_routes.size
+
       day = parse_day(values[:day])
-      Options.new(data_root: File.expand_path(data_root), route_id:, day:,
+      Options.new(data_root: File.expand_path(data_root), route_id:, also_routes:, day:,
                   static_day: values[:"static-day"] ? parse_day(values[:"static-day"]) : day,
                   out: values[:out],
                   inspect_dir: values[:"inspect-dir"] || File.join(ROOT, "tmp/health-card", "#{route_id}-#{day.iso8601}"))
@@ -137,10 +147,12 @@ module HealthCard
       Dir.children(static_root).select { ISO_DATE.match?(it) && File.directory?(File.join(static_root, it)) }.sort
     end
 
-    # Returns the card row, the one result the SQL prints.
+    # Returns the card row, the one result the SQL prints. The route Ids of
+    # the run are the route and its member routes; the SQL takes a list of
+    # one as the route alone.
     def run_sql(duckdb, options, inspect_dir)
-      variables = { data_root: options.data_root, route_id: options.route_id, day: options.day,
-                    static_day: options.static_day, inspect_dir: }
+      variables = { data_root: options.data_root, route_id: options.route_id, member_route_ids: [ options.route_id, *options.also_routes ],
+                    day: options.day, static_day: options.static_day, inspect_dir: }
       AnalysisRun.run(duckdb, variables).fetch(0).fetch("card")
     rescue AnalysisRun::Error => e
       raise Failure.new(e.message, 4)
@@ -191,7 +203,7 @@ module HealthCard
     ATTRIBUTION = <<~MARKDOWN.chomp.freeze
       ## 資料來源與授權
 
-      臺北市公共運輸處 2026 臺北市公車開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent）、路線（GetRoute）、站牌（GetStop）、附屬路線與路線對應（GetPathDetail），見 Data.Taipei 平台 API 說明文件 V6.3
+      臺北市公共運輸處 2026 臺北市公車開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent）、路線（GetRoute）、站牌（GetStop）、附屬路線與路線對應（GetPathDetail）、公車路線軌跡（GetBusShape）、業者營運基本資料（GetProvider），見 Data.Taipei 平台 API 說明文件 V6.3
 
       此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。
 
@@ -209,6 +221,9 @@ module HealthCard
 
     private
 
+    # The route line lists every route Id of the run, the route first and
+    # then its member routes, joined by 「・」; a run of one route reads as
+    # before.
     def header
       route = @data.fetch("route")
       sub_routes = Array(route["sub_routes"]).map { "#{it['name']}（#{it['path_attribute_id']}）" }
@@ -217,7 +232,7 @@ module HealthCard
 
         > 一天版，只拿來驗證定義，不可引用。這張卡只用了一個台北日的資料，所有數字都只拿來看趟次、折返停留與車上人數的定義對不對。
 
-        - 路線：#{route['name']}（路線 Id #{route['route_id']}）
+        - 路線：#{route['name']}（路線 Id #{Array(route['route_ids']).join('・')}）
         - 起迄：#{route['departure']}－#{route['destination']}
         - 附屬路線：#{sub_routes.join('、')}
         - 資料日：#{@data['day']}

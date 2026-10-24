@@ -77,5 +77,16 @@ SET VARIABLE toilet_radius_meters = 500;
 SET VARIABLE standstill_cell_degrees = 0.0002;
 SET VARIABLE cell_min_buses = 3;
 
+-- Route shapes (analysis/route_shape.sql): a row of GetBusShape can be kept
+-- only when its line has at least this many points and every point lies
+-- within these bounds. The bounds take in Taiwan and its outlying islands;
+-- what they catch is latitude and longitude swapped, which puts a latitude
+-- near 121.
+SET VARIABLE route_shape_min_points = 2;
+SET VARIABLE route_shape_min_latitude = 20;
+SET VARIABLE route_shape_max_latitude = 27;
+SET VARIABLE route_shape_min_longitude = 118;
+SET VARIABLE route_shape_max_longitude = 123;
+
 -- Minutes from one timestamp to a later one, with the seconds kept.
 CREATE OR REPLACE MACRO minutes_between(earlier, later) AS epoch(later - earlier) / 60;

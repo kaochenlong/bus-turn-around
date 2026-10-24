@@ -115,18 +115,19 @@
 }
 @keyframes hero-reveal { to { visibility: visible; } }
 
-/* 折返點設施的地圖：endMap 元件把狀態寫在 data-map（pending、loading、ready、static）。畫好（ready）之前，
-   容器裡那一句蓋在畫布上；畫布的盒子一直保留高度，載入時不跳版。那一句的顯示與否只由這裡決定，元素本身不放 display 的 class */
+/* 路線頁的地圖（折返點設施的端點地圖、站序卡的路線圖）：endMap 與 routeMap 元件把狀態寫在 data-map
+   （pending、loading、ready、static）。畫好（ready）之前，容器裡那一句蓋在畫布上；畫布的盒子一直保留高度，
+   載入時不跳版。那一句的顯示與否只由這裡決定，元素本身不放 display 的 class */
 [data-map-note] { display: flex; }
 [data-map="ready"] [data-map-note] { display: none; }
 
 /* Leaflet 的圖層與控制項 z-index 到 1000，關在容器自己的堆疊裡，捲動時才不會蓋過頂端黏住的區塊導覽 */
-[data-end-map] { isolation: isolate; }
-[data-map-canvas] > .end-map { position: absolute; inset: 0; }
+:is([data-end-map], [data-route-map]) { isolation: isolate; }
+[data-map-canvas] > :is(.end-map, .route-map) { position: absolute; inset: 0; }
 
 /* Leaflet 的 CSS 跟著地圖的 chunk 晚載入，同樣權重會蓋過這裡（例如它把標記設成 display: block），
    所以跟它的選擇器撞到的規則多帶一層容器 */
-[data-end-map] .leaflet-container { font-family: var(--font-route); font-size: var(--text-label-sm); }
+:is([data-end-map], [data-route-map]) .leaflet-container { font-family: var(--font-route); font-size: var(--text-label-sm); }
 
 /* 靜止格四級深淺：同一個色相由淺到深（violet 500、700、900、950），在 OSM 底圖的地面、建物與白色道路上，
    最淺一級都還分得出來（dataviz 的驗證腳本量過 85% 不透明度疊上去的顏色）。白色細框讓相鄰的格子分得開 */
@@ -155,3 +156,65 @@
 .end-map-stop-next::before { width: 14px; height: 14px; border-radius: 9999px; border: 3px solid var(--color-slate-900); background: white; }
 .end-map-location::before { width: 20px; height: 20px; border-radius: 9999px; background: radial-gradient(circle, white 0 3px, var(--color-teal-700) 3.5px); }
 .end-map-toilet::before { width: 12px; height: 12px; border-radius: 3px; background: var(--color-teal-700); }
+
+/* 手勢提示（像 Google 地圖）：滾輪沒按縮放鍵、或觸控螢幕單指劃過地圖時，蓋在地圖上一下子，說要怎麼縮放或移動。
+   兩種地圖共用；不吃滑鼠，捲頁照常；減少動態效果時直接出現、直接消失 */
+.map-gesture-note {
+  position: absolute;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: --spacing(4);
+  background: color-mix(in oklab, var(--color-slate-900) 60%, transparent);
+  color: white;
+  font-family: var(--font-route);
+  font-size: var(--text-body);
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.map-gesture-note[data-shown] { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .map-gesture-note { transition: none; }
+}
+
+/* 全螢幕（兩種地圖共用）：瀏覽器把容器放到整個畫面時，容器與畫布填滿畫面，拿掉頁面裡的圓角與邊框。
+   按鈕跟縮放鈕同一種方塊，圖示是往外的四個角，全螢幕時換成往內收的四個角 */
+:is([data-end-map], [data-route-map]):fullscreen { border: 0; border-radius: 0; }
+:is([data-end-map], [data-route-map]):fullscreen [data-map-canvas] { height: 100%; }
+:is([data-end-map], [data-route-map]) .map-fullscreen a {
+  background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5'/%3E%3C/svg%3E") center / 18px no-repeat;
+}
+:is([data-end-map], [data-route-map])[data-fullscreen] .map-fullscreen a {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4v5H4M15 4v5h5M15 20v-5h5M9 20v-5H4'/%3E%3C/svg%3E");
+}
+
+/* 路線圖的兩條線：兩個方向都是使用者指定的橘色，去程實線、返程虛線。兩個方向常走同一條路的兩側，
+   疊在一起時看起來是一條實線；只有一個方向走的那一段（例如公館端的繞行）才看得出是實線還是虛線 */
+[data-route-map] { --route-map-line: #e95f00; }
+.route-map-line { fill: none; stroke: var(--route-map-line); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.route-map-line-1 { stroke-dasharray: 8 8; }
+
+[data-route-map] .route-map-legend {
+  display: flex;
+  flex-direction: column;
+  gap: --spacing(1);
+  border-radius: var(--radius-md);
+  background: white;
+  padding: --spacing(1) --spacing(2);
+  color: var(--color-slate-600);
+}
+.route-map-legend-entry { display: flex; align-items: center; gap: --spacing(1.5); }
+.route-map-legend-swatch { width: 20px; border-top: 4px solid var(--route-map-line); }
+.route-map-legend-swatch-1 { border-top-style: dashed; }
+
+/* 起站與末站照端點地圖的樣子：起站空心、末站實心，都帶白邊。一個方向的末站跟另一個方向的起站常在同一處，
+   所以起站是中間透明的圓圈、疊在末站的小圓點上面，兩個都看得見 */
+[data-route-map] .route-map-pin { display: grid; place-items: center; }
+.route-map-pin::before { content: ""; box-sizing: border-box; border-radius: 9999px; box-shadow: 0 0 0 2px white; }
+.route-map-stop-first::before { width: 18px; height: 18px; border: 3px solid var(--color-slate-900); }
+.route-map-stop-last::before { width: 8px; height: 8px; background: var(--color-slate-900); }

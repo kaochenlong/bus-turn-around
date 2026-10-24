@@ -81,3 +81,10 @@
 - image 在筆電建、從 git HEAD 的乾淨 clone 建、推到 Kamal 的本機 registry，不用外部 registry；每個 image 對應一個 commit。
 - 密碼只在 production credentials：`.kamal/secrets` 用 `config/credentials/production.key` 當 RAILS_MASTER_KEY，資料庫密碼從 credentials 的 `database.password` 讀。這個專案是 per-environment credentials，`config/master.key` 只解共用那份。
 - IP 與網域寫在 `config/deploy.yml`：reserved IP 同時是 DNS 與部署目標，換機器只搬 IP。兩者從 DNS 就查得到，不是秘密。第 11 條「主機、路徑、PID 這類營運細節不進公開 repo」照舊適用於採集器那邊。
+
+## 13. 行駛時間與折返停留從到離站事件算，GPS 用來定折返點的位置與性質
+
+- 2026-10-24 記的，做法從第一張健檢卡起就是這樣，這裡補理由。趟次是同一車牌從起站離站到末站到站，行駛時間、折返停留、來回一趟、週期全部從到離站事件（`bus_event`）的時刻算；定時回報的 GPS（`bus_data`）只拿來找折返停留期間車停在哪裡、畫靜止格、查證每一端是停車還是開過去就走。
+- 自己量到的理由排前面：到離站事件帶站牌與進出站旗標，趟次的起訖直接讀得到；GPS 我們 10 秒才抓到一點，起訖要靠距離門檻猜站牌，站區密集處猜錯就差一站。2026-10-18 實測相隔 55 秒抓兩次，1,072 台共同出現的車裡 505 台站牌變了，有車直接從某站跳到下下站（`docs/data-sources.md`）。
+- 事件也會漏，停車端的離站尤其常漏：中山幹線 2026-10-19 到 10-22 四個平日有三成去程趟次的起點是到站時刻，所以週期用到站不用發車（詞彙表「週期」）。缺事件的趟次標 `start_from_arrival`、`end_from_departure`，行駛時間與來回一趟把它們排除並計數，寧可少算不猜。
+- 文獻排第二：Furth 與 Muller 2007 的班表寬裕量建議（行駛時間平均加一個標準差、循環時間平均加兩到三個標準差）以趟次的起訖時間為輸入，跟這個趟次定義相容，引用在 `docs/background.md`。TCRP Report 113 是否明文建議用事件不用定時回報，原文還沒讀，列在 background.md 的待確認。

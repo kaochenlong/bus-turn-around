@@ -12,6 +12,8 @@
 --   missing_stop_rate      stops without an event among complete trips
 --   duty_status_counts     DutyStatus values of the events in the day's trips
 --   duty_status_trip_ends  how DutyStatus 2 lines up with trip ends
+--   unmatched_page_stop_counts  counts of member route trips at stops the
+--                          page route does not serve in that direction
 --   quality                every number above as metric, subject, value rows
 -- Shares are fractions; the card turns them into percentages.
 
@@ -28,14 +30,15 @@ SELECT path_attribute_id,
        CASE WHEN sum(n_trips) OVER () = 0 THEN NULL ELSE n_trips / sum(n_trips) OVER () END AS share
 FROM path_trip_counts;
 
--- A vehicle's trips of the day are its trips on the route that start on the
--- day, of any completeness. The earliest is its first trip and the latest its
--- last; a vehicle's only trip is both. Trips on other routes are not read.
+-- A vehicle's trips of the day are its trips on any route Id of the run that
+-- start on the day, of any completeness: the page counts its member routes as
+-- one route. The earliest is its first trip and the latest its last; a
+-- vehicle's only trip is both. Trips on other routes are not read.
 CREATE OR REPLACE VIEW vehicle_day_ends AS
 WITH ranked AS (
     SELECT path_attribute_id,
-           row_number() OVER (PARTITION BY bus_id, route_id ORDER BY start_time, trip_id) = 1 AS is_first,
-           row_number() OVER (PARTITION BY bus_id, route_id ORDER BY start_time DESC, trip_id DESC) = 1 AS is_last
+           row_number() OVER (PARTITION BY bus_id ORDER BY start_time, trip_id) = 1 AS is_first,
+           row_number() OVER (PARTITION BY bus_id ORDER BY start_time DESC, trip_id DESC) = 1 AS is_last
     FROM trips
 )
 SELECT r.path_attribute_id,
@@ -47,10 +50,11 @@ GROUP BY r.path_attribute_id;
 
 -- Whether the feed reports leaving the last stop. Without such an event the
 -- reset check has no count after alighting at that end. The window after the
--- end is the reset check's. Every direction is listed.
+-- end is the reset check's. Every direction is listed, named after the page
+-- route's last stop; each trip's last stop is its own route's.
 CREATE OR REPLACE VIEW last_stop_departures AS
 WITH directions AS (
-    SELECT go_back, max(seq) AS last_seq FROM stops GROUP BY go_back
+    SELECT go_back, max(seq) AS last_seq FROM stops WHERE route_id = getvariable('route_id') GROUP BY go_back
 ),
 complete_trips AS (
     SELECT t.trip_id,
@@ -69,7 +73,7 @@ SELECT d.go_back,
        count(c.trip_id) AS complete_trips,
        count(c.trip_id) FILTER (WHERE c.has_departure) AS with_departure
 FROM directions d
-JOIN stops s ON s.go_back = d.go_back AND s.seq = d.last_seq
+JOIN stops s ON s.route_id = getvariable('route_id') AND s.go_back = d.go_back AND s.seq = d.last_seq
 LEFT JOIN complete_trips c ON c.go_back = d.go_back
 GROUP BY d.go_back, s.stop_name;
 
@@ -123,6 +127,13 @@ SELECT trips_ending_duty_2,
        CASE WHEN duty_2_events = 0 THEN NULL ELSE final_duty_2_events / duty_2_events END AS event_share
 FROM counted;
 
+-- Counts left out of the profile and the stored counts because the page
+-- route has no stop at that location in that direction (load-profile).
+CREATE OR REPLACE VIEW unmatched_page_stop_counts AS
+SELECT count(*) AS n_counts
+FROM trip_stop_counts
+WHERE page_seq IS NULL;
+
 CREATE OR REPLACE VIEW quality AS
 SELECT 'records_read' AS metric, feed AS subject, CAST(n_read AS VARCHAR) AS value FROM load_counts
 UNION ALL
@@ -158,4 +169,6 @@ SELECT 'duty_status_events', CAST(duty_status AS VARCHAR), CAST(n_events AS VARC
 UNION ALL
 SELECT 'trips_ending_duty_status_end_share', '', CAST(trip_share AS VARCHAR) FROM duty_status_trip_ends
 UNION ALL
-SELECT 'duty_status_end_events_trip_final_share', '', CAST(event_share AS VARCHAR) FROM duty_status_trip_ends;
+SELECT 'duty_status_end_events_trip_final_share', '', CAST(event_share AS VARCHAR) FROM duty_status_trip_ends
+UNION ALL
+SELECT 'unmatched_page_stop_counts', '', CAST(n_counts AS VARCHAR) FROM unmatched_page_stop_counts;

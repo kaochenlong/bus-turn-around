@@ -32,7 +32,7 @@ RSpec.describe "bin/health-card" do
     end
   end
 
-  def usage_printed?(stderr) = %w[--data --route --day --static-day --out --inspect-dir].all? { stderr.include?(it) }
+  def usage_printed?(stderr) = %w[--data --route --also-route --day --static-day --out --inspect-dir].all? { stderr.include?(it) }
 
   describe "參數與預設值" do
     let(:default_inspect_dir) { File.join(DuckdbHelpers::ROOT, "tmp/health-card/9001-2026-10-19") }
@@ -116,12 +116,22 @@ RSpec.describe "bin/health-card" do
       [ "靜態快照日不是 YYYY-MM-DD", [ "--data", fixture, "--route", "9001", "--day", "2026-10-19", "--static-day", "20261019" ], {} ],
       [ "路線 Id 不是整數", [ "--data", fixture, "--route", "9001x", "--day", "2026-10-19" ], {} ],
       [ "不認得的參數", [ "--data", fixture, "--route", "9001", "--day", "2026-10-19", "--color" ], {} ],
+      [ "--also-route 不是整數", [ "--data", fixture, "--route", "9001", "--day", "2026-10-19", "--also-route", "9050x" ], {} ],
+      [ "--also-route 等於 --route", [ "--data", fixture, "--route", "9001", "--day", "2026-10-19", "--also-route", "9001" ], {} ],
+      [ "--also-route 重複", [ "--data", fixture, "--route", "9001", "--day", "2026-10-19", "--also-route", "9050", "--also-route", "9050" ], {} ],
       [ "多出不屬於任何參數的引數", [ "--data", fixture, "--route", "9001", "--day", "2026-10-19", "extra" ], {} ]
     ].each do |label, args, env|
       it "#{label}：用法印到標準錯誤，結束碼 1，不寫任何檔" do
         code, stderr, files = run_isolated(*args, env:)
         expect([ code, usage_printed?(stderr), files ]).to eq([ 1, true, [] ])
       end
+    end
+  end
+
+  describe "成員路線" do
+    it "--also-route 可重複，每個都傳進 SQL：9060 在 GetRoute.gz 沒有列，結束碼 4，標準錯誤點名 9060，不寫任何檔" do
+      code, stderr, files = run_isolated(*fixture_args, "--day", "2026-10-23", "--static-day", "2026-10-23", "--also-route", "9050", "--also-route", "9060")
+      expect([ code, stderr.include?("9060"), files ]).to eq([ 4, true, [] ])
     end
   end
 

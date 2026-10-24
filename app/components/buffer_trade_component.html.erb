@@ -41,13 +41,13 @@
       <div class="grid max-w-[760px] grid-cols-2 gap-x-3 sm:gap-x-4">
         <% COLUMNS.each do |bound, column| %>
           <div aria-hidden="true" class="hidden rounded-xl border border-slate-200 sm:row-span-3 sm:row-start-1 sm:block <%= column %>"></div>
-          <p class="hidden px-5.5 pt-5 pb-3 text-table font-semibold text-slate-700 sm:row-start-1 sm:block <%= column %>"><%= t(".#{bound}") %></p>
+          <p class="hidden px-5.5 pt-5 pb-3 text-table font-semibold text-slate-700 sm:row-start-1 sm:block <%= column %>"><%= t(".#{bound}", minutes: @buffer_trade.minutes) %></p>
         <% end %>
 
         <p class="col-span-2 mb-2 font-semibold text-slate-700 sm:hidden"><%= t(".vehicle_hours") %></p>
         <% vehicle_hours.each do |bound, value| %>
           <div class="<%= cell %> sm:row-start-2 sm:border-b sm:border-slate-100 sm:pb-3 <%= COLUMNS.fetch(bound) %>">
-            <span class="<%= bound_label %>"><%= t(".#{bound}") %></span>
+            <span class="<%= bound_label %>"><%= t(".#{bound}", minutes: @buffer_trade.minutes) %></span>
             <span class="<%= metric_label %>"><%= t(".vehicle_hours") %></span>
             <span data-value="vehicle-hours-<%= bound %>" class="<%= figure %>"><%= decimal(value) %></span>
           </div>
@@ -56,7 +56,7 @@
         <p class="col-span-2 mt-4.5 mb-2 font-semibold text-slate-700 sm:hidden"><%= t(".peak_vehicles") %></p>
         <% peaks.each do |bound, peak| %>
           <div data-peak="<%= bound %>" data-hour="<%= peak.hour %>" class="<%= cell %> sm:row-start-3 sm:pt-3 sm:pb-5 <%= COLUMNS.fetch(bound) %>">
-            <span class="<%= bound_label %>"><%= t(".#{bound}") %></span>
+            <span class="<%= bound_label %>"><%= t(".#{bound}", minutes: @buffer_trade.minutes) %></span>
             <span class="<%= metric_label %>"><%= t(".peak_vehicles") %></span>
             <span data-vehicles class="<%= figure %>"><%= decimal(peak.vehicles) %></span>
             <span class="text-label text-slate-500 sm:col-start-1 sm:row-start-2"><%= hour_span(peak.hour) %></span>

@@ -88,4 +88,43 @@
       <% end %>
     </div>
   <% end %>
+
+  <div data-depots class="mt-10 border-t border-slate-200 pt-8">
+    <h3 class="mb-2 text-subsection font-semibold text-teal-800"><%= t(".depots_title") %></h3>
+    <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".depots_note", term: term_label) %></p>
+    <% if depots.needs_reload? %>
+      <p data-depots-needs-reload class="rounded border border-amber-300 bg-amber-50 p-4"><%= t(".depots_needs_reload") %></p>
+    <% else %>
+      <div class="grid gap-4 lg:grid-cols-2 lg:gap-6">
+        <% depots.rows.each do |depot| %>
+          <div data-depot data-depot-status="<%= depot.status %>" class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p data-depot-name class="mb-3 font-semibold text-slate-900">
+              <%= t(".depot_html", name: depot_name(depot), buses: value("depot-buses", depot.n_buses), trips: value("depot-trips", depot.n_trips)) %>
+            </p>
+            <% if depot.status == :scored %>
+              <% inspection = depot.inspection %>
+              <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1">
+                <% inspection.scores.each do |score| %>
+                  <dt class="text-slate-700"><%= score.item %></dt>
+                  <dd class="text-right font-semibold text-slate-900 tabular-nums"><span data-score="<%= score.item %>"><%= score_text(score) %></span></dd>
+                <% end %>
+              </dl>
+              <p class="mt-3 text-label text-slate-500">
+                <%= t(".inspected_html", date: value("inspected-on", inspection.inspected_on), page: value("printed-page", inspection.printed_page),
+                                         printed_as: value("printed-as", inspection.printed_as),
+                                         report: link_to(t(".report_link"), depots.term.page_url, class: "text-teal-700 underline underline-offset-2 hover:text-teal-900")) %>
+              </p>
+            <% elsif depot.status == :not_in_appendix %>
+              <p data-not-in-appendix class="text-slate-700"><%= t(".not_in_appendix", term: term_label) %></p>
+            <% else %>
+              <p data-unchecked class="text-slate-700"><%= t(".unchecked") %></p>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+      <p class="mt-4 text-label text-slate-500">
+        <%= t(".depots_day_html", day: tag.span(depots.day.iso8601, data: { depots_day: depots.day.iso8601 })) %>
+      </p>
+    <% end %>
+  </div>
 </section>

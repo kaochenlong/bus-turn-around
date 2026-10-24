@@ -33,4 +33,12 @@ class ApplicationComponent < ViewComponent::Base
     tag.span(text, class: "inline-block rounded-md border border-slate-300 bg-slate-50 px-2 text-label leading-5.5 font-medium whitespace-nowrap " \
                           "text-slate-700 sm:px-2.25")
   end
+
+  # The words maps/base_map.js writes on every map of the route page: the
+  # notes shown when a gesture is meant for the page, {key} left for the
+  # script to fill, and the full screen button's.
+  def base_map_labels_json
+    { wheelZoom: I18n.t("maps.gestures.wheel_zoom"), twoFingers: I18n.t("maps.gestures.two_fingers"),
+      fullscreen: I18n.t("maps.fullscreen.enter"), exitFullscreen: I18n.t("maps.fullscreen.exit") }.to_json
+  end
 end

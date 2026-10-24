@@ -11,6 +11,8 @@ tw: &tw
   last_stop: 末站
   turnaround_html: "折返 %{nature}，下一趟從 %{next_first_stop} 出發"
   turnaround_only_html: "折返 %{nature}"
+  member_note: "%{name}（路線 Id %{route_id}）在這個方向不停 %{skipped}，改停 %{added}。"
+  stop_list_separator: "、"
   natures:
     stop: 停車
     pass_through: 開過去就走
@@ -30,6 +32,8 @@ en:
   last_stop: Last stop
   turnaround_html: "Turnaround %{nature}; the next trip leaves %{next_first_stop}"
   turnaround_only_html: "Turnaround %{nature}"
+  member_note: "%{name} (route ID %{route_id}) skips %{skipped} in this direction and serves %{added} instead."
+  stop_list_separator: ", "
   natures:
     stop: Stops
     pass_through: Drives on

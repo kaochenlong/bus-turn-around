@@ -28,6 +28,12 @@ RSpec.describe "analysis/mrt_overlap.sql" do
     end
   end
 
+  it "有成員路線時，每條路線的站都算最近出入口，列帶路線 Id：9050 的己站離丙站捷運出口1 約 100.7 公尺" do
+    rows = run_sql_stages(through: "50_quality", mrt_exits_path: fixture_exits, member_route_ids: [ 9001, 9050 ], day: Date.new(2026, 10, 23), static_day: Date.new(2026, 10, 23),
+                          query: "#{File.read(File.join(DuckdbHelpers::ANALYSIS_DIR, 'mrt_overlap.sql'))}\nSELECT route_id, nearest_exit_name, nearest_exit_meters FROM stop_mrt_distances WHERE route_id = 9050 AND go_back = 0 AND seq = 2")
+    expect(rows.first.values_at("route_id", "nearest_exit_name", "nearest_exit_meters")).to match([ 9050, "丙站捷運出口1", a_value_within(0.5).of(100.7) ])
+  end
+
   it "站牌帶著經緯度：去程甲站在 25.05、121.5" do
     row = run_sql_stages(through: "50_quality", mrt_exits_path: fixture_exits,
                          query: "#{File.read(File.join(DuckdbHelpers::ANALYSIS_DIR, 'mrt_overlap.sql'))}\nSELECT latitude, longitude FROM stop_mrt_distances WHERE seq = 0")

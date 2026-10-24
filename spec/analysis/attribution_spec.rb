@@ -38,8 +38,8 @@ RSpec.describe "顯名聲明點名程式讀到的每一支公運處 feed" do
     expect(day_files_folders - folder_codes.keys).to eq([])
   end
 
-  it "今天讀的六支都掃得到：bus_event、bus_seat_event、bus_data 的小時檔，與 GetRoute.gz、GetStop.gz、GetPathDetail.gz" do
-    expect(%w[GetBusEvent BusSeatEvent GetBusData GetRoute GetStop GetPathDetail] - codes_read).to eq([])
+  it "今天讀的八支都掃得到：bus_event、bus_seat_event、bus_data 的小時檔，與 GetRoute.gz、GetStop.gz、GetPathDetail.gz、GetBusShape.gz、GetProvider.gz" do
+    expect(%w[GetBusEvent BusSeatEvent GetBusData GetRoute GetStop GetPathDetail GetBusShape GetProvider] - codes_read).to eq([])
   end
 
   it "程式讀到的每一支 feed，授權那一節的第一段引文都點名了它的代碼" do

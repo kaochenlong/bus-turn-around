@@ -58,6 +58,11 @@ RSpec.describe EndMapComponent, type: :component do
       expect([ labels.keys, labels["toilet"].scan(/\{\w+\}/) ]).to eq([ %w[lastStop nextFirstStop location toilet few many], %w[{meters} {count}] ])
     end
 
+    it "容器帶共用地圖設定要寫的字：可解析的 JSON，手勢提示與全螢幕按鈕的四個鍵，wheelZoom 留著 {key} 給腳本填" do
+      gestures = JSON.parse(rendered.at_css("[data-end-map]")["data-base-map-labels"])
+      expect([ gestures.keys, gestures["wheelZoom"].scan(/\{\w+\}/) ]).to eq([ %w[wheelZoom twoFingers fullscreen exitFullscreen], %w[{key}] ])
+    end
+
     it "容器裡依序是地圖資料、那一句與畫布" do
       expect(rendered.at_css("[data-end-map]").element_children.map { it.attributes.keys.grep(/\Adata-/).first }).to eq(%w[data-end-map-data data-map-note data-map-canvas])
     end

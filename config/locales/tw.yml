@@ -6,3 +6,11 @@ tw:
   day_types:
     weekday: 平日
     holiday: 假日
+  # 路線頁地圖的手勢提示與全螢幕按鈕，兩種地圖共用；{key} 留給 maps/base_map.js 填 ⌘ 或 Ctrl
+  maps:
+    gestures:
+      wheel_zoom: "按住 {key} 再滾動，就能縮放地圖"
+      two_fingers: "用兩根手指移動或縮放地圖"
+    fullscreen:
+      enter: 全螢幕
+      exit: 離開全螢幕
