@@ -2,34 +2,34 @@
 tw: &tw
   eyebrow: 換休息試算
   title: 每趟加緩衝
-  note: 假設班表在停車那一端的每次折返都多留一段緩衝，算算看要多花多少車時、多開幾台車。這裡只用停車那一端量到的折返停留，算的是車的時數，不能直接當成駕駛的工時。
-  buffer_html: 每次折返留 %{minutes} 分鐘
+  note: 假設班表讓車在停車那一端每次多停幾分鐘再開下一趟，算算一天要多花幾車時、多派幾台車。1 車時就是一台車開一個小時。這裡算的是車，不是駕駛的工時。
+  buffer_html: 緩衝 %{minutes} 分鐘
   submit: 重算
-  coverage_html: "%{days} 天裡，停車那一端量到 %{layovers} 次折返停留，這段期間總共跑了 %{trips} 趟。"
-  pass_through_html: "開過去就走那一端另外量到 %{layovers} 次折返停留，車在那裡不會停下來，不算休息的機會，所以沒有算進試算。"
-  lower: 只把不夠的補到 %{minutes} 分鐘
-  upper: 每次都多留 %{minutes} 分鐘
-  vehicle_hours: 每天要多花幾車時
+  coverage_html: "%{days} 天裡總共跑了 %{trips} 趟，試算只用在停車那一端量得到車停多久的 %{layovers} 次。"
+  pass_through_html: "開過去就走那一端的 %{layovers} 次折返沒有算進來：車到了那裡直接開下一趟，不會停下來。"
+  lower: 不夠 %{minutes} 分鐘的補足
+  upper: 每次都多停 %{minutes} 分鐘
+  vehicle_hours: 一天要多花幾車時
   peak_vehicles: 最忙的那個小時要多派幾台車
-  bounds_note: 折返停留包含回場、加油、等發車，只是休息時間的上限，所以真正的成本會落在這兩欄之間。車數是按那個小時平均估出來的，實際排班可能會不一樣。
-  achieved: 目前停留不少於 %{minutes} 分鐘的比例
-  vehicles_per_day: 目前每天平均用到幾台車
-  no_layover: 這幾天在停車那一端沒有量到折返停留，沒辦法試算。
+  bounds_note: 「不夠的補足」把車現在停的時間都當成休息，只補差額；「每次都多停」把現在停的時間都當成沒在休息，整段另外加。車停著的時候其實有一部分在回場、加油、等發車，所以真正要多花的會落在兩欄之間。多派的車數是把那個小時多出來的分鐘數除以 60 估的，實際排班會不一樣。
+  achieved: 現在已經停到 %{minutes} 分鐘以上的比例
+  vehicles_per_day: 現在一天平均有幾台車在跑
+  no_layover: 這幾天在停車那一端量不到車停了多久，沒辦法試算。
 zh-TW:
   <<: *tw
 en:
   eyebrow: Rest trade-off
   title: A buffer at every layover
-  note: Assume the schedule leaves a buffer at every layover at the ends where buses stop, and estimate the added vehicle-hours and vehicles. Only layovers measured at those ends count, and the figures are for vehicles, not drivers.
-  buffer_html: Leave %{minutes} minutes at every layover
+  note: Suppose the schedule lets buses stop a few more minutes at the end where they stop before the next trip, and see how many vehicle-hours and buses a day that adds. One vehicle-hour is one bus running for an hour. These are figures for buses, not driver hours.
+  buffer_html: Buffer of %{minutes} minutes
   submit: Recalculate
-  coverage_html: "%{layovers} layovers measured at the ends where buses stop over %{days} days, out of %{trips} trips."
-  pass_through_html: "%{layovers} more layovers were measured at the end where buses drive on: buses do not stop there, so they are not rest opportunities and are left out of the estimate."
-  lower: Top up the shortfall to %{minutes} minutes
-  upper: Add %{minutes} minutes to every layover
-  vehicle_hours: Added vehicle-hours per day
-  peak_vehicles: Added vehicles in the busiest hour
-  bounds_note: A layover includes returning to the depot, refuelling and waiting, so it is an upper bound on rest and the real cost lies between the two columns. Vehicles are an hourly average, not a schedule.
-  achieved: Layovers of at least %{minutes} minutes now
-  vehicles_per_day: Vehicles in use per day now
-  no_layover: No layover was measured at an end where buses stop on these days, so there is nothing to estimate.
+  coverage_html: "%{trips} trips ran over %{days} days; the estimate uses only the %{layovers} times we could measure how long a bus stopped at the end where buses stop."
+  pass_through_html: "The %{layovers} turnarounds at the end where buses drive on are left out: buses go straight on to the next trip there without stopping."
+  lower: Top up to %{minutes} minutes when short
+  upper: Add %{minutes} minutes every time
+  vehicle_hours: Added vehicle-hours a day
+  peak_vehicles: Added buses in the busiest hour
+  bounds_note: "“Top up” counts the time buses stop now as rest and adds only the shortfall; “Add every time” counts none of it as rest and adds the whole buffer. Part of every stop goes to returning to the depot, refuelling and waiting, so the real cost lies between the two columns. Added buses are the hour's added minutes divided by 60, not a schedule."
+  achieved: Stops already lasting %{minutes} minutes or more
+  vehicles_per_day: Buses running a day on average now
+  no_layover: No stop at the end where buses stop could be measured on these days, so there is nothing to estimate.

@@ -1,7 +1,7 @@
 ---
 tw: &tw
   caption: 折返停留
-  note: 只算前一趟有到末站、下一趟從起站出發，而且兩趟之間沒有去跑別條路線的情況，另一端有沒有漏站不影響。
+  note: 只算量得到的折返：這一趟有開到末站、下一趟從起站出發，兩趟中間也沒有去開別的路線，另一端有沒有漏記不影響。p50 是一半的折返停不到這麼久，p10、p90 分別是一成、九成停不到這麼久。
   directions:
     "0": 去程
     "1": 返程
@@ -14,13 +14,13 @@ tw: &tw
   count: 筆數
   short: 不到 %{minutes} 分鐘
   minute_unit: 分
-  pass_through_note: 標「開過去就走」的那一端，車到了末站不會停，直接開到下一趟的起站，所以這一端的折返停留不算休息的機會。
+  pass_through_note: 標「開過去就走」的那一端，車到了末站不停，直接開下一趟，所以那裡的折返停留不算休息。
   note_with_pass_through_html: "%{note}%{pass_through}"
 zh-TW:
   <<: *tw
 en:
   caption: Layovers
-  note: Only pairs where the trip reached its last stop, the next one left its first stop and the vehicle ran no other route in between are counted; a missed stop at the other end does not matter.
+  note: Only pairs where the trip reached its last stop, the next one left its first stop and the vehicle ran no other route in between are counted; a missed stop at the other end does not matter. Half the layovers are shorter than p50, a tenth shorter than p10 and nine tenths shorter than p90.
   directions:
     "0": Outbound
     "1": Inbound

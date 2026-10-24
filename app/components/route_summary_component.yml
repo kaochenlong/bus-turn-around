@@ -3,11 +3,11 @@ tw: &tw
   trips: 趟次
   unit: 趟
   complete_trips: 完整趟次 %{count} 趟
-  layover_p50: 停車端折返停留 p50
+  layover_p50: 停車端折返停留的中位數
   minutes: 分鐘
-  rest_bound: "%{stop}・休息的上限"
-  short_share: 停車端不到 %{minutes} 分鐘
-  short_count: "%{stop}・共 %{count} 筆"
+  rest_bound: "%{stop}・駕駛最多能休這麼久"
+  short_share: 停車端停不到 %{minutes} 分鐘的比例
+  short_count: "%{stop}・共 %{count} 次折返"
   mrt_share: 捷運重疊（%{meters} 公尺內）
   outbound: 去程
   inbound_html: 返程 %{share}
@@ -18,7 +18,7 @@ en:
   trips: Trips
   unit: ""
   complete_trips: "Complete trips: %{count}"
-  layover_p50: Layover p50 at the stopping end
+  layover_p50: Median layover at the stopping end
   minutes: min
   rest_bound: "%{stop}, an upper bound on rest"
   short_share: Under %{minutes} min at the stopping end

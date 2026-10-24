@@ -16,7 +16,7 @@ tw: &tw
   natures:
     stop: 停車
     pass_through: 開過去就走
-  snapshot: "站序取自 %{day} 的靜態快照，涵蓋好幾天時只列最新那一天的。"
+  snapshot: "站序是 %{day} 從公運處抓的資料；涵蓋好幾天時，只列最新那一天的。"
   no_stops: 這幾天沒有站序。
 zh-TW:
   <<: *tw

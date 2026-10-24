@@ -2,7 +2,7 @@
 tw: &tw
   eyebrow: 折返點設施
   title: 車在哪裡折返？附近有幾處公廁？
-  note: 停車那一端的位置，是那一天折返停留期間車速為 0 的 GPS 回報最密集的地方；開過去就走的那一端車不停，位置以末站計。公廁來自環境部的全國建檔資料，同一個地址的廁所算一處，一處的距離是最近那一間的直線距離。
+  note: 停車那一端的位置，是那一天車停著等的時候，GPS 顯示最常停的地方；開過去就走的那一端車不停，就用末站的位置。公廁資料來自環境部的全國公廁建檔資料，同一個地址的廁所算一處，距離取最近那一間的直線距離。
   needs_reload: 這幾天的資料還沒有折返點的位置與公廁，重新執行 bin/rails derived:load 後就會出現。
   directions:
     "0": 去程
@@ -11,8 +11,8 @@ tw: &tw
   natures:
     stop: 停車
     pass_through: 開過去就走
-  standstill_html: 位置是折返停留期間車輛靜止最密集的地方，離末站 %{meters} 公尺；%{layovers} 筆折返停留裡，%{located} 筆有靜止回報落在這個位置 %{radius} 公尺內。
-  end_stop: 車在這一端不停，位置以末站計。
+  standstill_html: 車停著等的時候最常停在這裡，離末站 %{meters} 公尺。%{layovers} 次折返裡，有 %{located} 次車曾停在這個位置 %{radius} 公尺內。
+  end_stop: 車在這一端不停，位置就用末站。
   within_html: "%{meters} 公尺內 %{count} 處"
   nearest_html: 最近一處是%{name}（%{category}），%{meters} 公尺，這一處有 %{rooms} 間。
   no_places: "%{meters} 公尺內的建檔資料裡沒有公廁。"
@@ -22,9 +22,9 @@ tw: &tw
   address: 地址
   meters: 公尺
   rooms: 間數
-  days_html: 用的是 %{located_day} 的位置，公廁資料是那一天用的 %{snapshot_day} 快照。
+  days_html: 位置是 %{located_day} 量的，公廁是那一天用的 %{snapshot_day} 資料。
   days_without_location_html: 涵蓋的日子裡有 %{count} 天量不到這一端的位置。
-  no_location_html: 量不到位置：這幾天的折返停留期間都沒有車輛靜止的 GPS 回報，所以不列公廁。最近一天有 %{layovers} 筆折返停留。
+  no_location_html: 量不到位置：這幾天車停著等的時候，都沒有收到車子停住的 GPS 回報，所以不列公廁。最近一天有 %{layovers} 次折返。
   depots_title: 車輛所屬調度站
   depots_note: 調度站是車輛所屬、駕駛報到的營業站，不一定是折返點。分數是公運處 %{term}評鑑到站檢查的結果，照報告書附錄抄錄，兩欄是報告書印的兩欄。
   depots_needs_reload: 這幾天的資料還沒有調度站，重新執行 bin/rails derived:load 後就會出現。
