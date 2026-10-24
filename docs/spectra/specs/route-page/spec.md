@@ -8,12 +8,12 @@ A web page per route that shows drivers and station managers how the route ran o
 
 ### Requirement: Route page address and parameters
 
-The system SHALL serve `GET /routes/:route_id` for route `Id`s listed in the route list configuration, and SHALL respond 404 for any other route `Id`. The optional parameter `day` (`YYYY-MM-DD`) selects a Taipei day and defaults to the latest day stored for the route; the optional parameter `range` is `day` or `7d` and defaults to `day`; the optional parameter `buffer` is the buffer in minutes of `buffer-trade` and defaults to 15. A malformed `day`, any other `range` value or a `buffer` value that `buffer-trade` rejects SHALL respond 400.
+The system SHALL serve `GET /routes/:route_id` for route `Id`s listed in the route list configuration, and SHALL respond 404 with the site's not-found page, as defined by `not-found-page`, for any other route `Id`. The optional parameter `day` (`YYYY-MM-DD`) selects a Taipei day and defaults to the latest day stored for the route; the optional parameter `range` is `day` or `7d` and defaults to `day`; the optional parameter `buffer` is the buffer in minutes of `buffer-trade` and defaults to 15. A malformed `day`, any other `range` value or a `buffer` value that `buffer-trade` rejects SHALL respond 400.
 
 #### Scenario: Route not configured
 
 - **WHEN** a visitor requests `/routes/9999` and 9999 is not in the route list
-- **THEN** the response is 404
+- **THEN** the response is 404 and its body is the content of `public/404.html`
 
 #### Scenario: Defaults
 
@@ -32,20 +32,115 @@ The system SHALL serve `GET /routes/:route_id` for route `Id`s listed in the rou
 
 
 <!-- @trace
-source: zhongshan-buffer-trade
-updated: 2026-10-22
+source: site-easter-eggs
+updated: 2026-10-24
 code:
-  - app/components/data_limitations_component.yml
-  - app/components/buffer_trade_component.rb
-  - app/controllers/routes_controller.rb
+  - config/locales/tw.yml
+  - app/components/attribution_component.html.erb
+  - config/locales/en.yml
+  - app/models/route_day.rb
+  - config/map.yml
+  - spec/support/duckdb.rb
+  - app/models/route_page/cycles.rb
+  - app/components/end_map_component.yml
+  - analysis/turnaround_facilities.sql
+  - app/components/cycle_table_component.yml
+  - app/components/home_hero_component.yml
+  - spec/fixtures/analysis/README.md
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - public/turnaround/favicon.ico
+  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
+  - docs/data-sources.md
+  - bin/health-card
+  - analysis/params.sql
+  - app/assets/images/turnaround-logo.webp
+  - spec/factories/route_day_end_toilets.rb
+  - public/turnaround/icon-16.png
+  - app/components/load_chart_component.rb
+  - app/components/turnaround_facilities_component.rb
+  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
+  - Gemfile
+  - app/components/turnaround_facilities_component.yml
+  - app/frontend/stylesheets/application.css
+  - spec/factories/route_day_ends.rb
+  - app/frontend/end_map/runtime.js
+  - app/frontend/hero/scene.js
+  - app/components/home_hero_component.html.erb
+  - lib/tasks/external.rake
+  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
+  - app/assets/images/home-hero-wide.webp
+  - app/models/route_day_end.rb
+  - app/models/map_tiles.rb
+  - app/models/route_day_loader.rb
+  - config/initializers/mime_types.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
+  - app/views/layouts/application.html.erb
+  - app/models/route_page/end_map.rb
+  - app/components/attribution_component.yml
+  - app/frontend/rest_command.js
+  - analysis/derived_export.sql
+  - app/components/turnaround_facilities_component.html.erb
+  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
+  - app/models/public_toilets_snapshot.rb
+  - app/components/cycle_table_component.rb
+  - public/turnaround/apple-touch-icon.png
+  - app/models/route_day_end_cell.rb
+  - spec/factories/route_days.rb
+  - spec/factories/route_day_end_cells.rb
+  - config/deploy.yml
+  - app/models/route_day_end_toilet.rb
+  - app/components/section_nav_component.yml
+  - Dockerfile
+  - public/turnaround/icon-32.png
+  - app/components/end_map_component.rb
   - app/views/routes/show.html.erb
-  - app/models/route_page/buffer_trade.rb
-  - app/components/buffer_trade_component.yml
-  - app/components/buffer_trade_component.html.erb
+  - app/components/site_bar_component.html.erb
+  - app/models/derived_load_command.rb
+  - app/components/load_chart_component.html.erb
+  - package.json
+  - app/components/attribution_component.rb
+  - app/components/section_nav_component.rb
+  - app/models/route_page/facilities.rb
+  - app/frontend/hero/runtime.js
+  - app/frontend/entrypoints/application.js
+  - app/components/cycle_table_component.html.erb
+  - .ruby-version
+  - analysis/README.md
+  - public/turnaround/og-image-v2.jpg
+  - db/schema.rb
+  - app/assets/images/home-hero-narrow.webp
+  - app/components/end_map_component.html.erb
+  - app/components/data_limitations_component.yml
+  - Gemfile.lock
 tests:
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/models/route_page/end_map_spec.rb
+  - spec/requests/easter_eggs_spec.rb
+  - spec/system/load_chart_hover_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/system/rest_command_spec.rb
+  - spec/analysis/attribution_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/components/cycle_table_component_spec.rb
+  - spec/system/route_page_mobile_spec.rb
+  - spec/models/route_page/facilities_spec.rb
+  - spec/models/map_tiles_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/components/load_chart_component_spec.rb
+  - spec/requests/not_found_page_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/models/public_toilets_snapshot_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/models/route_page/cycles_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
 -->
 
 ---
@@ -607,7 +702,7 @@ tests:
 ---
 ### Requirement: Load chart along the route
 
-The page SHALL show, per direction, a line chart of the load profile as defined by `load-profile` over the covered days: the horizontal axis SHALL be the stop sequence of the latest covered day, and the vertical axis the median on-board count at each stop. The chart SHALL offer the time bands morning peak, daytime, evening peak and other, one shown at a time, morning peak shown first; switching bands SHALL NOT reload the page. All bands of one direction SHALL share one vertical scale whose top is at least the largest median of that direction in any band. A stop without a count in the shown band SHALL break the line instead of being filled. The overlap stretches at 500 metres as defined by `mrt-overlap` SHALL be drawn as shaded spans over their first to last sequence numbers, without any review threshold; when the stops carry no nearest-entrance distance, no span SHALL be drawn. The chart SHALL name the first and last stop of the direction and the first and last stop of each shaded span.
+The page SHALL show, per direction, a line chart of the load profile as defined by `load-profile` over the covered days: the horizontal axis SHALL be the stop sequence of the latest covered day, and the vertical axis the median on-board count at each stop. The chart SHALL offer the time bands morning peak, daytime, evening peak and other, one shown at a time, morning peak shown first; switching bands SHALL NOT reload the page. All bands of one direction SHALL share one vertical scale whose top is at least the largest median of that direction in any band. A stop without a count in the shown band SHALL break the line instead of being filled. The overlap stretches at 500 metres as defined by `mrt-overlap` SHALL be drawn as shaded spans over their first to last sequence numbers, without any review threshold; when the stops carry no nearest-entrance distance, no span SHALL be drawn. The chart SHALL name the first and last stop of the direction. Each shaded span SHALL carry a number, counted from 1 in stop order within its direction, and the chart SHALL NOT contain any text naming a span. Below each direction's chart, outside the area that scrolls sideways, the page SHALL list that direction's spans in the same order, each entry giving the span's number and the first and last stop of the span; a direction without a shaded span SHALL have no such list. While the pointer rests on a shaded span, including its number, or on its entry in that list, the page SHALL highlight that span and that entry and no other span or entry, and the highlight SHALL end when the pointer leaves them; pointing SHALL NOT be needed to read any span's name.
 
 Below 640 px wide, the page SHALL show the same medians as one row per stop of the latest covered day instead of the line chart, in stop order, each row giving the stop name, a bar whose length is proportional to the median on the direction's shared scale, and the median, with the same time bands and band switch as the chart. A stop without a count in the shown band SHALL show a dash and no bar. The rows of each overlap stretch at 500 metres SHALL be shaded, and the stretch SHALL be named with its first and last stop before its first row; when the stops carry no nearest-entrance distance, no row SHALL be shaded.
 
@@ -624,12 +719,50 @@ Below 640 px wide, the page SHALL show the same medians as one row per stop of t
 #### Scenario: Shaded overlap stretch
 
 - **WHEN** direction 0 has an overlap stretch at 500 metres from sequence 2 to sequence 4
-- **THEN** direction 0's chart has one shaded span from sequence 2 to sequence 4, named with the stops at those sequences
+- **THEN** direction 0's chart has one shaded span from sequence 2 to sequence 4 carrying the number 1, and the list below direction 0's chart has one entry, 1, named with the stops at those sequences
+
+#### Scenario: Spans numbered in stop order
+
+- **WHEN** direction 0 has two overlap stretches at 500 metres, one from sequence 0 to sequence 1 and one from sequence 3 to sequence 4
+- **THEN** the span over sequences 0 to 1 carries the number 1 and the span over sequences 3 to 4 carries the number 2, the list below direction 0's chart gives entry 1 before entry 2, each named with the first and last stop of its span, and no text inside the chart names either span
+
+##### Example: two stretches
+
+- **GIVEN** direction 0's stops at sequences 0 to 4 are 甲站, 乙站, 丙站, 丁站, 戊站 with nearest-entrance distances 400, 450, 900, 250 and 300 metres
+- **WHEN** the page is rendered
+- **THEN** the spans carry 1 over sequences 0 to 1 and 2 over sequences 3 to 4, and the list below the chart reads 1 甲站–乙站, then 2 丁站–戊站
 
 #### Scenario: Distances missing on the chart
 
 - **WHEN** the stops of the covered days carry no nearest-entrance distance
-- **THEN** the load charts show their lines and no shaded span
+- **THEN** the load charts show their lines and no shaded span, no span number, and no list of spans below the charts
+
+##### Example: no distances
+
+- **GIVEN** direction 0's stops at sequences 0 to 4 carry no nearest-entrance distance, and sequence 0 has a morning peak count of 3
+- **WHEN** the page is rendered
+- **THEN** direction 0's chart has its line, no shaded span, no span number, and no list below it
+
+#### Scenario: Pointing at a list entry
+
+- **WHEN** direction 0 has spans numbered 1 and 2 and the pointer rests on entry 2 of the list below direction 0's chart
+- **THEN** span 2 and entry 2 of direction 0 are highlighted, and no other span or entry on the page is
+
+##### Example: second entry of two
+
+- **GIVEN** direction 0's stops at sequences 0 to 4 are 甲站, 乙站, 丙站, 丁站, 戊站 with nearest-entrance distances 400, 450, 900, 250 and 300 metres, and direction 1's stops at sequences 5 to 9 have 300, 350, 900, 900 and 900 metres
+- **WHEN** the pointer rests on direction 0's entry 2, 丁站–戊站
+- **THEN** the highlighted elements are direction 0's span 2 and entry 2 only
+
+#### Scenario: Pointing at a span
+
+- **WHEN** direction 0 has spans numbered 1 and 2, direction 1 has a span numbered 1, and the pointer rests on the number of direction 0's span 1
+- **THEN** span 1 and entry 1 of direction 0 are highlighted, and direction 1's span 1 and entry 1 and every other span or entry are not
+
+#### Scenario: Pointer moved away
+
+- **WHEN** the pointer leaves a highlighted span or entry for a place outside every span and entry
+- **THEN** no span or entry is highlighted
 
 #### Scenario: Rows on a narrow screen
 
@@ -643,125 +776,30 @@ Below 640 px wide, the page SHALL show the same medians as one row per stop of t
 
 
 <!-- @trace
-source: 02-route-page-mobile-first
-updated: 2026-10-23
+source: load-chart-stretch-markers
+updated: 2026-10-24
 code:
-  - spec/fixtures/analysis/external/office-calendar/2026/2026-10-19.csv
-  - app/components/route_coverage_component.rb
-  - app/models/http_fetcher.rb
-  - app/components/load_chart_component.yml
-  - analysis/10_load.sql
-  - app/components/card_component.rb
-  - app/components/layover_chart_component.html.erb
-  - spec/fixtures/analysis/bus_event/2026-10-19/14.jsonl
-  - app/components/layover_chart_component.yml
-  - app/views/routes/show.html.erb
-  - app/models/route_day_loader.rb
-  - app/views/pages/home.html.erb
-  - app/components/route_summary_component.rb
-  - app/components/site_bar_component.rb
-  - analysis/30_layovers.sql
-  - app/components/load_profile_table_component.rb
-  - app/components/route_coverage_component.html.erb
-  - analysis/params.sql
-  - db/migrate/20261022231802_require_day_type_on_route_days.rb
-  - app/components/home_hero_component.html.erb
-  - analysis/README.md
+  - app/controllers/routes_controller.rb
   - app/components/load_chart_component.html.erb
-  - app/components/route_summary_component.yml
-  - app/components/route_summary_component.html.erb
-  - app/components/buffer_trade_component.yml
-  - app/components/data_sources_component.html.erb
-  - lib/tasks/external.rake
-  - app/components/attribution_component.html.erb
-  - app/models/route_page/layover_stats.rb
-  - app/components/card_component.html.erb
-  - app/components/section_nav_component.html.erb
-  - app/components/buffer_trade_component.html.erb
-  - app/components/route_coverage_component.yml
-  - config/locales/tw.yml
-  - app/components/route_list_component.yml
-  - app/components/run_time_table_component.yml
-  - app/components/route_list_component.html.erb
-  - app/components/run_time_table_component.rb
-  - db/migrate/20261022230942_add_day_type_to_route_days.rb
-  - app/components/site_bar_component.html.erb
-  - spec/factories/route_days.rb
-  - app/models/route_day.rb
-  - app/components/run_time_table_component.html.erb
-  - config/locales/en.yml
-  - app/components/application_component.rb
-  - db/schema.rb
-  - app/components/data_limitations_component.html.erb
-  - spec/support/duckdb.rb
-  - app/components/mrt_overlap_component.rb
-  - bin/health-card
-  - app/models/office_calendar_snapshot.rb
-  - app/frontend/stylesheets/application.css
-  - app/models/route_page/coverage.rb
-  - spec/fixtures/analysis/README.md
-  - app/components/buffer_trade_component.rb
-  - app/components/load_profile_table_component.html.erb
-  - app/components/mrt_overlap_component.html.erb
-  - app/components/layover_table_component.rb
-  - app/components/layover_chart_component.rb
+  - app/frontend/entrypoints/application.js
   - app/components/load_chart_component.rb
+  - app/frontend/rest_command.js
+  - public/robots.txt
+  - public/404.html
+  - bin/health-card
+  - config/initializers/mime_types.rb
   - docs/data-sources.md
-  - app/components/layover_table_component.html.erb
-  - app/components/section_nav_component.yml
-  - app/components/load_profile_table_component.yml
-  - app/components/data_limitations_component.yml
-  - analysis/60_export.sql
-  - app/models/mrt_exits_snapshot.rb
-  - spec/fixtures/analysis/bus_event/2026-10-19/15.jsonl
-  - app/components/data_limitations_component.rb
-  - app/views/layouts/application.html.erb
-  - app/components/section_nav_component.rb
-  - app/components/layover_table_component.yml
   - app/components/attribution_component.yml
-  - app/components/home_hero_component.rb
+  - app/views/layouts/application.html.erb
 tests:
-  - spec/models/route_day_loader_spec.rb
-  - spec/analysis/card_spec.rb
-  - spec/models/route_page/load_profile_spec.rb
-  - spec/system/route_page_layout_spec.rb
-  - spec/models/route_page/run_times_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/models/http_fetcher_spec.rb
-  - spec/models/office_calendar_snapshot_spec.rb
+  - spec/system/rest_command_spec.rb
+  - spec/analysis/attribution_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/analysis/cli_spec.rb
-  - spec/requests/pages_spec.rb
-  - spec/analysis/layovers_spec.rb
-  - spec/analysis/derived_export_spec.rb
-  - spec/models/route_page/coverage_spec.rb
-  - spec/components/layover_chart_component_spec.rb
-  - spec/models/route_page/mrt_overlap_spec.rb
   - spec/requests/site_layout_spec.rb
-  - spec/components/run_time_table_component_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/analysis/chains_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/components/card_component_spec.rb
+  - spec/system/load_chart_hover_spec.rb
   - spec/components/load_chart_component_spec.rb
-  - spec/models/home_page/route_list_spec.rb
-  - spec/components/mrt_overlap_component_spec.rb
-  - spec/system/route_page_mobile_spec.rb
-  - spec/components/data_limitations_component_spec.rb
-  - spec/analysis/load_spec.rb
-  - spec/components/layover_table_component_spec.rb
-  - spec/models/route_page/layover_stats_spec.rb
-  - spec/analysis/duckdb_helpers_spec.rb
-  - spec/components/route_list_component_spec.rb
-  - spec/models/route_page/layover_distribution_spec.rb
-  - spec/analysis/fixtures_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/components/route_coverage_component_spec.rb
-  - spec/system/home_hero_spec.rb
-  - spec/components/load_profile_table_component_spec.rb
-  - spec/components/application_component_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/components/route_summary_component_spec.rb
+  - spec/requests/easter_eggs_spec.rb
+  - spec/requests/not_found_page_spec.rb
 -->
 
 ---

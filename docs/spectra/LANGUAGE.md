@@ -223,5 +223,5 @@
 
 - 定義：政府資料開放授權條款要求的標示，原文在 `docs/data-sources.md`。
 - 在資料或程式碼裡：layout 的 `AttributionComponent`。
-- 邊界：每一頁、每份釋出檔都要有。
+- 邊界：用網站 layout 的每一頁、每份釋出檔都要有。`public/` 底下的靜態錯誤頁（例如 404 頁）不經過 layout、不顯示資料，不帶。
 - 不要用：版權聲明、免責聲明、credits。

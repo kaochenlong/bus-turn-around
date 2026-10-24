@@ -58,9 +58,9 @@ RSpec.describe "Routes", type: :request do
     end
   end
 
-  it "路線不在路線清單裡回 404" do
+  it "路線不在路線清單裡回 404，內容是 public/404.html" do
     get route_path(9999)
-    expect(response).to have_http_status(:not_found)
+    expect([ response.status, response.body ]).to eq([ 404, Rails.public_path.join("404.html").read ])
   end
 
   it "沒給 day、range 與 buffer 時，顯示最新一天、範圍是一天、緩衝 15 分鐘" do
