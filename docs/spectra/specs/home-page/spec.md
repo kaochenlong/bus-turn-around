@@ -138,7 +138,7 @@ tests:
 
 The hero block SHALL show the illustration in two framings from the same scene: a wide framing for viewports of at least 640 px and a narrow framing below that. The server response SHALL contain the illustration as a static image asset: a `picture` whose source for narrow viewports is the narrow image with width and height in its proportions, and an `img` of the wide image with explicit width and height and a non-empty `alt` sentence describing the scene. Both image files SHALL exist under `app/assets/images/`, the wide file SHALL be at most 200 KB and the narrow file at most 120 KB.
 
-When scripts run, the visitor does not prefer reduced motion and WebGL is available, the home page SHALL keep the illustration's box reserved without showing the static image, load the 3D library and play the turnaround on a loop, starting with the bus driving in. In each lap, the bus drives into the terminal and stops, the front door opens and the driver steps out and rests beside the bus; the driver then walks back in, the bus pulls up to the stop, where the waiting riders board, and drives out of the block; new riders walk to the stop and the next bus drives in. The moment of each lap at which the driver rests beside the bus, called the still, SHALL have the same composition as the static image. The animation SHALL NOT show a clock, a countdown or any other figure. The framing SHALL follow the viewport width, whether the animation is rendering or not. In the narrow framing, the view SHALL rest on the terminal and SHALL move to the stop together with the bus as it pulls up there, so that the riders boarding, the bus leaving and the new riders walking in are in view; it SHALL stay on the stop for the rest of the lap and SHALL move back to the terminal at the start of the next lap, as the next bus comes in. At the still the narrow framing SHALL be on the terminal.
+When scripts run, the visitor does not prefer reduced motion and WebGL is available, the home page SHALL keep the illustration's box reserved without showing the static image, load the 3D library and play the turnaround on a loop, starting with the bus driving in. In each lap, the bus drives into the terminal and stops, the front door opens and the driver steps out and rests beside the bus; the driver then walks back in, the bus pulls up to the stop, where the waiting riders board, and drives out of the block; new riders walk to the stop and the next bus drives in. The moment of each lap at which the driver rests beside the bus, called the still, SHALL have the same composition as the static image. The animation SHALL NOT show a clock, a countdown or any other number. While the driver is out of the bus, from the moment the driver starts stepping out until the front door has closed again, the destination sign above the bus's windscreen SHALL show the words 暫停服務 moving from right to left; at every other moment of the lap the sign SHALL be blank. At the still the words SHALL be wholly in view on the sign. The framing SHALL follow the viewport width, whether the animation is rendering or not. In the narrow framing, the view SHALL rest on the terminal and SHALL move to the stop together with the bus as it pulls up there, so that the riders boarding, the bus leaving and the new riders walking in are in view; it SHALL stay on the stop for the rest of the lap and SHALL move back to the terminal at the start of the next lap, as the next bus comes in. At the still the narrow framing SHALL be on the terminal.
 
 The hero SHALL show a pause button inside the illustration's box while the animation plays or is paused, and at no other time. Pressing the button SHALL stop rendering on the current frame and change its label to offer resuming; pressing it again SHALL continue the lap from that frame and change the label back. The animation SHALL NOT render while less than half of the illustration's box is inside the viewport, and SHALL continue the lap from where it stopped once at least half of the box is back. Coming back to the home page SHALL start a new lap that is not paused, even when the animation was paused before leaving.
 
@@ -183,6 +183,23 @@ When the visitor prefers reduced motion, the page SHALL show the static image an
 | 5.5 | the bus at the terminal with the driver resting beside it |
 | 14.4 | the bus at the stop with the riders boarding |
 | 19.6 | the stop with the new riders walking in |
+
+#### Scenario: Destination sign while the driver is out
+
+- **WHEN** the scene is posed at a moment of the lap
+- **THEN** the destination sign above the bus's windscreen shows 暫停服務 moving from right to left from the moment the driver starts stepping out until the front door has closed again, and is blank at every other moment
+
+##### Example: seconds into the lap
+
+| Seconds | The destination sign |
+| ------- | -------------------- |
+| 1.5 | blank, as the bus drives in |
+| 3.4 | blank, the front door opening with the driver still inside |
+| 4.2 | 暫停服務 moving in from the right, as the driver steps out |
+| 5.5 | 暫停服務 wholly in view, at the still |
+| 10.6 | 暫停服務 still shown, the driver back inside and the door closing |
+| 11.2 | blank, the door closed and the bus pulling away |
+| 14.4 | blank, the bus at the stop with the riders boarding |
 
 #### Scenario: Pausing and resuming with the pause button
 
@@ -258,36 +275,95 @@ When the visitor prefers reduced motion, the page SHALL show the static image an
 
 
 <!-- @trace
-source: home-hero-turnaround-loop
+source: home-hero-samoyed-out-of-service
 updated: 2026-10-24
 code:
-  - app/frontend/stylesheets/application.css
-  - config/deploy.yml
-  - app/assets/images/home-hero-narrow.webp
-  - app/components/home_hero_component.rb
-  - tools/hero/export.js
-  - config/database.yml
-  - app/components/home_hero_component.html.erb
-  - config/environments/production.rb
   - app/components/home_hero_component.yml
-  - app/components/origin_story_component.html.erb
-  - docs/background.md
-  - tools/hero/index.html
-  - .kamal/secrets
+  - output/branding-v2/a-bus/favicon-preview.png
+  - lib/tasks/external.rake
+  - spec/fixtures/analysis/README.md
+  - app/components/section_nav_component.rb
+  - spec/factories/route_day_end_toilets.rb
+  - app/components/turnaround_facilities_component.html.erb
+  - analysis/params.sql
+  - app/components/end_map_component.html.erb
+  - analysis/README.md
+  - app/models/route_day.rb
+  - output/branding-v2/a-bus/logo.png
+  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
+  - app/components/end_map_component.yml
+  - app/views/routes/show.html.erb
+  - spec/factories/route_days.rb
+  - app/frontend/end_map/runtime.js
+  - app/views/layouts/application.html.erb
+  - spec/support/duckdb.rb
+  - app/components/attribution_component.rb
+  - app/components/end_map_component.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
+  - app/models/route_day_end.rb
+  - app/components/attribution_component.yml
+  - app/frontend/stylesheets/application.css
   - app/frontend/hero/runtime.js
-  - app/components/origin_story_component.yml
-  - app/assets/images/home-hero-wide.webp
-  - app/components/origin_story_component.rb
-  - app/assets/images/home-hero-tall.webp
-  - app/views/pages/home.html.erb
-  - app/frontend/hero/scene.js
+  - Gemfile.lock
+  - config/locales/en.yml
+  - .ruby-version
+  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
+  - docs/data-sources.md
+  - package.json
+  - config/map.yml
+  - analysis/derived_export.sql
+  - app/components/turnaround_facilities_component.yml
+  - app/components/home_hero_component.html.erb
+  - analysis/turnaround_facilities.sql
+  - app/components/data_limitations_component.yml
+  - output/branding-v2/a-bus/favicon.ico
+  - spec/factories/route_day_ends.rb
   - app/frontend/entrypoints/application.js
+  - app/frontend/hero/scene.js
+  - app/models/route_page/facilities.rb
+  - app/assets/images/home-hero-wide.webp
+  - app/models/route_day_end_toilet.rb
+  - db/schema.rb
+  - app/components/turnaround_facilities_component.rb
+  - app/models/map_tiles.rb
+  - spec/factories/route_day_end_cells.rb
+  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
+  - app/assets/images/home-hero-narrow.webp
+  - Gemfile
+  - Dockerfile
+  - app/models/public_toilets_snapshot.rb
+  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
+  - app/models/derived_load_command.rb
+  - public/turnaround/og-image-v2.jpg
+  - app/components/section_nav_component.yml
+  - bin/health-card
+  - config/locales/tw.yml
+  - app/components/attribution_component.html.erb
+  - app/models/route_page/end_map.rb
+  - config/deploy.yml
+  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - app/models/route_day_end_cell.rb
+  - app/models/route_day_loader.rb
 tests:
-  - spec/assets/home_hero_images_spec.rb
-  - spec/components/home_hero_component_spec.rb
-  - spec/components/origin_story_component_spec.rb
-  - spec/requests/pages_spec.rb
-  - spec/system/home_hero_spec.rb
+  - spec/models/map_tiles_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/system/end_map_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/components/end_map_component_spec.rb
+  - spec/models/route_page/end_map_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/public_toilets_snapshot_spec.rb
+  - spec/components/turnaround_facilities_component_spec.rb
+  - spec/models/route_page/facilities_spec.rb
+  - spec/analysis/cli_spec.rb
+  - spec/requests/site_layout_spec.rb
 -->
 
 ---
