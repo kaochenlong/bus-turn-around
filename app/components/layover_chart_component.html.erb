@@ -1,7 +1,7 @@
 <section data-section="layover-chart">
   <%= eyebrow(t(".eyebrow")) %>
   <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
-  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <p class="mb-6 text-slate-600"><%= t(".note") %></p>
   <div class="grid gap-7 lg:grid-cols-2 lg:gap-12">
     <% directions.each do |direction| %>
       <figure data-direction="<%= direction.go_back %>" class="min-w-0">
@@ -23,9 +23,10 @@
                     width="<%= bar_width(direction, count) %>" height="<%= BAR_HEIGHT %>" rx="3" class="fill-teal-700" />
               <text x="<%= bar_x + bar_width(direction, count) + 6 %>" y="<%= text_y(index) %>" class="fill-slate-800 text-label font-medium"><%= count %></text>
             <% end %>
-            <line data-divider="<%= DIVIDER_MINUTES %>" x1="0" x2="<%= WIDTH %>" y1="<%= divider_y %>" y2="<%= divider_y %>"
+            <line data-divider="<%= DIVIDER_MINUTES %>" x1="0" x2="<%= track_end %>" y1="<%= divider_y %>" y2="<%= divider_y %>"
                   stroke-dasharray="4 3" class="stroke-slate-400" />
-            <text x="<%= WIDTH %>" y="<%= divider_y - 5 %>" text-anchor="end" class="fill-slate-500 text-label-sm"><%= t(".divider", minutes: DIVIDER_MINUTES) %></text>
+            <text data-divider-label x="<%= track_end + 6 %>" y="<%= divider_y %>" text-anchor="start" dominant-baseline="central"
+                  class="fill-slate-500 text-label-sm"><%= t(".divider", minutes: DIVIDER_MINUTES) %></text>
           </svg>
           <p class="mt-1.5 text-label text-slate-500"><%= t(".minutes") %></p>
         <% end %>

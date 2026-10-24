@@ -115,6 +115,57 @@ RSpec.describe "Routes", type: :request do
     end
   end
 
+  describe "試算的晚到、套用的小時與加在哪一端" do
+    # A stored day with layovers ending in direction 0 at 08:00 (5 minutes)
+    # and 08:10 (10), and in direction 1 at 08:20 (20) and 09:10 (2).
+    def store_layovers
+      route_day = create(:route_day, day: Date.new(2026, 10, 19))
+      [ [ "08:00", 5, 0 ], [ "08:10", 10, 0 ], [ "08:20", 20, 1 ], [ "09:10", 2, 1 ] ].each do |time, minutes, go_back|
+        end_time = Time.zone.parse("2026-10-19 #{time}")
+        route_day.layovers.create!(bus_id: "TEST-0001", go_back:, end_time:, next_start_time: end_time + minutes.minutes)
+      end
+    end
+
+    def vehicle_hours_upper = page.at_css("[data-section=buffer-trade] [data-value=vehicle-hours-upper]")&.text
+
+    it "沒給晚到、小時與端點時，用晚到 0、全天、兩端算：每次都多留 15 分鐘的上限是 1.0" do
+      store_layovers
+      get route_path(9001), params: { day: "2026-10-19" }
+      expect(vehicle_hours_upper).to eq("1.0")
+    end
+
+    it "晚到從網址來：晚到 6 分鐘時每次要留 21 分鐘，上限是 1.4" do
+      store_layovers
+      get route_path(9001), params: { day: "2026-10-19", late: "6" }
+      expect(vehicle_hours_upper).to eq("1.4")
+    end
+
+    it "加在哪一端從網址來：只選方向 1 時只算那一端的 2 次，上限是 0.5" do
+      store_layovers
+      get route_path(9001), params: { day: "2026-10-19", end: "1" }
+      expect(vehicle_hours_upper).to eq("0.5")
+    end
+
+    it "套用的小時從網址來：12 點到 13 點沒有折返停留，試算說沒辦法算" do
+      store_layovers
+      get route_path(9001), params: { day: "2026-10-19", from: "12", to: "13" }
+      expect([ response.status, page.css("[data-section=buffer-trade] [data-no-layover]").size ]).to eq([ 200, 1 ])
+    end
+
+    [ { late: "21" }, { late: "-1" }, { late: "abc" }, { late: [ "1" ] }, { from: "10", to: "9" }, { from: "24" }, { to: "0" }, { to: "25" },
+      { end: "2" }, { end: "x" } ].each do |params|
+      it "#{params.inspect} 回 400" do
+        get route_path(9001), params: params
+        expect(response).to have_http_status(:bad_request)
+      end
+    end
+
+    it "方向 0 直接折返時，end=0 回 400、只有一端停車的 end=1 照樣回 200" do
+      allow(RoutePage).to receive(:ends).and_return(RoutePage::Ends.from_config({ 0 => "pass_through", 1 => "stop" }, route_id: 9001))
+      expect(%w[0 1].map { get(route_path(9001), params: { end: it }) }).to eq([ 400, 200 ])
+    end
+  end
+
   it "最近 7 天只涵蓋已寫入的日子，列出日期與星期，標成平日" do
     store_days("2026-10-15", "2026-10-19", "2026-10-20", "2026-10-22")
     get route_path(9001), params: { day: "2026-10-22", range: "7d" }
@@ -289,20 +340,20 @@ RSpec.describe "Routes", type: :request do
     expect(layover_natures).to eq(%w[stop stop])
   end
 
-  it "15373 的兩端照設定標示：去程結束那列開過去就走、返程結束那列停車" do
+  it "15373 的兩端照設定標示：去程結束那列直接折返、返程結束那列停車" do
     store_days("2026-10-21", route_id: 15373)
     add_last_stops(RouteDay.sole)
     get route_path(15373), params: { day: "2026-10-21" }
     expect(layover_natures).to eq(%w[pass_through stop])
   end
 
-  it "兩端都停車的 9001，試算沒有開過去就走那一端的筆數" do
+  it "兩端都停車的 9001，試算沒有直接折返那一端的筆數" do
     store_days("2026-10-19")
     get route_path(9001), params: { day: "2026-10-19" }
     expect(pass_through_layovers.size).to eq(0)
   end
 
-  it "15373 有開過去就走的一端，試算另外報那一端的筆數" do
+  it "15373 有直接折返的一端，試算另外報那一端的筆數" do
     store_days("2026-10-21", route_id: 15373)
     get route_path(15373), params: { day: "2026-10-21" }
     expect(pass_through_layovers.size).to eq(1)

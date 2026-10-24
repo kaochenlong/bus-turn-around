@@ -9,6 +9,9 @@ class RoutesController < ApplicationController
 
     @ends = RoutePage.ends(route_id)
     @buffer_minutes = RoutePage::BufferTrade.minutes(params[:buffer])
+    @buffer_late = RoutePage::BufferTrade.late(params[:late])
+    @buffer_hours = RoutePage::BufferTrade.hour_range(params[:from], params[:to])
+    @buffer_end = RoutePage::BufferTrade.end_go_back(params[:end], ends: @ends)
     @coverage = RoutePage::Coverage.new(route_id:, day: params[:day], range: params[:range])
   rescue RoutePage::Coverage::InvalidParameter
     head :bad_request

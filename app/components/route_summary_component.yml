@@ -11,7 +11,7 @@ tw: &tw
   mrt_share: 捷運重疊（%{meters} 公尺內）
   outbound: 去程
   inbound_html: 返程 %{share}
-  no_stopping_end: 兩端都是開過去就走，沒有停車的一端
+  no_stopping_end: 兩端都是直接折返，沒有停車的一端
 zh-TW:
   <<: *tw
 en:

@@ -102,7 +102,7 @@ RSpec.describe "analysis/turnaround_facilities.sql" do
     end
   end
 
-  describe "方向 0 是開過去就走那一端時" do
+  describe "方向 0 是直接折返那一端時" do
     it "位置是末站戊站，來源 end_stop、0.0 公尺、沒有 150 公尺內的筆數，靜止回報仍記方向 0 的 29 筆" do
       expect(ends(end_nature_0: "pass_through").first.values_at("latitude", "longitude", "location_source", "end_stop_meters", "n_located_layovers", "n_standstill_records"))
         .to eq([ 25.06, 121.5, "end_stop", 0.0, nil, 29 ])

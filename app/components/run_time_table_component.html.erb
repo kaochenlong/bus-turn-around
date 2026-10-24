@@ -1,7 +1,7 @@
 <section data-section="run-times" x-data="{ direction: 0 }">
   <%= eyebrow(t(".eyebrow")) %>
   <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
-  <p class="max-w-[46em] text-slate-600 <%= scale ? "mb-6 sm:mb-2" : "mb-6" %>"><%= t(".note") %></p>
+  <p class="text-slate-600 <%= scale ? "mb-6 sm:mb-2" : "mb-6" %>"><%= t(".note") %></p>
   <% if scale %>
     <%# 橫條在 640px 以下不畫，說明也跟著藏 %>
     <p data-bar-legend class="mb-6 hidden text-note text-slate-500 sm:block"><%= t(".bar_legend", from: scale.from, to: scale.to) %></p>
@@ -13,7 +13,7 @@
     <% directions.each do |go_back| %>
       <button type="button" value="<%= go_back %>" x-on:click="direction = <%= go_back %>" x-bind:aria-pressed="direction === <%= go_back %>"
               x-bind:class="direction === <%= go_back %> ? 'bg-white font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.14)]' : 'font-medium text-slate-600 hover:text-slate-900'"
-              class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+              class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
         <%= t(".directions.#{go_back}") %>
       </button>
     <% end %>

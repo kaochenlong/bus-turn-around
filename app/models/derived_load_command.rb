@@ -13,7 +13,6 @@ class DerivedLoadCommand
   TEXT
   ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/
   ROUTE_ID = /\A[1-9]\d*\z/
-  STATIC_FILES = %w[GetRoute.gz GetStop.gz GetPathDetail.gz].freeze
 
   # A reason that stops the command or one day; the message is what to print.
   class Failure < StandardError; end
@@ -71,7 +70,7 @@ class DerivedLoadCommand
     days.each do |day|
       load_day(route_id, day, duckdb)
       written << day
-    rescue Failure, RouteDayLoader::Error => e
+    rescue Failure, RawDayCheck::Failure, RouteDayLoader::Error => e
       @out.puts("#{day.iso8601} 失敗：#{e.message}")
       break
     end
@@ -80,33 +79,9 @@ class DerivedLoadCommand
   end
 
   def load_day(route_id, day, duckdb)
-    check_day(day)
+    RawDayCheck.check!(data_root:, day:)
     counts = RouteDayLoader.new(route_id:, day:, data_root:, duckdb:, out: @out, member_route_ids: RoutePage.member_route_ids(route_id)).call
     @out.puts("#{day.iso8601} 寫入：趟次 #{counts[:trips]}、折返停留 #{counts[:layovers]}、趟次站 #{counts[:trip_stop_counts]}、" \
               "兩端公廁 #{counts[:end_toilets]} 間、靜止格 #{counts[:end_cells]} 格")
   end
-
-  # The day's read window runs to 02:00 of the next day, so the day is only
-  # computed once the next day's 01 hour file exists; before that a trip
-  # across midnight would be cut short.
-  def check_day(day)
-    bus_event = File.join(data_root, "bus_event")
-    raise Failure, "#{bus_event}/#{day.iso8601} 沒有任何小時檔" if hour_files(bus_event, day.iso8601, "[0-9][0-9]").empty?
-
-    next_day = (day + 1).iso8601
-    if hour_files(bus_event, next_day, "01").empty?
-      raise Failure, "讀檔視窗還沒結束：沒有 #{bus_event}/#{next_day}/01.jsonl 或 01.jsonl.gz"
-    end
-
-    # Only analysis/turnaround_facilities.sql reads the vehicle positions, and
-    # DuckDB fails on an empty file list without naming the feed.
-    bus_data = File.join(data_root, "bus_data")
-    raise Failure, "#{bus_data}/#{day.iso8601} 沒有任何小時檔" if hour_files(bus_data, day.iso8601, "[0-9][0-9]").empty?
-
-    static_dir = File.join(data_root, "static", day.iso8601)
-    missing = STATIC_FILES.reject { File.file?(File.join(static_dir, it)) }
-    raise Failure, "#{static_dir} 缺 #{missing.join('、')}" if missing.any?
-  end
-
-  def hour_files(root, day, hour) = Dir.glob("#{hour}.jsonl{,.gz}", base: File.join(root, day))
 end

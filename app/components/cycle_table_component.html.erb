@@ -1,9 +1,9 @@
 <section data-section="cycles" x-data="{ measure: 'round_trip' }">
   <%= eyebrow(t(".eyebrow")) %>
   <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
-  <%= tag.p note, data: note_data, class: "mb-6 max-w-[46em] text-slate-600" %>
+  <%= tag.p note, data: note_data, class: "mb-6 text-slate-600" %>
   <% if any_round_trips? %>
-    <p data-headline class="mb-6 max-w-[46em] font-medium text-slate-800"><%= headline %></p>
+    <p data-headline class="mb-6 font-medium text-slate-800"><%= headline %></p>
     <%# 640px 以下一次只看一張表，預設來回一趟；看哪一張只是頁面上的狀態，不改網址。沒有 JS 時切換按鈕藏著（x-cloak），
         兩張表都在，伺服器輸出的 class 裡沒有藏起來的樣式 %>
     <div x-cloak data-measure-switch role="group" aria-label="<%= t(".measure_picker") %>"
@@ -11,7 +11,7 @@
       <% measures.each do |measure| %>
         <button type="button" value="<%= measure %>" x-on:click="measure = '<%= measure %>'" x-bind:aria-pressed="measure === '<%= measure %>'"
                 x-bind:class="measure === '<%= measure %>' ? 'bg-white font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.14)]' : 'font-medium text-slate-600 hover:text-slate-900'"
-                class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+                class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
           <%= t(".measures.#{measure}") %>
         </button>
       <% end %>

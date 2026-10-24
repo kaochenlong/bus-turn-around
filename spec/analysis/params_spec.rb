@@ -52,6 +52,20 @@ RSpec.describe "analysis/params.sql" do
     end
   end
 
+  describe "兩端性質的判斷規則" do
+    let(:names) { %w[nature_still_minutes nature_min_layovers nature_pass_through_max_share nature_stop_min_share] }
+
+    # The two shares are DECIMALs, which DuckDB's JSON output writes as strings.
+    it "最長靜止超過 2 分鐘算停下來過、有 GPS 的折返停留至少 20 筆、比例不超過 0.05 是直接折返、至少 0.5 是停車" do
+      row = run_sql_stages(through: "params", query: "SELECT #{names.map { "getvariable('#{it}') AS #{it}" }.join(', ')}").first
+      expect(row.values_at(*names).map(&:to_s)).to eq(%w[2 20 0.05 0.5])
+    end
+
+    it "end_nature_survey.sql 不出現這四個門檻的字面數字" do
+      expect(literals_in(File.join(DuckdbHelpers::ANALYSIS_DIR, "end_nature_survey.sql")) & %w[2 20 0.05 0.5]).to eq([])
+    end
+  end
+
   describe "路線軌跡" do
     let(:names) { %w[route_shape_min_points route_shape_min_latitude route_shape_max_latitude route_shape_min_longitude route_shape_max_longitude] }
 

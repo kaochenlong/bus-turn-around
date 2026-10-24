@@ -1,7 +1,7 @@
 <section data-section="facilities">
   <%= eyebrow(t(".eyebrow")) %>
   <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
-  <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".note") %></p>
+  <p class="mb-6 text-slate-600"><%= t(".note") %></p>
 
   <% if needs_reload? %>
     <p data-needs-reload class="rounded border border-amber-300 bg-amber-50 p-4"><%= t(".needs_reload") %></p>
@@ -14,7 +14,7 @@
             <%= nature_tag(t(".natures.#{route_end.nature}")) %>
           </h3>
           <% if route_end.located_day %>
-            <p data-location-source="<%= route_end.location_source %>" class="mb-4 max-w-[46em] text-slate-600">
+            <p data-location-source="<%= route_end.location_source %>" class="mb-4 text-slate-600">
               <% if route_end.location_source == "standstill" %>
                 <%= t(".standstill_html", meters: value("end-stop-meters", meters(route_end.end_stop_meters)), layovers: value("layovers", route_end.n_layovers),
                                           located: value("located-layovers", route_end.n_located_layovers), radius: located_radius) %>
@@ -91,7 +91,7 @@
 
   <div data-depots class="mt-10 border-t border-slate-200 pt-8">
     <h3 class="mb-2 text-subsection font-semibold text-teal-800"><%= t(".depots_title") %></h3>
-    <p class="mb-6 max-w-[46em] text-slate-600"><%= t(".depots_note", term: term_label) %></p>
+    <p class="mb-6 text-slate-600"><%= t(".depots_note", term: term_label) %></p>
     <% if depots.needs_reload? %>
       <p data-depots-needs-reload class="rounded border border-amber-300 bg-amber-50 p-4"><%= t(".depots_needs_reload") %></p>
     <% else %>

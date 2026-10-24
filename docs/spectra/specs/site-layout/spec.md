@@ -286,126 +286,39 @@ tests:
 ---
 ### Requirement: Site name bar on every page
 
-Every HTML page SHALL begin, before the page's own content, with one bar that carries the site name from the locale file as a link to `/`. The bar SHALL be marked with `data-site-bar` and SHALL NOT carry or contain a `data-section` attribute, so that the block order of every page is unchanged. The static error pages under `public/`, such as the page of `not-found-page`, are outside this requirement: they are served without the shared layout and carry no bar.
+Every HTML page SHALL begin, before the page's own content, with one bar that carries exactly two links: first the site name from the locale file as a link to `/`, then a link to the article that introduces the site, `https://kaochenlong.com/bus-turn-around`, whose text comes from the locale file (關於這個網站 in `tw`). The article link SHALL open in the same tab: it SHALL NOT carry a `target` attribute. The bar SHALL be marked with `data-site-bar` and SHALL NOT carry or contain a `data-section` attribute, so that the block order of every page is unchanged. The static error pages under `public/`, such as the page of `not-found-page`, are outside this requirement: they are served without the shared layout and carry no bar.
 
 #### Scenario: Bar on the home page
 
 - **WHEN** `/` is requested
-- **THEN** exactly one `[data-site-bar]` is present before the `main` element, and its link points to `/` with the text 折返點 TurnAround
+- **THEN** exactly one `[data-site-bar]` is present before the `main` element, it contains exactly two links, the first points to `/` with the text 折返點 TurnAround, and the second points to `https://kaochenlong.com/bus-turn-around` with the text 關於這個網站 and has no `target` attribute
 
 #### Scenario: Bar on a route page
 
 - **WHEN** `/routes/9001` is requested and 9001 has no stored days
-- **THEN** the response is 200, exactly one `[data-site-bar]` is present, and no element with `data-section` is the bar or inside it
+- **THEN** the response is 200, exactly one `[data-site-bar]` is present, its second link points to `https://kaochenlong.com/bus-turn-around` with the text 關於這個網站, and no element with `data-section` is the bar or inside it
 
 <!-- @trace
-source: site-easter-eggs
+source: ui-touchups
 updated: 2026-10-24
 code:
-  - config/locales/tw.yml
-  - app/components/attribution_component.html.erb
-  - config/locales/en.yml
-  - app/models/route_day.rb
-  - config/map.yml
-  - spec/support/duckdb.rb
-  - app/models/route_page/cycles.rb
-  - app/components/end_map_component.yml
-  - analysis/turnaround_facilities.sql
-  - app/components/cycle_table_component.yml
-  - app/components/home_hero_component.yml
-  - spec/fixtures/analysis/README.md
-  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
-  - public/turnaround/favicon.ico
-  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
-  - docs/data-sources.md
-  - bin/health-card
-  - analysis/params.sql
-  - app/assets/images/turnaround-logo.webp
-  - spec/factories/route_day_end_toilets.rb
-  - public/turnaround/icon-16.png
-  - app/components/load_chart_component.rb
-  - app/components/turnaround_facilities_component.rb
-  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
-  - Gemfile
-  - app/components/turnaround_facilities_component.yml
-  - app/frontend/stylesheets/application.css
-  - spec/factories/route_day_ends.rb
-  - app/frontend/end_map/runtime.js
-  - app/frontend/hero/scene.js
-  - app/components/home_hero_component.html.erb
-  - lib/tasks/external.rake
-  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
-  - app/assets/images/home-hero-wide.webp
-  - app/models/route_day_end.rb
-  - app/models/map_tiles.rb
-  - app/models/route_day_loader.rb
-  - config/initializers/mime_types.rb
-  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
-  - app/views/layouts/application.html.erb
-  - app/models/route_page/end_map.rb
-  - app/components/attribution_component.yml
-  - app/frontend/rest_command.js
-  - analysis/derived_export.sql
-  - app/components/turnaround_facilities_component.html.erb
-  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
-  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
-  - app/models/public_toilets_snapshot.rb
-  - app/components/cycle_table_component.rb
-  - public/turnaround/apple-touch-icon.png
-  - app/models/route_day_end_cell.rb
-  - spec/factories/route_days.rb
-  - spec/factories/route_day_end_cells.rb
-  - config/deploy.yml
-  - app/models/route_day_end_toilet.rb
-  - app/components/section_nav_component.yml
-  - Dockerfile
-  - public/turnaround/icon-32.png
-  - app/components/end_map_component.rb
-  - app/views/routes/show.html.erb
-  - app/components/site_bar_component.html.erb
-  - app/models/derived_load_command.rb
-  - app/components/load_chart_component.html.erb
-  - package.json
-  - app/components/attribution_component.rb
-  - app/components/section_nav_component.rb
-  - app/models/route_page/facilities.rb
-  - app/frontend/hero/runtime.js
-  - app/frontend/entrypoints/application.js
   - app/components/cycle_table_component.html.erb
-  - .ruby-version
-  - analysis/README.md
-  - public/turnaround/og-image-v2.jpg
-  - db/schema.rb
-  - app/assets/images/home-hero-narrow.webp
-  - app/components/end_map_component.html.erb
-  - app/components/data_limitations_component.yml
-  - Gemfile.lock
+  - app/components/layover_table_component.html.erb
+  - app/components/run_time_table_component.html.erb
+  - app/components/turnaround_facilities_component.html.erb
+  - app/components/site_bar_component.yml
+  - app/components/load_chart_component.html.erb
+  - app/components/layover_chart_component.html.erb
+  - app/components/origin_story_component.html.erb
+  - app/components/buffer_trade_component.html.erb
+  - app/components/layover_chart_component.rb
+  - app/components/home_hero_component.html.erb
+  - app/components/mrt_overlap_component.html.erb
+  - app/components/site_bar_component.rb
+  - app/components/section_nav_component.html.erb
+  - app/components/route_coverage_component.html.erb
+  - app/components/site_bar_component.html.erb
 tests:
-  - spec/components/turnaround_facilities_component_spec.rb
-  - spec/analysis/fixtures_spec.rb
-  - spec/models/route_day_loader_spec.rb
-  - spec/models/route_page/end_map_spec.rb
-  - spec/requests/easter_eggs_spec.rb
-  - spec/system/load_chart_hover_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/analysis/params_spec.rb
   - spec/system/rest_command_spec.rb
-  - spec/analysis/attribution_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/analysis/cli_spec.rb
-  - spec/analysis/derived_export_spec.rb
-  - spec/components/cycle_table_component_spec.rb
-  - spec/system/route_page_mobile_spec.rb
-  - spec/models/route_page/facilities_spec.rb
-  - spec/models/map_tiles_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/components/load_chart_component_spec.rb
-  - spec/requests/not_found_page_spec.rb
-  - spec/components/end_map_component_spec.rb
-  - spec/models/public_toilets_snapshot_spec.rb
-  - spec/requests/site_layout_spec.rb
-  - spec/system/end_map_spec.rb
-  - spec/models/route_page/cycles_spec.rb
-  - spec/analysis/turnaround_facilities_spec.rb
-  - spec/requests/route_page_fixture_spec.rb
+  - spec/components/layover_chart_component_spec.rb
 -->

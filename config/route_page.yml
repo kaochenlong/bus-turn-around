@@ -5,9 +5,9 @@
 # Each route gives the nature of both of its ends, keyed by the direction
 # (go_back) of the trips that end there: stop when buses stop there before
 # the next trip, pass_through when they drive on to the first stop of the
-# next trip without stopping. It is verified by hand on the route's own data,
-# with the date and the evidence next to the value, and goes stale when the
-# operator changes how the route turns around.
+# next trip without waiting there. It is verified by hand on the route's own
+# data, with the date and the evidence next to the value, and goes stale when
+# the operator changes how the route turns around.
 shared:
   routes:
     15373:

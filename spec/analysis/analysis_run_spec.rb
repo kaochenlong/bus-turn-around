@@ -32,12 +32,28 @@ RSpec.describe AnalysisRun do
       sql = with_analysis_dir("params.sql" => "") { |dir| described_class.sql({ member_route_ids: [ 16111, 19108 ] }, analysis_dir: dir) }
       expect(sql.lines.first).to eq("SET VARIABLE member_route_ids = [16111, 19108];\n")
     end
+
+    it "stages: true 跟不給時一樣，編號階段檔照放" do
+      sql = with_analysis_dir(files) { |dir| described_class.sql({ route_id: 9001 }, analysis_dir: dir, extra_files: [ "extra.sql" ], stages: true) }
+      expect(sql).to eq("SET VARIABLE route_id = 9001;\n-- params\n\n-- 10\n\n-- 20\n\n-- extra\n")
+    end
+
+    it "stages: false 時只有變數、params.sql 與呼叫端指定的檔，沒有任何編號階段檔" do
+      sql = with_analysis_dir(files) { |dir| described_class.sql({ route_id: 9001 }, analysis_dir: dir, extra_files: [ "extra.sql" ], stages: false) }
+      expect(sql).to eq("SET VARIABLE route_id = 9001;\n-- params\n\n-- extra\n")
+    end
   end
 
   describe ".run" do
     it "回傳 DuckDB 印出的那一列結果" do
       rows = with_analysis_dir("params.sql" => "SELECT getvariable('n') + 1 AS x;") { |dir| described_class.run("duckdb", { n: 1 }, analysis_dir: dir) }
       expect(rows).to eq([ { "x" => 2 } ])
+    end
+
+    it "stages: false 時不跑編號階段檔：會失敗的 10_a.sql 不影響，只印呼叫端指定的檔的結果" do
+      files = { "params.sql" => "", "10_a.sql" => "SELECT * FROM no_such_table;", "extra.sql" => "SELECT 1 AS x;" }
+      rows = with_analysis_dir(files) { |dir| described_class.run("duckdb", {}, analysis_dir: dir, extra_files: [ "extra.sql" ], stages: false) }
+      expect(rows).to eq([ { "x" => 1 } ])
     end
 
     it "DuckDB 失敗時丟出 AnalysisRun::Error，訊息是它原樣的標準錯誤" do

@@ -334,7 +334,7 @@ RSpec.describe RoutePage::Cycles, type: :model do
   describe "另一端是不是停車" do
     [ [ "stop", "stop", true ], [ "pass_through", "stop", false ], [ "stop", "pass_through", false ], [ "pass_through", "pass_through", false ] ]
       .each do |outbound, inbound, stopping|
-        it "去程結束那一端是 #{outbound}、返程結束那一端是 #{inbound}：#{stopping ? '前段結束的那一端停車' : '前段結束的那一端開過去就走'}" do
+        it "去程結束那一端是 #{outbound}、返程結束那一端是 #{inbound}：#{stopping ? '前段結束的那一端停車' : '前段結束的那一端直接折返'}" do
           expect(cycles(ends: route_ends(outbound, inbound)).far_end_stopping?).to be(stopping)
         end
       end

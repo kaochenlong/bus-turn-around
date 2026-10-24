@@ -10,11 +10,11 @@ tw: &tw
   nature: 折返方式
   natures:
     stop: 停車
-    pass_through: 開過去就走
+    pass_through: 直接折返
   count: 筆數
   short: 不到 %{minutes} 分鐘
   minute_unit: 分
-  pass_through_note: 標「開過去就走」的那一端，車到了末站不停，直接開下一趟，所以那裡的折返停留不算休息。
+  pass_through_note: 標「直接折返」的那一端，車在末站讓乘客下車後不停下來等，直接開到下一趟的起站，所以那裡的折返停留不算休息。
   note_with_pass_through_html: "%{note}%{pass_through}"
 zh-TW:
   <<: *tw
@@ -33,5 +33,5 @@ en:
   count: Layovers
   short: Under %{minutes} min
   minute_unit: min
-  pass_through_note: At an end marked “Drives on”, buses do not stop at the last stop and drive straight on to the first stop of the next trip, so the layovers there are not rest opportunities.
+  pass_through_note: At an end marked “Drives on”, buses let passengers off at the last stop and drive straight on to the first stop of the next trip without waiting, so the layovers there are not rest opportunities.
   note_with_pass_through_html: "%{note} %{pass_through}"

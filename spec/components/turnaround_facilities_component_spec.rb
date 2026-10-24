@@ -47,7 +47,7 @@ RSpec.describe TurnaroundFacilitiesComponent, type: :component do
       expect(parts).to eq([ %w[0 pass_through end_stop], %w[1 stop standstill] ])
     end
 
-    it "停車那一端帶三個查核數字：8 筆折返停留、1 筆在位置附近、離末站 45.0 公尺；開過去就走那一端沒有" do
+    it "停車那一端帶三個查核數字：8 筆折返停留、1 筆在位置附近、離末站 45.0 公尺；直接折返那一端沒有" do
       expect(values(rendered, "layovers", "located-layovers", "end-stop-meters")).to eq([ [ nil, nil, nil ], %w[8 1 45.0] ])
     end
 

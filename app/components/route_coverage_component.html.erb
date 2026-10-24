@@ -10,7 +10,7 @@
     <% range_options.each do |range| %>
       <% current = range == @coverage.range %>
       <%= link_to t(".ranges.#{range}"), range_path(range), aria: { current: ("true" if current) },
-                  class: [ "flex min-h-11 flex-1 items-center justify-center rounded-lg px-4.5 text-base sm:flex-none",
+                  class: [ "flex min-h-11 flex-1 items-center justify-center rounded-lg px-4.5 text-base select-none sm:flex-none",
                            current ? "bg-white font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.14)]" : "font-medium text-slate-600 hover:text-slate-900" ] %>
     <% end %>
   </nav>

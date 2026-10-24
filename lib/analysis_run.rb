@@ -9,7 +9,9 @@ require "open3"
 # The SQL is the variable settings, then params.sql, then the numbered stage
 # files in file name order, then the files the caller appends. Sorting every
 # file by name would put params.sql after the stages, and the stages would
-# read its constants as NULL.
+# read its constants as NULL. With stages: false the numbered stage files are
+# left out, for a run that only reads files earlier runs wrote, such as the
+# report of bin/rails survey:end_natures, which has no route to segment.
 module AnalysisRun
   ANALYSIS_DIR = File.expand_path("../analysis", __dir__)
   DUCKDB_FLAGS = %w[-no-init -bail -batch -json].freeze
@@ -25,16 +27,17 @@ module AnalysisRun
         .find { File.file?(it) && File.executable?(it) }
   end
 
-  def sql(variables, analysis_dir: ANALYSIS_DIR, extra_files: [])
-    stages = [ "params.sql", *Dir.glob("[0-9]*.sql", base: analysis_dir).sort, *extra_files ]
+  def sql(variables, analysis_dir: ANALYSIS_DIR, extra_files: [], stages: true)
+    numbered = stages ? Dir.glob("[0-9]*.sql", base: analysis_dir).sort : []
+    files = [ "params.sql", *numbered, *extra_files ]
     settings = variables.map { |name, value| "SET VARIABLE #{name} = #{sql_literal(value)};" }
-    [ *settings, *stages.map { File.read(File.join(analysis_dir, it)) } ].join("\n")
+    [ *settings, *files.map { File.read(File.join(analysis_dir, it)) } ].join("\n")
   end
 
   # The rows of the statements that print, as hashes keyed by column name.
-  def run(duckdb, variables, analysis_dir: ANALYSIS_DIR, extra_files: [])
+  def run(duckdb, variables, analysis_dir: ANALYSIS_DIR, extra_files: [], stages: true)
     stdout, stderr, status = Open3.capture3(duckdb, *DUCKDB_FLAGS,
-                                            stdin_data: sql(variables, analysis_dir:, extra_files:))
+                                            stdin_data: sql(variables, analysis_dir:, extra_files:, stages:))
     raise Error, (stderr.empty? ? "duckdb 失敗（#{status}），沒有印出錯誤訊息\n" : stderr) unless status.success?
 
     stdout.strip.empty? ? [] : JSON.parse(stdout)

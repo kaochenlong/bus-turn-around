@@ -2,34 +2,83 @@
 tw: &tw
   eyebrow: 換休息試算
   title: 每趟加緩衝
-  note: 假設班表讓車在停車那一端每次多停幾分鐘再開下一趟，算算一天要多花幾車時、多派幾台車。1 車時就是一台車開一個小時。這裡算的是車，不是駕駛的工時。
-  buffer_html: 緩衝 %{minutes} 分鐘
+  note: 假設班表讓車在停車那一端每次多停幾分鐘再開下一趟，算算一天要多花幾車時、多派幾台車；也可以假設車回到那裡，比量到的再晚幾分鐘。1 車時就是一台車開一個小時。這裡算的是車，不是駕駛的工時。
+  buffer_html: 休息 %{minutes} 分鐘
+  late_html: 晚到 %{minutes} 分鐘
+  late_hint: 車回到停車那一端，比量到的再晚幾分鐘。量到的那幾天的晚到已經算在裡面。
+  hours_label: 套用的小時
+  hours_between: 點到
+  hours_after: 點
+  hours_from: 開始的小時
+  hours_to: 結束的小時
+  end_label: 加在哪一端
+  end_both: 兩端
   submit: 重算
-  coverage_html: "%{days} 天裡總共跑了 %{trips} 趟，試算只用在停車那一端量得到車停多久的 %{layovers} 次。"
-  pass_through_html: "開過去就走那一端的 %{layovers} 次折返沒有算進來：車到了那裡直接開下一趟，不會停下來。"
-  lower: 不夠 %{minutes} 分鐘的補足
-  upper: 每次都多停 %{minutes} 分鐘
+  hold_html: 每次折返要留 %{hold} 分鐘（休息 %{minutes} ＋ 晚到 %{late}）
+  coverage_html: "%{days} 天裡總共跑了 %{trips} 趟，在停車那一端量得到車停多久的有 %{layovers} 次。"
+  coverage_used_html: "試算只用其中%{condition}的 %{used} 次。"
+  # 數字開頭的條件前面留一格，接在「其中」「這幾天」後面時跟數字隔開
+  condition_hours: " %{from} 點到 %{to} 點"
+  condition_end: "在%{stop}"
+  condition_separator: "、"
+  pass_through_html: "直接折返那一端的 %{layovers} 次折返沒有算進來：車在那裡讓乘客下車後不停下來等，直接開下一趟。"
+  lower_html: 不夠 %{hold} 分鐘的補足
+  upper_html: 每次都多留 %{hold} 分鐘
   vehicle_hours: 一天要多花幾車時
+  next_minute: 再多留 1 分鐘，一天再多幾車時
   peak_vehicles: 最忙的那個小時要多派幾台車
-  bounds_note: 「不夠的補足」把車現在停的時間都當成休息，只補差額；「每次都多停」把現在停的時間都當成沒在休息，整段另外加。車停著的時候其實有一部分在回場、加油、等發車，所以真正要多花的會落在兩欄之間。多派的車數是把那個小時多出來的分鐘數除以 60 估的，實際排班會不一樣。
-  achieved: 現在已經停到 %{minutes} 分鐘以上的比例
+  lower_short: 不夠的補足
+  upper_short: 每次都多留
+  chart_x: 每次折返要留幾分鐘
+  chart_y: 一天多幾車時
+  chart_aria: 每次折返要留 0 到 40 分鐘時一天要多花的車時：不夠的補足從 0 到 %{lower}，每次都多留從 0 到 %{upper}。
+  hourly_summary: 各小時要多派幾台車
+  hourly_hour: 小時
+  bounds_note: 「不夠的補足」把車現在停的時間都當成休息，只補差額；「每次都多留」把現在停的時間都當成沒在休息，整段另外加。車停著的時候其實有一部分在回場、加油、等發車，所以真正要多花的會落在兩者之間。多派的車數是把那個小時多出來的分鐘數除以 60 估的，實際排班會不一樣。
+  achieved_html: 現在已經停到 %{minutes} 分鐘以上的比例
+  achieved_late_html: 車數不變、再晚到 %{late} 分鐘，還停得到 %{minutes} 分鐘的比例
   vehicles_per_day: 現在一天平均有幾台車在跑
   no_layover: 這幾天在停車那一端量不到車停了多久，沒辦法試算。
+  no_layover_filtered: "這幾天%{condition}，在停車那一端量不到車停了多久，沒辦法試算。"
 zh-TW:
   <<: *tw
 en:
   eyebrow: Rest trade-off
   title: A buffer at every layover
-  note: Suppose the schedule lets buses stop a few more minutes at the end where they stop before the next trip, and see how many vehicle-hours and buses a day that adds. One vehicle-hour is one bus running for an hour. These are figures for buses, not driver hours.
-  buffer_html: Buffer of %{minutes} minutes
+  note: Suppose the schedule lets buses stop a few more minutes at the end where they stop before the next trip, and see how many vehicle-hours and buses a day that adds; you can also suppose buses get back there a few minutes later than measured. One vehicle-hour is one bus running for an hour. These are figures for buses, not driver hours.
+  buffer_html: Rest of %{minutes} minutes
+  late_html: Late by %{minutes} minutes
+  late_hint: Buses get back to the end where they stop this many minutes later than measured. The lateness of the measured days is already in the figures.
+  hours_label: Hours applied
+  hours_between: to
+  hours_after: o'clock
+  hours_from: First hour
+  hours_to: Last hour
+  end_label: Which end
+  end_both: Both ends
   submit: Recalculate
-  coverage_html: "%{trips} trips ran over %{days} days; the estimate uses only the %{layovers} times we could measure how long a bus stopped at the end where buses stop."
-  pass_through_html: "The %{layovers} turnarounds at the end where buses drive on are left out: buses go straight on to the next trip there without stopping."
-  lower: Top up to %{minutes} minutes when short
-  upper: Add %{minutes} minutes every time
+  hold_html: Every turnaround holds %{hold} minutes (rest %{minutes} + late %{late})
+  coverage_html: "%{trips} trips ran over %{days} days; we could measure how long a bus stopped at the end where buses stop %{layovers} times."
+  coverage_used_html: "The estimate uses only the %{used} of them that end%{condition}."
+  condition_hours: " between %{from}:00 and %{to}:00"
+  condition_end: " at %{stop}"
+  condition_separator: ""
+  pass_through_html: "The %{layovers} turnarounds at the end where buses drive on are left out: buses let passengers off there and go straight on to the next trip without waiting."
+  lower_html: Top up to %{hold} minutes when short
+  upper_html: Hold %{hold} more minutes every time
   vehicle_hours: Added vehicle-hours a day
+  next_minute: One more minute adds this many vehicle-hours a day
   peak_vehicles: Added buses in the busiest hour
-  bounds_note: "“Top up” counts the time buses stop now as rest and adds only the shortfall; “Add every time” counts none of it as rest and adds the whole buffer. Part of every stop goes to returning to the depot, refuelling and waiting, so the real cost lies between the two columns. Added buses are the hour's added minutes divided by 60, not a schedule."
-  achieved: Stops already lasting %{minutes} minutes or more
+  lower_short: Top up when short
+  upper_short: Hold more every time
+  chart_x: Minutes every turnaround holds
+  chart_y: Added vehicle-hours a day
+  chart_aria: "Added vehicle-hours a day as every turnaround holds 0 to 40 minutes: topping up when short goes from 0 to %{lower}, holding more every time from 0 to %{upper}."
+  hourly_summary: Added buses in each hour
+  hourly_hour: Hour
+  bounds_note: "“Top up” counts the time buses stop now as rest and adds only the shortfall; “Hold more every time” counts none of it as rest and adds the whole hold. Part of every stop goes to returning to the depot, refuelling and waiting, so the real cost lies between the two. Added buses are the hour's added minutes divided by 60, not a schedule."
+  achieved_html: Stops already lasting %{minutes} minutes or more
+  achieved_late_html: With the same buses, %{late} minutes later, stops still lasting %{minutes} minutes
   vehicles_per_day: Buses running a day on average now
   no_layover: No stop at the end where buses stop could be measured on these days, so there is nothing to estimate.
+  no_layover_filtered: "No stop at the end where buses stop could be measured on these days%{condition}, so there is nothing to estimate."
