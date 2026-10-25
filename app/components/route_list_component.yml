@@ -3,13 +3,19 @@ tw: &tw
   title: 有頁面的路線
   route_id: "路線 Id %{id}"
   latest: "最新資料 %{day}%{day_type}"
+  short_share: 停車端停不到 %{minutes} 分鐘的比例
+  short_count: "%{stop}・共 %{count} 次折返"
+  no_stopping_end: 兩端都是直接折返，沒有停車的一端
   no_data: 還沒有資料
-  note: 每條路線都要先用它自己的資料確認過趟次、折返停留這些算法沒問題，才會有頁面。
+  note: 每條路線都要先用它自己的資料確認過趟次、折返停留這些算法沒問題，才會有頁面。卡上的比例是最新那一天停車端量到的折返停留裡不到 15 分鐘的比例，折返停留是駕駛休息的上限，不是工時。
 zh-TW:
   <<: *tw
 en:
   title: Routes with a page
   route_id: "Route ID %{id}"
   latest: "Latest data %{day} %{day_type}"
+  short_share: Under %{minutes} min at the stopping end
+  short_count: "%{stop}, out of %{count}"
+  no_stopping_end: Buses drive straight on at both ends; neither end is a stopping end.
   no_data: No data yet
-  note: A route gets a page only after its definitions have been checked on its own data.
+  note: "A route gets a page only after its definitions have been checked on its own data. The share on each card is the share of the measured layovers at the stopping end that were under 15 minutes on the latest day; a layover is an upper bound on the driver's rest, not working time."

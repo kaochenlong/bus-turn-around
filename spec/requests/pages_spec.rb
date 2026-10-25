@@ -9,6 +9,20 @@ RSpec.describe "Pages", type: :request do
 
   def page = response.parsed_body
 
+  # A stored day of 9001 with the last stop of each direction, 戊站 for
+  # direction 0 and 甲站 for direction 1, and layovers of the given minutes
+  # ending in each direction.
+  def store_measured_day(day, layovers: {})
+    create(:route_day, day: Date.iso8601(day)).tap do |route_day|
+      route_day.stops.create!([ { go_back: 0, seq: 4, stop_name: "戊站" }, { go_back: 1, seq: 9, stop_name: "甲站" } ])
+      end_time = Time.zone.parse("#{day} 08:00")
+      layovers.each { |go_back, minutes| minutes.each { route_day.layovers.create!(bus_id: "TEST-0001", go_back:, end_time:, next_start_time: end_time + it.minutes) } }
+    end
+  end
+
+  # The number and the whole text of the line the selector names, or nils without it.
+  def line_at(selector) = page.at_css(selector).then { [ it&.at_css("[data-number]")&.text, it&.text&.squish ] }
+
   it "首頁回 200，區塊依序是 hero、起點、路線清單、資料限制、資料來源" do
     get root_path
     expect([ response.status, page.css("[data-section]").map { it["data-section"] } ]).to eq([ 200, %w[hero origin routes limitations sources] ])
@@ -48,5 +62,19 @@ RSpec.describe "Pages", type: :request do
     get root_path
     card = page.at_css("[data-route='15373']")
     expect([ card.at_css("p").text, card.key?("data-no-data"), card.name, card.css("a").size ]).to eq([ "路線 Id 15373", true, "div", 0 ])
+  end
+
+  it "9001 卡上返程那一行的比例與整行文字，等於點進去的路線頁摘要「停車端停不到 15 分鐘的比例」返程那一行" do
+    store_measured_day("2026-10-20", layovers: { 1 => [ 10, 20, 30 ] })
+    lines = { root_path => "[data-route='9001'] [data-figure='short-share'] [data-end='1']", route_path(9001) => "[data-key-number='short-share'] [data-end='1']" }
+            .map { |path, selector| get(path).then { line_at(selector) } }
+    expect(lines).to eq([ [ "33.3%", "33.3% 甲站・共 3 次折返" ] ] * 2)
+  end
+
+  it "停車端有折返停留時，9001 的卡上有數字那一塊，路線清單以外的文字沒有百分比" do
+    store_measured_day("2026-10-20", layovers: { 1 => [ 10, 20, 30 ] })
+    get root_path
+    outside = page.at_css("body").dup.tap { it.at_css("[data-section=routes]").remove }.text
+    expect([ page.css("[data-route='9001'] [data-figure]").size, outside.scan(/\d+\.\d%/) ]).to eq([ 1, [] ])
   end
 end

@@ -32,6 +32,17 @@ en:
     name: "TurnAround"
     description: "Two numbers for Taipei buses, route by route: how long the rest at the turnaround actually is, and how many people ride the stretches that overlap the MRT."
     share_image_alt: "A teal bus logo framed by a turning route, with the TurnAround name."
+  share_preview:
+    title: "%{route_name} | %{site_name}"
+    coverage_day: "%{day}, %{day_type}"
+    coverage_7d: "the last 7 days up to %{day}, %{count} %{day_type} days"
+    stopping_end: "stopping end %{stop}: %{count} layovers measured, median %{p50} min, %{share} under %{minutes} min"
+    stopping_end_without_layovers: "stopping end %{stop}: 0 layovers"
+    no_stopping_end: "Buses drive straight on at both ends; neither end is a stopping end"
+    ends_separator: "; "
+    description: "%{span}, %{coverage}: %{ends}. %{bound}"
+    bound: "A layover is an upper bound on the driver's rest, not working time."
+    span: "%{departure}–%{destination}"
   day_types:
     weekday: weekday
     holiday: holiday

@@ -5,6 +5,13 @@ RSpec.describe "Site layout", type: :request do
 
   def title = page.at_css("title").text
 
+  # The og:title, twitter:title, description, og:description and
+  # twitter:description metas.
+  def share_metas
+    [ "meta[property='og:title']", "meta[name='twitter:title']", "meta[name='description']", "meta[property='og:description']", "meta[name='twitter:description']" ]
+      .map { page.at_css(it)["content"] }
+  end
+
   def footers = page.css('footer[data-attribution][data-license="OGDL-Taiwan-1.0"]')
 
   # The three quoted paragraphs of the 授權 section of docs/data-sources.md,
@@ -66,6 +73,16 @@ RSpec.describe "Site layout", type: :request do
   it "9001 還沒有任何資料時，路線頁回 200，title 是站名" do
     get route_path(9001)
     expect([ response.status, title ]).to eq([ 200, I18n.t("site.name") ])
+  end
+
+  it "首頁沒有設自己的 title 與描述：title、og:title、twitter:title 是站名，三個 description 是站的描述" do
+    get root_path
+    expect([ title, *share_metas ]).to eq([ I18n.t("site.name") ] * 3 + [ I18n.t("site.description") ] * 3)
+  end
+
+  it "9001 還沒有任何資料時，路線頁的六個標籤跟首頁一樣是站名與站的描述" do
+    get route_path(9001)
+    expect([ title, *share_metas ]).to eq([ I18n.t("site.name") ] * 3 + [ I18n.t("site.description") ] * 3)
   end
 
   it "首頁恰好有一個顯名聲明 footer" do
