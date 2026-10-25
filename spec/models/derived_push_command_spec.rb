@@ -110,6 +110,35 @@ RSpec.describe DerivedPushCommand, type: :model do
     end
   end
 
+  describe "--push 前比對正式站的路線日" do
+    before { store_day }
+
+    # The answer of the version query when production also stores `route_days`, "<route Id>|<day>" each.
+    def production_with(*route_days) = shell("server_version_num" => [ true, [ "160010", schema_version, *route_days ].join("\n") + "\n" ])
+
+    def replacing_calls = calls.map(&:first).grep(/pg_dump -U postgres|pg_dump -U website|single-transaction/)
+
+    it "正式站多一個這台沒有的 2026-10-20：結束碼 1，列出 9001 的那一天，說要重算用 bin/nightly-load --recompute，不匯出、不備份、不換" do
+      status, out = run("--push", shell: production_with("9001|2026-10-19", "9001|2026-10-20"))
+      expect([ status, out.include?("9001：2026-10-20 到 2026-10-20，1 天"), out.include?("bin/nightly-load --recompute"), replacing_calls ]).to eq([ 1, true, true, [] ])
+    end
+
+    it "正式站跟這台一樣：照樣匯出、備份、換掉、比對，結束碼 0" do
+      status, = run("--push", shell: production_with("9001|2026-10-19"))
+      expect([ status, replacing_calls.size ]).to eq([ 0, 3 ])
+    end
+
+    it "正式站回了讀不懂的一行：結束碼 1，印出那一行，不推" do
+      status, out = run("--push", shell: production_with("WARNING: no such table"))
+      expect([ status, out.include?("WARNING: no such table"), replacing_calls ]).to eq([ 1, true, [] ])
+    end
+
+    it "schema 版本也不同時先報 schema 版本" do
+      _, out = run("--push", shell: shell("server_version_num" => [ true, "160010\n20240101000000\n9001|2026-10-20\n" ]))
+      expect([ out.include?("20240101000000"), out.include?("--recompute") ]).to eq([ true, false ])
+    end
+  end
+
   it "看不懂的參數：印用法，結束碼 1，什麼指令都沒跑" do
     status, out = run("--force")
     expect([ status, calls, out.include?("用法") ]).to eq([ 1, [], true ])

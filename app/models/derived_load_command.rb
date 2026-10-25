@@ -81,7 +81,6 @@ class DerivedLoadCommand
   def load_day(route_id, day, duckdb)
     RawDayCheck.check!(data_root:, day:)
     counts = RouteDayLoader.new(route_id:, day:, data_root:, duckdb:, out: @out, member_route_ids: RoutePage.member_route_ids(route_id)).call
-    @out.puts("#{day.iso8601} 寫入：趟次 #{counts[:trips]}、折返停留 #{counts[:layovers]}、趟次站 #{counts[:trip_stop_counts]}、" \
-              "兩端公廁 #{counts[:end_toilets]} 間、靜止格 #{counts[:end_cells]} 格")
+    @out.puts("#{day.iso8601} #{RouteDayLoader.summary(counts)}")
   end
 end

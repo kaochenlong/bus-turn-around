@@ -13,8 +13,11 @@ require "yaml"
 #
 # Without --push it only prints what would be pushed. With --push it stops
 # before touching production unless this database has route days, the dump's
-# PostgreSQL major version is not newer than production's, and both databases
-# are at the same schema version. Then it dumps this database with the
+# PostgreSQL major version is not newer than production's, both databases
+# are at the same schema version, and production stores no route day this
+# database lacks: bin/nightly-load writes route days straight into
+# production, and replacing the tables would delete them (docs/decisions.md,
+# 14). Then it dumps this database with the
 # pg_dump of the development PostgreSQL container, saves a dump of the
 # production tables on the host, replaces them in one transaction, and
 # compares every table's row count and id sequence with this database.
@@ -108,20 +111,46 @@ class DerivedPushCommand
 
   def route_days = RouteDay.group(:route_id).order(:route_id).pluck(:route_id, Arel.sql("min(day)"), Arel.sql("max(day)"), Arel.sql("count(*)"))
 
-  # Everything that would make the push wrong is checked before production is touched.
+  # Everything that would make the push wrong is checked before production is
+  # touched. Production's route days are read in the same psql call as its
+  # versions, one "<route Id>|<day>" line each.
   def check
     raise Failure, "這台沒有任何路線日，不推：正式站的衍生表會被清空" if counts.fetch("route_days").zero?
 
     dump_major = run!([ "docker", "exec", @dev_container, "pg_dump", "--version" ], "讀不到 #{@dev_container} 容器的 pg_dump 版本")[/(\d+)\.\d+/, 1].to_i
-    server, schema = run!(remote_psql("-c", "show server_version_num", "-c", "select max(version) from schema_migrations"), "讀不到正式站的版本").split("\n")
+    server, schema, *production_route_days = run!(remote_psql("-c", "show server_version_num", "-c", "select max(version) from schema_migrations",
+                                                              "-c", "select route_id, day from route_days"), "讀不到正式站的版本").split("\n")
     server_major = server.to_i / 10_000
     if dump_major > server_major
       raise Failure, "#{@dev_container} 容器的 pg_dump 是 #{dump_major}、正式站的 PostgreSQL 是 #{server_major}：新版匯出的檔舊版收不了，" \
                      "用 DEV_POSTGRES_CONTAINER 給一個 #{server_major} 版的容器"
     end
-    return if schema.to_s.strip == dev_schema_version
+    unless schema.to_s.strip == dev_schema_version
+      raise Failure, "正式站的 schema 版本是 #{schema.to_s.strip}、這台是 #{dev_schema_version}：先 deploy，或在這台跑 bin/rails db:migrate，兩邊一樣再推"
+    end
 
-    raise Failure, "正式站的 schema 版本是 #{schema.to_s.strip}、這台是 #{dev_schema_version}：先 deploy，或在這台跑 bin/rails db:migrate，兩邊一樣再推"
+    check_production_route_days(production_route_days)
+  end
+
+  # A route day only production stores was written there by bin/nightly-load;
+  # replacing the tables would delete it, so the push stops. A line that is
+  # not a route day stops it too, because a route day not read is one the
+  # push would delete.
+  def check_production_route_days(lines)
+    production = lines.map do |line|
+      match = /\A(\d+)\|(\d{4}-\d{2}-\d{2})\z/.match(line) or raise Failure, "讀不懂正式站 route_days 的這一行，不推：#{line}"
+
+      [ Integer(match[1]), Date.iso8601(match[2]) ]
+    end
+    missing = production - RouteDay.pluck(:route_id, :day)
+    return if missing.empty?
+
+    per_route = missing.group_by(&:first).sort.map do |route_id, pairs|
+      first, last = pairs.map(&:last).minmax
+      "  #{route_id}：#{first.iso8601} 到 #{last.iso8601}，#{pairs.size} 天"
+    end
+    raise Failure, [ "正式站有這台沒有的路線日，不推：", *per_route,
+                     "這些是 bin/nightly-load 每晚寫進正式站的路線日，整份推會把它們刪掉；要重算請在放原始檔的 Mac mini 上跑 bin/nightly-load --recompute。" ].join("\n")
   end
 
   def dev_schema_version = connection.select_value("SELECT max(version) FROM schema_migrations").to_s

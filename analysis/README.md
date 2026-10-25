@@ -99,6 +99,18 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 
 時刻帶 `+08:00` 寫出。每個檔的欄位順序與列的排序都固定，同樣的輸入連跑兩次，位元組會完全相同。
 
+## 每晚載入正式站
+
+`bin/nightly-load` 在放原始檔的 Mac mini 上跑，用 `derived:load` 的 `RouteDayLoader` 把正式站還沒有的路線日寫進正式站的 PostgreSQL，一個路線日一個交易。資料庫經 ssh 轉送連線：本機的 `127.0.0.1:<TUNNEL_PORT>` 轉到 `config/deploy.yml` 裡 db accessory 主機上只綁本機的資料庫埠。
+
+- `bin/nightly-load`：只印計畫，不寫。計畫依序是正式站與 migration 版本是否一致、頁面路線、日子範圍與跳過的日子、正式站已有的路線日、要載入的路線日、原始檔不齊的日子；有原始檔不齊的日子時結束碼是 1。
+- `bin/nightly-load --load`：照計畫寫入。一個路線日失敗就印出原因、接著做下一個，最後一行是「載入 N 個路線日、失敗 M 個、原始檔不齊 K 天」，M 或 K 不是 0 時結束碼是 1。
+- `bin/nightly-load --recompute` 印重算的計畫，加 `--load` 才重算：正式站已有的路線日也算進去，算法或 `config/route_page.yml` 兩端的性質改了之後用。`ROUTE=<頁面路線 Id>` 只算那一條，只能跟 `--recompute` 一起用。
+
+要載入的路線日是頁面路線（照 `config/route_page.yml` 的順序）乘上候選日，再扣掉正式站已有的。候選日從 `config/derived_days.yml` 的 `first_day` 到讀檔視窗已結束的最後一天（台北時間的現在減兩小時取日期再減一天，所以一天到隔天 02:00 才算），去掉 `skipped_days`，每個跳過的日子都要寫理由。每個候選日照樣過 `derived:load` 的那道原始檔檢查；原始檔不齊的日子整天不試，每小時會再報一次，直到補檔或寫進 `config/derived_days.yml`。
+
+環境變數：`TURNAROUND_DATA`（資料根目錄）與 `WEBSITE_DATABASE_PASSWORD`（正式站的資料庫密碼）一定要給，轉送用的本機埠有預設值、被佔用時用 `TUNNEL_PORT` 換，PATH 要找得到 `duckdb`。`RAILS_ENV` 沒設就是 `production`、設成別的就停；沒有 `SECRET_KEY_BASE` 時給 Rails 一把用不到的 `SECRET_KEY_BASE_DUMMY`，所以這台不需要 credentials 的 key。同時只跑一個：`tmp/nightly-load.lock` 被另一次執行拿著時，這次什麼都不做，結束碼 0。載入前比對正式站 `schema_migrations` 與這份 checkout 的 migration 版本，不一致就停、什麼都不寫。
+
 ## 全路網兩端性質的試跑
 
 `end_nature_evidence.sql`、`end_nature_export.sql` 與 `end_nature_survey.sql` 都不以數字開頭，只由 `bin/rails survey:end_natures FROM=2026-10-19 TO=2026-10-22`（可以另外給 `ROUTES=<路線 Id,…>` 與 `OUT=<目錄>`，資料根目錄給環境變數 `TURNAROUND_DATA`）執行，`bin/health-card` 與 `derived:load` 都不跑它們。這個指令只寫 `OUT`（預設 `tmp/end-natures/`）底下的檔，不寫資料庫，也不改 `config/route_page.yml` 與路線頁。

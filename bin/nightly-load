@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+# Writes the route days production lacks into the production database, as
+# NightlyLoadCommand describes: without --load it only prints the plan. The
+# target is production, so any other RAILS_ENV stops here, before Rails is
+# loaded. The machine that runs it has no credentials key: Rails gets a
+# dummy secret_key_base, which this process never signs anything with, and
+# the database password comes from WEBSITE_DATABASE_PASSWORD. The database
+# connection goes to the local end of the ssh port forward, TUNNEL_PORT.
+ENV["RAILS_ENV"] ||= "production"
+unless ENV["RAILS_ENV"] == "production"
+  warn("bin/nightly-load 寫的是正式站，RAILS_ENV 要是 production，現在是 #{ENV['RAILS_ENV']}")
+  exit 1
+end
+ENV["SECRET_KEY_BASE_DUMMY"] ||= "1" unless ENV["SECRET_KEY_BASE"]
+ENV["DB_HOST"] ||= "127.0.0.1"
+ENV["DB_PORT"] ||= ENV.fetch("TUNNEL_PORT", "15432")
+
+require_relative "../config/environment"
+exit NightlyLoadCommand.new(ARGV, env: ENV.to_h).run

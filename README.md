@@ -57,7 +57,7 @@ data.taipei 公車即時 feed
                     └─▶ Rails：路線頁、首頁
 ```
 
-採集器 n-gear 是另一個 repo。衍生表在筆電上算好，再推上正式站。網頁只查衍生表，不碰原始檔。為什麼這樣切，見 [docs/decisions.md](docs/decisions.md)。
+採集器 n-gear 是另一個 repo。衍生表由 Mac mini 每晚算好，直接寫進正式站（`bin/nightly-load`），`bin/push-derived` 只在正式站清空時用。網頁只查衍生表，不碰原始檔。為什麼這樣切，見 [docs/decisions.md](docs/decisions.md)。
 
 ## 資料來源與授權
 
@@ -73,7 +73,7 @@ bin/dev     # Rails server 與 Vite
 bin/ci      # RuboCop、bundler-audit、Brakeman、平行 RSpec、seeds
 ```
 
-衍生表與健檢卡要用 n-gear 收的原始檔來算，資料根目錄用環境變數 `TURNAROUND_DATA` 指定，`bin/rails derived:load` 與 `bin/health-card` 的用法見 [analysis/README.md](analysis/README.md)。
+衍生表與健檢卡要用 n-gear 收的原始檔來算，資料根目錄用環境變數 `TURNAROUND_DATA` 指定，`bin/rails derived:load`、`bin/nightly-load` 與 `bin/health-card` 的用法見 [analysis/README.md](analysis/README.md)。
 
 需求與計畫用 Spectra 管理：規格在 `docs/spectra/specs/`，進行中的 change 在 `docs/spectra/changes/`，專案脈絡在 `docs/spectra/config.yaml`。
 

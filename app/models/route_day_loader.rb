@@ -63,6 +63,13 @@ class RouteDayLoader
   }.freeze
   DIRECTION_NAMES = { 0 => "去程", 1 => "返程" }.freeze
 
+  # How derived:load and bin/nightly-load word the counts call returns once a
+  # route day is written.
+  def self.summary(counts)
+    "寫入：趟次 #{counts[:trips]}、折返停留 #{counts[:layovers]}、趟次站 #{counts[:trip_stop_counts]}、" \
+      "兩端公廁 #{counts[:end_toilets]} 間、靜止格 #{counts[:end_cells]} 格"
+  end
+
   def initialize(route_id:, day:, data_root:, duckdb:, out: $stdout, member_route_ids: RoutePage.member_route_ids(route_id))
     @route_id = route_id
     @member_route_ids = member_route_ids
