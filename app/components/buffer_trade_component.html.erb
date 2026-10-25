@@ -60,6 +60,11 @@
         <button type="submit" x-init="$el.hidden = true" class="rounded border border-slate-300 bg-white px-3 py-1 text-note select-none"><%= t(".submit") %></button>
       </div>
     </form>
+    <%# 看完試算，下一步就是排：連到班表，帶著目前的日子、範圍與休息分鐘數。這一塊在 turbo-frame 裡，連結要跳整頁 %>
+    <p class="-mt-2 mb-5 text-table">
+      <%= link_to t(".timetable_link"), timetable_path, data: { timetable_link: true, turbo_frame: "_top" },
+                  class: "font-medium text-teal-700 underline underline-offset-2 hover:text-teal-900" %>
+    </p>
 
     <p data-hold class="mb-3 font-semibold text-slate-800">
       <%= t(".hold_html", hold: value_span(@buffer_trade.hold, "hold"), minutes: value_span(@buffer_trade.minutes, "minutes"),

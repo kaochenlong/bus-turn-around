@@ -22,6 +22,10 @@ class BufferTradeComponent < ApplicationComponent
     @coverage = coverage
   end
 
+  # The route's timetable with this estimate's day, range and rest
+  # minutes; the lateness, hours and end are not the timetable's parameters.
+  def timetable_path = helpers.route_timetable_path(@coverage.route_id, day: @coverage.day.iso8601, range: @coverage.range, buffer: @buffer_trade.minutes)
+
   def minutes_range = RoutePage::BufferTrade::MINUTES_RANGE
 
   def late_range = RoutePage::BufferTrade::LATE_RANGE

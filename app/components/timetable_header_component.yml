@@ -1,0 +1,47 @@
+---
+tw: &tw
+  eyebrow: 班表
+  print: 列印
+  covered: 涵蓋的日子
+  figures:
+    percentile: 行駛時間取第幾百分位
+    buffer: 停車端每次休息（分）
+    vehicles_per_day: 量到的平均每天車數
+    vehicles: 班表的車數
+    departures_0: 去程班數
+    departures_1: 返程班數
+    edited: 手動改過
+  edited_unit: 處
+  two_estimates: 「量到的平均每天車數」數的是那幾天每天跑過的不同車牌，換車、備援、只跑半天的都算一台。「班表的車數」是照上面的班數、行駛時間與停留排下去，同一時間最多要幾台車在路上：一台車從頭跑到尾、兩趟之間只停這裡設的分鐘數，所以通常比實際動用的車少。單子的車號是開車的順序，不是車牌。
+  controls:
+    percentile: 行駛時間取第幾百分位
+    percentile_option: "p%{value}"
+    buffer: 停車端每次休息（分）
+    departures: 每小時發車數
+    hour: 時
+    departures_cell: "%{direction} %{hour} 時的發車數"
+  regeneration_notice: 改百分位數、休息或發車數，班表會立刻重新鋪排，手動改過的會不見。
+zh-TW:
+  <<: *tw
+en:
+  eyebrow: Timetable
+  print: Print
+  covered: Days covered
+  figures:
+    percentile: Run time percentile
+    buffer: Rest at the stopping end (min)
+    vehicles_per_day: Measured vehicles per day
+    vehicles: Vehicles in the timetable
+    departures_0: Outbound departures
+    departures_1: Inbound departures
+    edited: Manual edits
+  edited_unit: cells
+  two_estimates: "Measured vehicles per day counts the distinct plates that ran on each covered day, swaps, spares and half-day buses included. Vehicles in the timetable is how many buses are on the road at once when these departures are laid out with these run times and holds: each bus runs from its first trip to its last with only the set stop between trips, so it is usually fewer than the buses actually used. Vehicle numbers are the order buses were put on the road, not plates."
+  controls:
+    percentile: Run time percentile
+    percentile_option: "p%{value}"
+    buffer: Rest at the stopping end (min)
+    departures: Departures per hour
+    hour: Hour
+    departures_cell: "%{direction} departures in hour %{hour}"
+  regeneration_notice: Changing the percentile, the rest or the departures lays the timetable out again at once and discards manual edits.

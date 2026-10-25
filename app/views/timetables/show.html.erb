@@ -1,0 +1,55 @@
+<%# 底色跟路線頁一樣設在 body 上，layout 在頁面之後輸出的顯名聲明 footer 才會同一個底色 %>
+<% content_for :body_class, "bg-slate-50" %>
+<% content_for :title, @timetable&.route_name ? t(".document_title", route: @timetable.route_name, site: t("site.name")) : t(".document_title_without_route", site: t("site.name")) %>
+<%# 根元素帶著這份班表起始的參數，測試從這裡讀；data-rendered 每次回應都不同，測試用它分辨頁面有沒有重新載入 %>
+<% ready = @timetable && @timetable.missing_run_times.empty? %>
+<%= tag.main data: { timetable: true, day: @coverage.day&.iso8601, range: @coverage.range, buffer: @buffer, percentile: @percentile, rendered: SecureRandom.hex(8) },
+             "x-data": ("timetable" if ready),
+             class: "page-column flex flex-col gap-4 py-8 font-route text-body text-slate-800 [font-variant-numeric:tabular-nums] sm:gap-6" do %>
+  <% if ready %>
+    <%= render TimetableHeaderComponent.new(timetable: @timetable, coverage: @coverage) %>
+    <%# 瀏覽器鋪排用的資料；json_escape 讓內容不會提早關掉 script %>
+    <script type="application/json" data-timetable-data><%= ERB::Util.json_escape(@timetable.data.to_json).html_safe %></script>
+    <%# 計算全在瀏覽器：沒有 JavaScript 就只有這一句，Alpine 初始化時把它藏起來 %>
+    <p data-needs-script class="rounded border border-amber-300 bg-amber-50 p-4"><%= t(".needs_script") %></p>
+    <div data-sheets class="contents"></div>
+    <%# 在鋪出來的單子之外再開一台車：選方向、打第一趟的發車時刻。全靠瀏覽器，沒有 JavaScript 時藏著，元件初始化時打開；印出來不印 %>
+    <% field = "min-h-11 rounded-lg border border-slate-300 bg-white px-2.5 text-table text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700" %>
+    <div data-add-vehicle hidden class="flex flex-wrap items-end gap-x-5 gap-y-3 rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-4 sm:px-8 print:hidden">
+      <p class="w-full font-semibold text-slate-900 sm:w-auto sm:self-center"><%= t(".add_vehicle.title") %></p>
+      <label class="flex flex-col gap-1.5 text-note text-slate-700">
+        <%= t(".add_vehicle.direction") %>
+        <select data-add-vehicle-direction class="<%= field %>">
+          <% RoutePage::Ends::DIRECTIONS.each do |go_back| %>
+            <option value="<%= go_back %>"><%= t("directions.#{go_back}") %></option>
+          <% end %>
+        </select>
+      </label>
+      <label class="flex flex-col gap-1.5 text-note text-slate-700">
+        <%= t(".add_vehicle.departure") %>
+        <input type="text" data-add-vehicle-input inputmode="numeric" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" class="<%= field %> w-24">
+      </label>
+      <button type="button" data-add-vehicle-button
+              class="min-h-11 rounded-lg border border-slate-300 bg-white px-4 font-semibold text-slate-700 select-none hover:border-slate-400 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+        <%= t(".add_vehicle.button") %>
+      </button>
+    </div>
+    <%= render TimetableSheetComponent.new(timetable: @timetable, coverage: @coverage) %>
+    <%= render TimetableOverrunTableComponent.new(overruns: @timetable.overruns, percentile: @timetable.percentile, buffer: @timetable.buffer) %>
+    <%= render TimetableLimitationsComponent.new %>
+  <% else %>
+    <header>
+      <p class="mb-1.5 text-label font-semibold tracking-[0.04em] text-teal-700"><%= t(".eyebrow") %></p>
+      <% if @timetable&.route_name %>
+        <h1 class="text-page-sm leading-tight font-bold tracking-[0.01em] text-slate-900 sm:text-page"><%= @timetable.route_name %></h1>
+      <% end %>
+    </header>
+    <% if @timetable.nil? %>
+      <p data-no-data class="rounded border border-amber-300 bg-amber-50 p-4"><%= @coverage.day ? t(".no_data", day: @coverage.day.iso8601) : t(".no_days") %></p>
+    <% else %>
+      <p data-no-run-times="<%= @timetable.missing_run_times.join(" ") %>" class="rounded border border-amber-300 bg-amber-50 p-4">
+        <%= t(".no_run_times", directions: @timetable.missing_run_times.map { t("directions.#{it}") }.join("、")) %>
+      </p>
+    <% end %>
+  <% end %>
+<% end %>

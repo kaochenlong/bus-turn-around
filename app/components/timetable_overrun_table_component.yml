@@ -1,0 +1,29 @@
+---
+tw: &tw
+  eyebrow: 用量到的趟次驗班表
+  title: 選不同的百分位數，實際跑的趟次有多少會超過計畫？
+  note: 把涵蓋日子裡每一趟有行駛時間的趟次，拿去跟它在那個百分位數下會拿到的計畫行駛時間比。超過的分鐘從那一趟後面的休息裡扣。
+  columns:
+    percentile: 百分位數
+    overrun_share: 超過計畫的趟次比例
+    exhausted_share: 超過 %{minutes} 分鐘、把休息吃光的比例
+    median_overrun: 超過的分鐘數中位數
+  percentile: "p%{value}"
+  one_by_one: 一趟一趟各算：前一趟晚到會不會推遲下一趟發車，這裡不往下追。
+  share_note: 超過計畫的比例大致就是 100 減掉百分位數，差別來自整分鐘的進位，和樣本少的小時退回全天的值。
+  rest_note: "「把休息吃光」那一欄用的是這一頁載入時的休息分鐘數；在頁面上換了休息，這一欄要重新載入才會更新。"
+zh-TW:
+  <<: *tw
+en:
+  eyebrow: The timetable against the measured trips
+  title: At each percentile, how many measured trips ran longer than planned?
+  note: Every trip of the covered days with a run time is compared with the planned run time it would get at that percentile. The excess comes out of the rest after that trip.
+  columns:
+    percentile: Percentile
+    overrun_share: Trips over the plan
+    exhausted_share: Over by %{minutes} min or more, exhausting the rest
+    median_overrun: Median excess (min)
+  percentile: "p%{value}"
+  one_by_one: "Trips are judged one by one: whether a late trip delays the next departure is not followed."
+  share_note: The share over the plan is roughly 100 minus the percentile; the difference comes from rounding to whole minutes and from hours with few trips falling back to the all-day value.
+  rest_note: "The exhausted-rest column uses the rest minutes the page was loaded with; after changing the rest on the page, reload to update that column."

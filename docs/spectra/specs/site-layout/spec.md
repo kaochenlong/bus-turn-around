@@ -286,7 +286,7 @@ tests:
 ---
 ### Requirement: Site name bar on every page
 
-Every HTML page SHALL begin, before the page's own content, with one bar that carries exactly two links: first the site name from the locale file as a link to `/`, then a link to the article that introduces the site, `https://kaochenlong.com/bus-turn-around`, whose text comes from the locale file (關於這個網站 in `tw`). The article link SHALL open in the same tab: it SHALL NOT carry a `target` attribute. The bar SHALL be marked with `data-site-bar` and SHALL NOT carry or contain a `data-section` attribute, so that the block order of every page is unchanged. The static error pages under `public/`, such as the page of `not-found-page`, are outside this requirement: they are served without the shared layout and carry no bar.
+Every HTML page SHALL begin, before the page's own content, with one bar that carries: first the site name from the locale file as a link to `/`; then, only on a route page and on a timetable page as defined by `timetable`, a link whose text comes from the locale file (班表 in `tw`) to that route's timetable page without parameters, carrying `aria-current="page"` on the timetable page itself; then a link to the article that introduces the site, `https://kaochenlong.com/bus-turn-around`, whose text comes from the locale file (關於這個網站 in `tw`). The home page SHALL carry exactly two links, a route page and a timetable page exactly three. The article link SHALL open in the same tab: it SHALL NOT carry a `target` attribute. The bar SHALL be marked with `data-site-bar` and SHALL NOT carry or contain a `data-section` attribute, so that the block order of every page is unchanged. The static error pages under `public/`, such as the page of `not-found-page`, are outside this requirement: they are served without the shared layout and carry no bar.
 
 #### Scenario: Bar on the home page
 
@@ -296,29 +296,79 @@ Every HTML page SHALL begin, before the page's own content, with one bar that ca
 #### Scenario: Bar on a route page
 
 - **WHEN** `/routes/9001` is requested and 9001 has no stored days
-- **THEN** the response is 200, exactly one `[data-site-bar]` is present, its second link points to `https://kaochenlong.com/bus-turn-around` with the text 關於這個網站, and no element with `data-section` is the bar or inside it
+- **THEN** the response is 200, exactly one `[data-site-bar]` is present, it contains exactly three links, the second points to `/routes/9001/timetable` with the text 班表 and no `aria-current` attribute, the third points to `https://kaochenlong.com/bus-turn-around` with the text 關於這個網站, and no element with `data-section` is the bar or inside it
+
+#### Scenario: Bar on a timetable page
+
+- **WHEN** `/routes/9001/timetable` is requested
+- **THEN** the bar contains exactly three links and its second link points to `/routes/9001/timetable` with `aria-current="page"`
 
 <!-- @trace
-source: ui-touchups
-updated: 2026-10-24
+source: timetable-draft
+updated: 2026-10-25
 code:
-  - app/components/cycle_table_component.html.erb
-  - app/components/layover_table_component.html.erb
-  - app/components/run_time_table_component.html.erb
-  - app/components/turnaround_facilities_component.html.erb
-  - app/components/site_bar_component.yml
-  - app/components/load_chart_component.html.erb
-  - app/components/layover_chart_component.html.erb
-  - app/components/origin_story_component.html.erb
-  - app/components/buffer_trade_component.html.erb
-  - app/components/layover_chart_component.rb
-  - app/components/home_hero_component.html.erb
-  - app/components/mrt_overlap_component.html.erb
+  - app/components/timetable_overrun_table_component.yml
+  - app/models/route_page.rb
+  - app/components/timetable_limitations_component.rb
+  - app/models/route_page/measured_departures.rb
+  - app/components/timetable_header_component.rb
+  - app/components/timetable_sheet_component.rb
+  - app/components/timetable_header_component.html.erb
+  - app/views/layouts/application.html.erb
+  - config/locales/tw.yml
   - app/components/site_bar_component.rb
-  - app/components/section_nav_component.html.erb
-  - app/components/route_coverage_component.html.erb
+  - app/frontend/timetable/layout.js
+  - app/components/timetable_overrun_table_component.html.erb
+  - app/frontend/timetable/rows.js
+  - package.json
+  - app/frontend/timetable/rest_windows.js
+  - app/components/timetable_sheet_component.yml
+  - app/frontend/timetable/edits.js
+  - app/frontend/timetable/component.js
+  - app/models/route_page/timetable_overruns.rb
+  - app/components/timetable_sheet_component.html.erb
+  - app/components/buffer_trade_component.html.erb
+  - app/controllers/application_controller.rb
+  - app/views/timetables/show.html.erb
+  - app/models/route_page/planned_run_times.rb
+  - app/controllers/timetables_controller.rb
+  - app/frontend/timetable/support.js
+  - app/controllers/routes_controller.rb
+  - app/components/timetable_header_component.yml
+  - config/routes.rb
+  - app/components/buffer_trade_component.yml
   - app/components/site_bar_component.html.erb
+  - docs/use-cases.md
+  - config/ci.rb
+  - app/frontend/entrypoints/application.js
+  - app/components/buffer_trade_component.rb
+  - app/frontend/timetable/format.js
+  - app/components/timetable_limitations_component.yml
+  - app/frontend/stylesheets/application.css
+  - app/components/timetable_overrun_table_component.rb
+  - app/components/timetable_limitations_component.html.erb
+  - app/components/site_bar_component.yml
+  - app/models/route_page/timetable.rb
+  - config/locales/en.yml
+  - README.md
 tests:
-  - spec/system/rest_command_spec.rb
-  - spec/components/layover_chart_component_spec.rb
+  - spec/models/route_page/timetable_spec.rb
+  - spec/components/timetable_sheet_component_spec.rb
+  - spec/requests/timetables_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/components/timetable_overrun_table_component_spec.rb
+  - spec/system/timetable_layout_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/system/timetable_print_spec.rb
+  - app/frontend/timetable/layout.test.js
+  - spec/system/timetable_entry_spec.rb
+  - spec/components/timetable_header_component_spec.rb
+  - app/frontend/timetable/edits.test.js
+  - app/frontend/timetable/rows.test.js
+  - app/frontend/timetable/rest_windows.test.js
+  - spec/models/route_page/planned_run_times_spec.rb
+  - spec/models/route_page/measured_departures_spec.rb
+  - spec/system/timetable_edit_spec.rb
+  - app/frontend/timetable/format.test.js
+  - spec/models/route_page/timetable_overruns_spec.rb
 -->

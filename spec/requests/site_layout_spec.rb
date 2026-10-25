@@ -24,6 +24,28 @@ RSpec.describe "Site layout", type: :request do
   # The bar itself and everything inside it.
   def sections_in_site_bar = page.css("[data-site-bar][data-section], [data-site-bar] [data-section]")
 
+  # Every link of the bar: where it points, its text and its aria-current.
+  def bar_links = site_bars.first.css("a").map { [ it["href"], it.text.squish, it["aria-current"] ] }
+
+  # The bar's own wording, read from its file: sidecar translations are not in
+  # the global I18n backend.
+  def bar_wording(key) = YAML.load_file(Rails.root.join("app/components/site_bar_component.yml"), aliases: true).dig("tw", key)
+
+  it "首頁的名稱列恰好兩個連結：站名連回 /，關於這個網站連到文章" do
+    get root_path
+    expect(bar_links.map(&:first)).to eq([ "/", SiteBarComponent::ABOUT_URL ])
+  end
+
+  it "路線頁的名稱列三個連結：第二個連到該路線的班表頁、文字是班表、沒有 aria-current；9001 沒有資料也一樣" do
+    get route_path(9001)
+    expect(bar_links).to eq([ [ "/", I18n.t("site.name"), nil ], [ "/routes/9001/timetable", bar_wording("timetable"), nil ], [ SiteBarComponent::ABOUT_URL, bar_wording("about"), nil ] ])
+  end
+
+  it "班表頁的名稱列三個連結，第二個連到班表頁本身、帶 aria-current=page" do
+    get route_timetable_path(9001)
+    expect(bar_links.map { [ it[0], it[2] ] }).to eq([ [ "/", nil ], [ "/routes/9001/timetable", "page" ], [ SiteBarComponent::ABOUT_URL, nil ] ])
+  end
+
   it "首頁的 body 第一個元素是唯一一條網站名稱列，在 main 之前，連回 / 、文字是站名" do
     get root_path
     link = site_bars.first&.at_css("a")

@@ -1,0 +1,21 @@
+---
+tw: &tw
+  title: 這份班表的資料限制
+  items:
+    - 一張單是一台車，不是一個駕駛。雙班制下同一台車兩個人開，職號與姓名要由調度員填；四小時休息的數字寫的是「若一人開完這張單」。
+    - 計畫行駛時間是涵蓋日子裡量到的百分位數，不是保證。選 p85 就是八成五的趟次跑得完的時間，剩下的趟次會超過，超過的分鐘從休息裡扣。超時比例表拿量到的趟次一趟一趟對照，前一趟晚到會不會推遲下一趟，班表不追。
+    - 直接折返那一端的停留是量到的折返停留中位數，是車從末站開到下一趟起站的時間，不是休息。
+    - 停留印成負數，表示手動改過之後兩趟接不上：返回那趟比到達還早發車，或下一列比這一列返站還早發車。班表照實印，不自動往後推。
+    - 行駛時間只用起站、末站都有記錄到的完整趟次；每 10 秒抓一次資料一定會漏掉一些站，漏了起站或末站的趟次不算進去。那一小時不到 5 趟時退回該方向全天的百分位數，單子上有標記。
+    - 預設的每小時發車數是涵蓋日子裡量到的趟次平均，每一種完整度都算；漏了起站的趟次，發車小時可能差一格。重建漏掉的趟次或當天減班，都會讓預設偏低。
+zh-TW:
+  <<: *tw
+en:
+  title: Limitations of this timetable
+  items:
+    - A sheet is a vehicle, not a driver. With two shifts per vehicle the driver number and name are the dispatcher's to fill in; the four-hour rest figure reads "if one person drove the whole sheet".
+    - Planned run times are measured percentiles of the covered days, not guarantees. At p85, 85% of the measured trips finished within the planned time; the rest overran, and an overrun comes out of the rest. The overrun table judges the measured trips one by one and does not follow a late trip's effect on the next departure.
+    - The hold at an end where buses drive on is the measured median layover, the time from the last stop to the next trip's first stop, and is not rest.
+    - A negative stop means that after a manual edit the trips do not connect, with the return trip or the next row departing before the arrival. The timetable prints it as it is and does not push later trips back.
+    - Run times use only complete trips with both terminals observed; polling every 10 seconds always misses stops, and trips missing a terminal are left out. An hour with fewer than 5 trips falls back to the direction's all-day percentile, marked on the sheet.
+    - The default departures per hour are the measured average over the covered days, trips of every completeness included; a trip missing its first stop may fall into the wrong hour. Trips the reconstruction missed, or a day with fewer runs, make the default too low.

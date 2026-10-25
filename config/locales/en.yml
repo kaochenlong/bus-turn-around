@@ -35,6 +35,23 @@ en:
   day_types:
     weekday: weekday
     holiday: holiday
+  directions:
+    "0": outbound
+    "1": inbound
+  timetables:
+    show:
+      eyebrow: Timetable
+      needs_script: "This page needs JavaScript to lay the timetable out: the layout and the edits are computed in the browser."
+      add_vehicle:
+        title: Add a vehicle
+        direction: First trip's direction
+        departure: First trip's departure
+        button: Add a vehicle
+      document_title: "%{route} timetable | %{site}"
+      document_title_without_route: "Timetable | %{site}"
+      no_data: "No data for %{day}; no timetable can be laid out."
+      no_days: This route has no data yet; no timetable can be laid out.
+      no_run_times: "Over the covered days no %{directions} trip has a complete run time; no timetable can be laid out."
   maps:
     gestures:
       wheel_zoom: "Hold {key} and scroll to zoom the map"

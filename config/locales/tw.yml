@@ -6,6 +6,24 @@ tw:
   day_types:
     weekday: 平日
     holiday: 假日
+  # 趟次的兩個方向（go_back），班表頁與單子共用
+  directions:
+    "0": 去程
+    "1": 返程
+  timetables:
+    show:
+      eyebrow: 班表
+      needs_script: 這一頁要有 JavaScript 才鋪得出班表：鋪排與微調都在瀏覽器裡算。
+      add_vehicle:
+        title: 再加一台車
+        direction: 第一趟的方向
+        departure: 第一趟的發車時間
+        button: 加一台車
+      document_title: "%{route} 班表｜%{site}"
+      document_title_without_route: "班表｜%{site}"
+      no_data: "%{day} 沒有資料，鋪不出班表。"
+      no_days: 這條路線還沒有任何資料，鋪不出班表。
+      no_run_times: "涵蓋的日子裡，%{directions}沒有任何一趟量到完整的行駛時間，鋪不出班表。"
   # 路線頁地圖的手勢提示與全螢幕按鈕，兩種地圖共用；{key} 留給 maps/base_map.js 填 ⌘ 或 Ctrl
   maps:
     gestures:

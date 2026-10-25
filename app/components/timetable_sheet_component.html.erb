@@ -1,0 +1,72 @@
+<%# 單子與列的骨架，瀏覽器複製後填值。文案裡 %{…} 的位子留給瀏覽器填；印出來時控制項藏起來、時刻印同格的文字 %>
+<template data-sheet-template
+          data-title="<%= t(".title", number: "%{number}") %>"
+          data-next-day="<%= t(".next_day", time: "%{time}") %>"
+          data-add-label="<%= t(".add_label", direction: "%{direction}") %>"
+          data-direction-0="<%= t("directions.0") %>"
+          data-direction-1="<%= t("directions.1") %>"
+          data-fallback-mark="<%= t(".fallback_mark") %>"
+          data-edited-title="<%= t(".edited") %>"
+          data-rest-credit-text="<%= t(".rest_credit", hours: WINDOW_HOURS, minutes: "%{minutes}") %>"
+          data-shorter-text="<%= t(".shorter", hours: WINDOW_HOURS) %>"
+          data-print-header="<%= print_header %>"
+          data-min-rows="<%= MIN_ROWS %>">
+  <section data-vehicle class="rounded-2xl border border-slate-200 bg-white px-5 py-6 sm:px-8 sm:py-8 print:rounded-none print:border-0 print:p-0">
+    <%# 印出來的表單抬頭，照紙本行車憑單：公司與站留空格；車號是空格手填，不從資料來；年月日星期也留空。螢幕上不顯示 %>
+    <div data-sheet-form-header class="mb-3 hidden print:block">
+      <p class="text-center text-lg font-bold tracking-wide text-slate-900"><%= form_title %></p>
+      <p class="mt-2 flex justify-between gap-6 text-table text-slate-900">
+        <span data-slot="run-number" class="font-semibold"></span>
+        <span><%= t(".form.plate") %></span>
+        <span><%= t(".form.date") %></span>
+      </p>
+      <p data-slot="print-header" class="mt-1 text-note text-slate-600"></p>
+    </div>
+    <h2 data-slot="title" class="mb-4 text-section-sm leading-snug font-bold text-slate-900 sm:text-section print:hidden"></h2>
+    <%# 十三欄在手機上放不下，表放在可橫向捲動的框裡。框要 relative：表頭「操作」那一格的 sr-only 文字是絕對定位的，
+        沒有 relative 的框它會以整頁為準定位到表的最右邊，把手機的版面撐寬 %>
+    <div class="relative overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <%# data-column 給印刷樣式定每一欄的寬度 %>
+            <% COLUMNS.each do |column| %>
+              <th data-column="<%= column %>" class="<%= "text-left" if column == "origin" %> <%= "min-w-20" if blank?(column) %>"><%= t(".columns.#{column}") %></th>
+            <% end %>
+            <th class="print:hidden"><span class="sr-only"><%= t(".columns.actions") %></span></th>
+          </tr>
+        </thead>
+        <tbody data-slot="rows"></tbody>
+      </table>
+    </div>
+    <div data-add-row class="mt-4 flex flex-wrap items-center gap-2 print:hidden">
+      <label class="flex flex-wrap items-center gap-2 text-table text-slate-700">
+        <span data-slot="add-label"></span>
+        <input type="text" data-add-input inputmode="numeric" pattern="<%= TIME_PATTERN %>" placeholder="HH:MM" class="<%= FIELD_CLASSES %>">
+      </label>
+      <button type="button" data-add class="<%= BUTTON_CLASSES %>"><%= t(".add") %></button>
+    </div>
+    <p data-fallback-legend hidden class="mt-3 text-note text-slate-500"><%= t(".fallback_legend", mark: t(".fallback_mark"), sample: small_sample) %></p>
+    <%# 只報數字：單子是一台車，可能兩個人開，不標合規 %>
+    <p data-rest-credit class="mt-4 text-slate-700"></p>
+  </section>
+</template>
+<%# 一列一個來回，欄位照紙本：職號、姓名、發車、起點、調度員、到達、停留、返回發車、累計里程、返站、回站後停留、行駛里程、調度員 %>
+<template data-row-template>
+  <tr data-row>
+    <td data-blank></td>
+    <td data-blank></td>
+    <td data-departure><span class="hidden print:inline"></span><input type="text" data-departure-input inputmode="numeric" pattern="<%= TIME_PATTERN %>" aria-label="<%= t(".departure_field") %>" class="<%= FIELD_CLASSES %>"></td>
+    <td data-slot="origin" class="text-left"></td>
+    <td data-blank></td>
+    <td data-arrival></td>
+    <td data-stop></td>
+    <td data-departure><span class="hidden print:inline"></span><input type="text" data-departure-input inputmode="numeric" pattern="<%= TIME_PATTERN %>" aria-label="<%= t(".return_field") %>" class="<%= FIELD_CLASSES %>"></td>
+    <td data-blank></td>
+    <td data-arrival></td>
+    <td data-stop></td>
+    <td data-blank></td>
+    <td data-blank></td>
+    <td class="print:hidden"><button type="button" data-delete-row class="<%= BUTTON_CLASSES %>"><%= t(".delete") %></button></td>
+  </tr>
+</template>

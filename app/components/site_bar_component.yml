@@ -1,7 +1,9 @@
 ---
 tw: &tw
   about: 關於這個網站
+  timetable: 班表
 zh-TW:
   <<: *tw
 en:
   about: About this site
+  timetable: Timetable
