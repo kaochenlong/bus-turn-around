@@ -1,0 +1,87 @@
+<header data-timetable-header data-day-type="<%= @coverage.day_type %>" class="flex flex-col gap-4 sm:gap-5">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <%= eyebrow(t(".eyebrow")) %>
+      <h1 class="text-page-sm leading-tight font-bold tracking-[0.01em] text-slate-900 sm:text-page"><%= route_day.route_name %></h1>
+      <p class="mt-1.5 text-slate-600"><%= route_day.departure %>－<%= route_day.destination %></p>
+    </div>
+    <%# 列印交給瀏覽器的列印對話框（另存 PDF 也在那裡）。沒有腳本時沒有這顆鈕：預設藏著，元件初始化時打開 %>
+    <button type="button" data-print hidden
+            class="min-h-11 shrink-0 rounded-lg border border-slate-300 bg-white px-4 font-semibold text-slate-700 select-none hover:border-slate-400 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+      <%= t(".print") %>
+    </button>
+  </div>
+
+  <%# 涵蓋的日子與日型別，寫法同路線頁 %>
+  <div class="flex flex-wrap items-center gap-2 text-note">
+    <span class="text-slate-500"><%= t(".covered") %></span>
+    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-0.75 text-slate-700"><%= day_type_label(@coverage.day_type) %></span>
+    <ul data-covered-days class="contents">
+      <% covered.each do |covered_day| %>
+        <li data-day="<%= covered_day.day.iso8601 %>" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-0.75 text-slate-700"><%= day_label(covered_day.day) %><%= covered_day.day_note %></li>
+      <% end %>
+    </ul>
+  </div>
+
+  <%# 車數、班數與手動改過的格數由瀏覽器鋪完再填；伺服器先放 — %>
+  <dl class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <% figures.each do |key, value, name| %>
+      <div class="rounded-[10px] bg-white px-3.5 py-3 ring-1 ring-slate-200">
+        <dt class="text-label leading-[1.45] text-slate-600"><%= t(".figures.#{key}") %></dt>
+        <dd class="font-route-figure text-figure-minor-sm leading-[1.2] font-semibold text-slate-900"><span data-value="<%= name %>"><%= value %></span><% if key == :edited %><span class="ml-1 font-route text-table font-medium text-slate-500"><%= t(".edited_unit") %></span><% end %></dd>
+      </div>
+    <% end %>
+  </dl>
+  <p class="text-note text-slate-500"><%= t(".two_estimates") %></p>
+
+  <%# 控制項不是表單：改了就由瀏覽器重新鋪排，不送請求；欄位名只為了讀 %>
+  <% field = "min-h-11 rounded-lg border border-slate-300 bg-white px-2.5 text-table text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700" %>
+  <div>
+    <div data-timetable-controls class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4.5 py-4 sm:px-5.5 sm:py-4.5 print:hidden">
+      <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+        <label class="flex flex-col gap-1.5 font-semibold text-slate-900">
+          <%= t(".controls.percentile") %>
+          <select name="p" class="<%= field %>">
+            <% percentiles.each do |percentile| %>
+              <%= tag.option t(".controls.percentile_option", value: percentile), value: percentile, selected: percentile == @timetable.percentile %>
+            <% end %>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1.5 font-semibold text-slate-900">
+          <%= t(".controls.buffer") %>
+          <input type="number" name="buffer" min="<%= buffer_range.min %>" max="<%= buffer_range.max %>" step="1" value="<%= @timetable.buffer %>" class="<%= field %> w-24">
+        </label>
+      </div>
+      <fieldset class="min-w-0">
+        <legend class="mb-2 font-semibold text-slate-900"><%= t(".controls.departures") %></legend>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="text-left"><%= t(".controls.hour") %></th>
+                <% hours.each do |hour| %>
+                  <th><%= hour_label(hour) %></th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody>
+              <% directions.each do |go_back| %>
+                <tr data-direction="<%= go_back %>">
+                  <th scope="row" class="text-left font-medium text-slate-700"><%= t("directions.#{go_back}") %></th>
+                  <% hours.each do |hour| %>
+                    <td>
+                      <input type="number" name="departures[<%= go_back %>][<%= hour %>]" min="<%= departures_range.min %>" max="<%= departures_range.max %>" step="1"
+                             value="<%= departures(go_back, hour) %>" aria-label="<%= t(".controls.departures_cell", direction: t("directions.#{go_back}"), hour: hour_label(hour)) %>"
+                             class="<%= field %> w-14 px-1.5 text-center">
+                    </td>
+                  <% end %>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </fieldset>
+    </div>
+    <p data-regeneration-notice class="mt-2 text-note text-slate-600"><%= t(".regeneration_notice") %></p>
+  </div>
+</header>

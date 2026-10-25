@@ -2585,3 +2585,93 @@ tests:
   - spec/requests/routes_spec.rb
   - spec/system/buffer_trade_spec.rb
 -->
+
+---
+### Requirement: Link to the timetable
+
+The buffer estimate block SHALL contain one link to the route's timetable page as defined by `timetable`, whose address carries the page's current `day`, `range` and `buffer` and SHALL NOT carry `late`, `from`, `to` or `end`. The link SHALL load the whole timetable page, not the block's frame. When the selected day has no data, the buffer estimate block is not shown and so carries no such link.
+
+#### Scenario: Link carries the current parameters
+
+- **WHEN** a visitor opens `/routes/9001?day=2026-10-19&range=7d&buffer=10&late=6&from=9&to=12`
+- **THEN** the buffer estimate block contains a link to `/routes/9001/timetable` whose query is exactly `day=2026-10-19`, `range=7d` and `buffer=10`
+
+#### Scenario: No link without data
+
+- **WHEN** a visitor requests a day of route 9001 that is not stored
+- **THEN** the response is 200 and the page's own content contains no link to `/routes/9001/timetable`
+
+#### Scenario: Link leaves the frame
+
+- **WHEN** a visitor activates the link in a browser
+- **THEN** the whole page changes to the timetable page with the same `day`, `range` and `buffer`
+
+<!-- @trace
+source: timetable-draft
+updated: 2026-10-25
+code:
+  - app/components/timetable_overrun_table_component.yml
+  - app/models/route_page.rb
+  - app/components/timetable_limitations_component.rb
+  - app/models/route_page/measured_departures.rb
+  - app/components/timetable_header_component.rb
+  - app/components/timetable_sheet_component.rb
+  - app/components/timetable_header_component.html.erb
+  - app/views/layouts/application.html.erb
+  - config/locales/tw.yml
+  - app/components/site_bar_component.rb
+  - app/frontend/timetable/layout.js
+  - app/components/timetable_overrun_table_component.html.erb
+  - app/frontend/timetable/rows.js
+  - package.json
+  - app/frontend/timetable/rest_windows.js
+  - app/components/timetable_sheet_component.yml
+  - app/frontend/timetable/edits.js
+  - app/frontend/timetable/component.js
+  - app/models/route_page/timetable_overruns.rb
+  - app/components/timetable_sheet_component.html.erb
+  - app/components/buffer_trade_component.html.erb
+  - app/controllers/application_controller.rb
+  - app/views/timetables/show.html.erb
+  - app/models/route_page/planned_run_times.rb
+  - app/controllers/timetables_controller.rb
+  - app/frontend/timetable/support.js
+  - app/controllers/routes_controller.rb
+  - app/components/timetable_header_component.yml
+  - config/routes.rb
+  - app/components/buffer_trade_component.yml
+  - app/components/site_bar_component.html.erb
+  - docs/use-cases.md
+  - config/ci.rb
+  - app/frontend/entrypoints/application.js
+  - app/components/buffer_trade_component.rb
+  - app/frontend/timetable/format.js
+  - app/components/timetable_limitations_component.yml
+  - app/frontend/stylesheets/application.css
+  - app/components/timetable_overrun_table_component.rb
+  - app/components/timetable_limitations_component.html.erb
+  - app/components/site_bar_component.yml
+  - app/models/route_page/timetable.rb
+  - config/locales/en.yml
+  - README.md
+tests:
+  - spec/models/route_page/timetable_spec.rb
+  - spec/components/timetable_sheet_component_spec.rb
+  - spec/requests/timetables_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/components/timetable_overrun_table_component_spec.rb
+  - spec/system/timetable_layout_spec.rb
+  - spec/requests/routes_spec.rb
+  - spec/system/timetable_print_spec.rb
+  - app/frontend/timetable/layout.test.js
+  - spec/system/timetable_entry_spec.rb
+  - spec/components/timetable_header_component_spec.rb
+  - app/frontend/timetable/edits.test.js
+  - app/frontend/timetable/rows.test.js
+  - app/frontend/timetable/rest_windows.test.js
+  - spec/models/route_page/planned_run_times_spec.rb
+  - spec/models/route_page/measured_departures_spec.rb
+  - spec/system/timetable_edit_spec.rb
+  - app/frontend/timetable/format.test.js
+  - spec/models/route_page/timetable_overruns_spec.rb
+-->

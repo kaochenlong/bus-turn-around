@@ -30,6 +30,12 @@ module RoutePage
   # listed under any route's member_routes.
   def self.member_of(route_id) = routes.find { |_, route| Array(route[:member_routes]).include?(route_id) }&.first
 
+  WHOLE_NUMBER = /\A\d+\z/
+
+  # Nil unless the parameter is a string of digits: how a page parameter that
+  # names a number is read, so that nothing but digits gets through.
+  def self.whole_number(param) = (Integer(param, 10) if param.is_a?(String) && WHOLE_NUMBER.match?(param))
+
   def self.routes = Rails.application.config_for(:route_page).fetch(:routes)
   private_class_method :routes
 

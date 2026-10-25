@@ -1,6 +1,9 @@
 Rails.application.routes.draw do
   root "pages#home"
   resources :routes, only: :show, param: :route_id
+  # The timetable page of a route: the server hands over the measured data,
+  # the browser lays the timetable out, so there is only GET.
+  get "routes/:route_id/timetable", to: "timetables#show", as: :route_timetable
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

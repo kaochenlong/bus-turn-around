@@ -53,7 +53,8 @@
   </head>
 
   <body class="<%= content_for(:body_class) %>">
-    <%= render SiteBarComponent.new %>
+    <%# 路線頁與班表頁的控制器設 @timetable_route_id，班表頁再設 @timetable_page：名稱列多一個連到該路線班表的連結 %>
+    <%= render SiteBarComponent.new(timetable_route_id: @timetable_route_id, timetable_page: @timetable_page == true) %>
     <%= yield %>
     <%= render AttributionComponent.new %>
   </body>

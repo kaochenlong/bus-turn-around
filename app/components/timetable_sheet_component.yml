@@ -1,0 +1,73 @@
+---
+tw: &tw
+  title: "車次 %{number}"
+  columns:
+    driver_number: 職號
+    driver_name: 姓名
+    departure: 發車時間
+    origin: 起點
+    dispatcher: 調度員
+    arrival: 預計到達終點
+    stop: 停留（分）
+    return_departure: 預計返回起點
+    accumulated_mileage: 累計里程
+    return_arrival: 預計返站時間
+    next_stop: 回站後停留（分）
+    trip_mileage: 行駛里程
+    dispatcher_again: 調度員
+    actions: 操作
+  form:
+    title: "＿＿＿＿＿＿公司　＿＿＿＿站　%{route} 班表"
+    plate: "車號：＿＿＿＿＿＿"
+    date: "＿＿＿＿年＿＿月＿＿日　星期＿＿"
+  print_header: "依 %{days} 的實測鋪排・p%{percentile}・停車端休息 %{buffer} 分"
+  days_one: "%{day} %{day_type}"
+  days_range: "%{first} 到 %{last}（%{day_type} %{count} 天）"
+  departure_field: 發車時間
+  return_field: 返回的發車時間
+  edited: 手動改過
+  delete: 刪這一列
+  add_label: "加一列（%{direction}的發車時間）"
+  add: 加一列
+  next_day: "隔日 %{time}"
+  fallback_mark: ＊
+  fallback_legend: "%{mark} 那一小時量到的趟次不到 %{sample} 趟，這一趟的計畫行駛時間用的是該方向全天的百分位數。"
+  rest_credit: "若一人開完這張單，連續 %{hours} 小時裡最少休 %{minutes} 分鐘。"
+  shorter: "這張單不到 %{hours} 小時。"
+zh-TW:
+  <<: *tw
+en:
+  title: "Run %{number}"
+  columns:
+    driver_number: Driver no.
+    driver_name: Driver
+    departure: Departs
+    origin: From
+    dispatcher: Dispatcher
+    arrival: Due at terminal
+    stop: Stop (min)
+    return_departure: Returns
+    accumulated_mileage: Odometer
+    return_arrival: Due back
+    next_stop: Stop after (min)
+    trip_mileage: Trip km
+    dispatcher_again: Dispatcher
+    actions: Actions
+  form:
+    title: "Company ________  Depot ________  %{route} timetable"
+    plate: "Plate: ________"
+    date: "____ / __ / __  weekday __"
+  print_header: "Laid out from the measured %{days} · p%{percentile} · %{buffer} min rest at the stopping end"
+  days_one: "%{day} (%{day_type})"
+  days_range: "%{first} to %{last} (%{count} %{day_type} days)"
+  departure_field: Departure
+  return_field: Return departure
+  edited: Edited by hand
+  delete: Delete this row
+  add_label: "Add a row (%{direction} departure)"
+  add: Add a row
+  next_day: "next day %{time}"
+  fallback_mark: "*"
+  fallback_legend: "%{mark} Fewer than %{sample} measured trips in that hour; this trip's planned run time is the direction's all-day percentile."
+  rest_credit: "If one person drove this whole sheet, the tightest %{hours} hours hold %{minutes} minutes of rest."
+  shorter: "This sheet is shorter than %{hours} hours."

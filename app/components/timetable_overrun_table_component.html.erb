@@ -1,0 +1,34 @@
+<section data-section="overruns" class="rounded-2xl border border-slate-200 bg-white px-5 py-6 sm:px-8 sm:py-8">
+  <%= eyebrow(t(".eyebrow")) %>
+  <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
+  <p class="mb-5 text-slate-600"><%= t(".note") %></p>
+  <div class="overflow-x-auto">
+    <table class="data-table max-w-[640px]">
+      <thead>
+        <tr>
+          <th class="text-left"><%= t(".columns.percentile") %></th>
+          <th><%= t(".columns.overrun_share") %></th>
+          <th><%= t(".columns.exhausted_share", minutes: buffer) %></th>
+          <th><%= t(".columns.median_overrun") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.each do |row| %>
+          <%# 選的那一列只加粗，不上色：沒有哪一列是對的 %>
+          <%= tag.tr data: { percentile: row.percentile, selected: (true if selected?(row)) }, class: ("font-semibold text-slate-900" if selected?(row)) do %>
+            <td class="text-left"><%= t(".percentile", value: row.percentile) %></td>
+            <td><%= share(row.overrun_share) %></td>
+            <td><%= share(row.exhausted_share) %></td>
+            <td><%= minutes(row.median_overrun) %></td>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  <div class="mt-4 space-y-1.5 text-note text-slate-500">
+    <p data-one-by-one><%= t(".one_by_one") %></p>
+    <p data-share-note><%= t(".share_note") %></p>
+    <%# 這張表由伺服器算：換百分位數瀏覽器只移粗體，換休息不重算這一欄 %>
+    <p data-rest-note><%= t(".rest_note") %></p>
+  </div>
+</section>

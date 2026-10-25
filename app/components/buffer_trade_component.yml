@@ -14,6 +14,7 @@ tw: &tw
   end_label: 加在哪一端
   end_both: 兩端
   submit: 重算
+  timetable_link: 排成班表 →
   hold_html: 每次折返要留 %{hold} 分鐘（休息 %{minutes} ＋ 晚到 %{late}）
   coverage_html: "%{days} 天裡總共跑了 %{trips} 趟，在停車那一端量得到車停多久的有 %{layovers} 次。"
   coverage_used_html: "試算只用其中%{condition}的 %{used} 次。"
@@ -57,6 +58,7 @@ en:
   end_label: Which end
   end_both: Both ends
   submit: Recalculate
+  timetable_link: Lay out a timetable →
   hold_html: Every turnaround holds %{hold} minutes (rest %{minutes} + late %{late})
   coverage_html: "%{trips} trips ran over %{days} days; we could measure how long a bus stopped at the end where buses stop %{layovers} times."
   coverage_used_html: "The estimate uses only the %{used} of them that end%{condition}."

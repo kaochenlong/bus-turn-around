@@ -166,6 +166,24 @@ RSpec.describe "Routes", type: :request do
     end
   end
 
+  describe "換休息試算卡上連到班表的連結" do
+    # The timetable links in the page's own content; the site name bar's is not one of them.
+    def content_timetable_links = page.css("main a[href^='/routes/9001/timetable']")
+
+    it "帶著目前的 day、range 與 buffer，不帶 late、from、to、end" do
+      store_days("2026-10-19")
+      get route_path(9001), params: { day: "2026-10-19", range: "7d", buffer: "10", late: "6", from: "9", to: "12" }
+      link = URI(page.at_css("[data-section=buffer-trade] a[data-timetable-link]")["href"])
+      expect([ link.path, Rack::Utils.parse_query(link.query) ]).to eq([ "/routes/9001/timetable", { "day" => "2026-10-19", "range" => "7d", "buffer" => "10" } ])
+    end
+
+    it "選的日子沒有資料時，內文裡沒有連到班表的連結" do
+      store_days("2026-10-19")
+      get route_path(9001), params: { day: "2026-01-01" }
+      expect([ response.status, content_timetable_links.size ]).to eq([ 200, 0 ])
+    end
+  end
+
   it "最近 7 天只涵蓋已寫入的日子，列出日期與星期，標成平日" do
     store_days("2026-10-15", "2026-10-19", "2026-10-20", "2026-10-22")
     get route_path(9001), params: { day: "2026-10-22", range: "7d" }
