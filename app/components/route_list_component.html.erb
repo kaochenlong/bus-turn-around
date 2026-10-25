@@ -9,6 +9,20 @@
             <p class="text-subsection leading-tight font-bold text-slate-900"><%= route_day.route_name %></p>
             <p class="mt-1 text-slate-600"><%= route_day.departure %>－<%= route_day.destination %> <span data-route-id class="text-note whitespace-nowrap text-slate-500"><%= t(".route_id", id: route_ids_text(entry.route_id)) %></span></p>
             <p class="mt-3 text-note text-teal-700"><%= t(".latest", day: day_label(route_day.day), day_type: day_type_label(route_day.day_type)) %></p>
+            <%# 每個停車端最新那一天的比例，字串與寫法跟路線頁摘要那張卡相同；每一行的數字與說明之間留空白，整行文字才會跟摘要一樣 %>
+            <div data-figure="short-share" class="mt-3 flex flex-col gap-1 border-t border-slate-100 pt-3">
+              <% if stopping_end?(entry.route_id) %>
+                <p class="text-note text-slate-600"><%= t(".short_share", minutes: short_minutes) %></p>
+                <% entry.figures.each do |row| %>
+                  <p data-end="<%= row.go_back %>" class="flex flex-wrap items-baseline gap-x-2">
+                    <span data-number class="font-route-figure text-lead leading-tight font-semibold text-slate-900"><%= share(row.short_share) %></span>
+                    <span class="text-note text-slate-500"><%= t(".short_count", stop: row.stop_name, count: row.n_layovers) %></span>
+                  </p>
+                <% end %>
+              <% else %>
+                <p data-no-stopping-end class="text-note text-slate-600"><%= t(".no_stopping_end") %></p>
+              <% end %>
+            </div>
           <% end %>
         <% else %>
           <div data-route="<%= entry.route_id %>" data-no-data class="h-full rounded-lg border border-dashed border-slate-300 p-4 text-slate-500">

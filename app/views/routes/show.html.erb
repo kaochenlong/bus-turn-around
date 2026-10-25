@@ -14,6 +14,10 @@
     <%# 摘要的重點數字與折返停留表、捷運重疊表用同一個物件，數字只算一次；摘要與資料限制共用同一份趟次統計 %>
     <% summary = RoutePage::Summary.new(route_days) %>
     <% layover_stats = RoutePage::LayoverStats.new(route_days) %>
+    <%# 分享文字的數字跟摘要讀同一個 layover_stats；layout 在頁面之後才輸出 head，這裡設的 title 與描述來得及 %>
+    <% share_preview = RoutePage::SharePreview.new(coverage: @coverage, route_days:, layover_stats:, ends: @ends) %>
+    <% content_for :title, share_preview.title %>
+    <% content_for :description, share_preview.description %>
     <% load_profile = RoutePage::LoadProfile.new(route_days) %>
     <% mrt_overlap = RoutePage::MrtOverlap.new(route_days) %>
     <%# 同一張卡裡的區塊之間用這條分隔線 %>

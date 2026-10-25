@@ -12,6 +12,12 @@ RSpec.describe "Routes", type: :request do
   # The last stop of each direction, so the layover table has a row per direction.
   def add_last_stops(route_day) = route_day.stops.create!([ { go_back: 0, seq: 4, stop_name: "戊站" }, { go_back: 1, seq: 9, stop_name: "甲站" } ])
 
+  # Layovers of the given minutes ending in direction go_back, at 08:00 of the day.
+  def add_layovers(route_day, go_back, minutes)
+    end_time = Time.zone.parse("#{route_day.day} 08:00")
+    minutes.each { route_day.layovers.create!(bus_id: "TEST-0001", go_back:, end_time:, next_start_time: end_time + it.minutes) }
+  end
+
   # One morning-peak trip per direction, with an on-board count at each of the
   # given sequence numbers.
   def add_counts(route_day, seqs_by_direction)
@@ -181,6 +187,53 @@ RSpec.describe "Routes", type: :request do
       store_days("2026-10-19")
       get route_path(9001), params: { day: "2026-01-01" }
       expect([ response.status, content_timetable_links.size ]).to eq([ 200, 0 ])
+    end
+  end
+
+  describe "title 與分享文字" do
+    # <title>, then the og:title, twitter:title, description, og:description
+    # and twitter:description metas.
+    def share_tags
+      metas = [ "meta[property='og:title']", "meta[name='twitter:title']", "meta[name='description']", "meta[property='og:description']", "meta[name='twitter:description']" ]
+      [ page.at_css("title").text, *metas.map { page.at_css(it)["content"] } ]
+    end
+
+    # Each stopping end's count, p50 and share as the summary's key numbers show them.
+    def summary_values
+      p50s = page.css("[data-key-number=layover-p50] [data-end] [data-number]").map(&:text)
+      page.css("[data-key-number=short-share] [data-end]").zip(p50s).map { |line, p50| [ line.text[/共 (\d+) 次/, 1], p50, line.at_css("[data-number]").text ] }
+    end
+
+    it "有資料時 title、og:title、twitter:title 都是「測試幹線｜折返點 TurnAround」，掛在底下的 9050 不出現" do
+      store_days("2026-10-19")
+      get route_path(9001), params: { day: "2026-10-19" }
+      expect(share_tags.first(3)).to eq([ "測試幹線｜折返點 TurnAround" ] * 3)
+    end
+
+    it "只有返程停車時，三個 description 都是規格那一句，不是站的描述" do
+      allow(RoutePage).to receive(:ends).and_return(RoutePage::Ends.from_config({ 0 => "pass_through", 1 => "stop" }, route_id: 9001))
+      store_days("2026-10-19").then { add_last_stops(RouteDay.sole) }.then { add_layovers(RouteDay.sole, 1, [ 10, 20, 30 ]) }
+      get route_path(9001), params: { day: "2026-10-19" }
+      expect(share_tags.last(3)).to eq([ "甲站－戊站，2026-10-19（一）平日：停車端甲站：量到 3 次折返停留，中位數 20.0 分鐘，33.3% 不到 15 分鐘。折返停留是駕駛休息的上限，不是工時。" ] * 3)
+    end
+
+    it "兩端都停車時，分享文字每一端的筆數、中位數與比例，跟同一頁摘要那一端的重點數字相同" do
+      store_days("2026-10-19").then { add_last_stops(RouteDay.sole) }.then { add_layovers(RouteDay.sole, 0, [ 5 ]) }.then { add_layovers(RouteDay.sole, 1, [ 10, 20, 30 ]) }
+      get route_path(9001), params: { day: "2026-10-19" }
+      clauses = page.at_css("meta[name='description']")["content"].scan(/量到 (\d+) 次折返停留，中位數 (\S+) 分鐘，(\S+) 不到/)
+      expect([ clauses, clauses.size ]).to eq([ summary_values, 2 ])
+    end
+
+    it "路線名帶引號時，title、og:title、twitter:title 照原字寫出，屬性沒有被引號截斷" do
+      create(:route_day, route_name: %(測試"幹線))
+      get route_path(9001), params: { day: "2026-10-19" }
+      expect(share_tags.first(3)).to eq([ %(測試"幹線｜折返點 TurnAround) ] * 3)
+    end
+
+    it "選的那一天沒有資料時，六個標籤跟首頁一樣是站名與站的描述" do
+      store_days("2026-10-19")
+      get route_path(9001), params: { day: "2026-10-21" }
+      expect(share_tags).to eq([ I18n.t("site.name") ] * 3 + [ I18n.t("site.description") ] * 3)
     end
   end
 

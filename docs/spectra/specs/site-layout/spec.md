@@ -8,68 +8,51 @@ What every page receives from the shared layout: a document title that carries t
 
 ### Requirement: Document title carries the site name
 
-Every page SHALL have a document title. When a page sets no title of its own, the title SHALL be the site name 折返點 TurnAround from the locale file, and the `application-name` meta SHALL carry the same site name.
+Every page SHALL have a document title that carries the site name 折返點 TurnAround from the locale file. When a page sets no title of its own, the title SHALL be the site name alone. A page that sets its own title SHALL end it with the site name after the separator ｜, as `route-page` does with 路線名｜折返點 TurnAround. The `application-name` meta SHALL carry the site name on every page. The `og:title` and `twitter:title` metas SHALL equal the document title.
 
 #### Scenario: Home page title
 
 - **WHEN** `/` is requested
-- **THEN** the document title is 折返點 TurnAround and the `application-name` meta is 折返點 TurnAround
+- **THEN** the document title is 折返點 TurnAround, the `application-name` meta is 折返點 TurnAround, and the `og:title` and `twitter:title` metas are 折返點 TurnAround
 
 #### Scenario: Route page title
 
 - **WHEN** `/routes/9001` is requested and 9001 has no stored days
 - **THEN** the response is 200 and the document title is 折返點 TurnAround
 
+#### Scenario: Share title follows the document title
+
+- **WHEN** `/routes/9001` is requested and 9001's latest covered day has the route name 測試幹線
+- **THEN** the document title, the `og:title` meta and the `twitter:title` meta are all 測試幹線｜折返點 TurnAround
+
 
 <!-- @trace
-source: home-page
-updated: 2026-10-23
+source: share-preview-home-figure
+updated: 2026-10-25
 code:
-  - app/assets/images/home-hero-tall.webp
-  - app/components/route_coverage_component.rb
-  - app/components/route_list_component.yml
-  - app/controllers/pages_controller.rb
-  - app/assets/images/home-hero-wide.webp
-  - app/components/data_limitations_component.rb
-  - config/locales/en.yml
+  - app/models/route_page/format.rb
+  - app/models/route_page/share_preview.rb
   - config/locales/tw.yml
-  - app/frontend/hero/scene.js
-  - app/components/route_list_component.html.erb
-  - app/components/attribution_component.yml
-  - app/components/data_limitations_component.html.erb
-  - app/frontend/hero/runtime.js
-  - .dockerignore
-  - app/frontend/entrypoints/application.js
-  - app/views/pages/home.html.erb
-  - spec/support/system.rb
-  - package.json
-  - tools/hero/export.js
-  - app/frontend/stylesheets/application.css
-  - tools/hero/index.html
-  - app/components/home_hero_component.yml
-  - app/components/route_list_component.rb
-  - app/components/attribution_component.rb
-  - app/components/attribution_component.html.erb
-  - app/components/data_sources_component.yml
-  - app/components/home_hero_component.html.erb
-  - app/components/data_limitations_component.yml
-  - .rubocop.yml
-  - app/models/home_page/route_list.rb
-  - app/components/data_sources_component.html.erb
-  - app/views/layouts/application.html.erb
+  - app/models/home_page/stop_end_figures.rb
+  - app/components/route_list_component.yml
   - app/components/application_component.rb
-  - app/components/data_sources_component.rb
-  - app/components/home_hero_component.rb
+  - app/controllers/pages_controller.rb
+  - config/locales/en.yml
+  - app/views/routes/show.html.erb
+  - app/components/route_list_component.rb
+  - app/models/home_page/route_list.rb
+  - app/views/layouts/application.html.erb
+  - app/components/route_list_component.html.erb
+  - app/models/route_page/layover_stats.rb
 tests:
+  - spec/requests/routes_spec.rb
+  - spec/models/route_page/format_spec.rb
   - spec/requests/site_layout_spec.rb
-  - spec/components/home_hero_component_spec.rb
-  - spec/components/data_sources_component_spec.rb
-  - spec/requests/pages_spec.rb
-  - spec/system/home_hero_spec.rb
-  - spec/components/data_limitations_component_spec.rb
-  - spec/models/home_page/route_list_spec.rb
-  - spec/assets/home_hero_images_spec.rb
   - spec/components/route_list_component_spec.rb
+  - spec/models/home_page/stop_end_figures_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/models/route_page/share_preview_spec.rb
+  - spec/models/home_page/route_list_spec.rb
 -->
 
 ---
@@ -371,4 +354,53 @@ tests:
   - spec/system/timetable_edit_spec.rb
   - app/frontend/timetable/format.test.js
   - spec/models/route_page/timetable_overruns_spec.rb
+-->
+
+---
+### Requirement: Share description follows the page
+
+Every page SHALL carry three description metas, `description`, `og:description` and `twitter:description`, with the same content: the page's own description when the page sets one, otherwise the site description from the locale file. On every page the `og:url` meta SHALL be the requested URL, the `og:site_name` meta the site name, and the `og:image` meta the site's share image. The static error pages under `public/` are outside this requirement, as they are served without the shared layout.
+
+#### Scenario: Home page descriptions
+
+- **WHEN** `/` is requested
+- **THEN** the `description`, `og:description` and `twitter:description` metas are all the site description from the locale file
+
+#### Scenario: Route page without stored days
+
+- **WHEN** `/routes/9001` is requested and 9001 has no stored days
+- **THEN** the response is 200 and the three description metas are all the site description from the locale file
+
+#### Scenario: Route page with data
+
+- **WHEN** `/routes/9001` is requested and the selected day is stored
+- **THEN** the three description metas are all the share text that `route-page` defines for that page, and none of them is the site description
+
+<!-- @trace
+source: share-preview-home-figure
+updated: 2026-10-25
+code:
+  - app/models/route_page/format.rb
+  - app/models/route_page/share_preview.rb
+  - config/locales/tw.yml
+  - app/models/home_page/stop_end_figures.rb
+  - app/components/route_list_component.yml
+  - app/components/application_component.rb
+  - app/controllers/pages_controller.rb
+  - config/locales/en.yml
+  - app/views/routes/show.html.erb
+  - app/components/route_list_component.rb
+  - app/models/home_page/route_list.rb
+  - app/views/layouts/application.html.erb
+  - app/components/route_list_component.html.erb
+  - app/models/route_page/layover_stats.rb
+tests:
+  - spec/requests/routes_spec.rb
+  - spec/models/route_page/format_spec.rb
+  - spec/requests/site_layout_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/models/home_page/stop_end_figures_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/models/route_page/share_preview_spec.rb
+  - spec/models/home_page/route_list_spec.rb
 -->

@@ -9,6 +9,14 @@ module RoutePage
     PERCENTILE_LEVELS = [ 0.1, 0.5, 0.9 ].freeze
     SHORT_MINUTES = 15
 
+    # The minutes of a layover, from its two stored times. Shared with the
+    # home page's figures, so both count the same minutes.
+    MINUTES_SQL = "CAST(extract(epoch FROM next_start_time - end_time) / 60 AS double precision)"
+
+    # The share of the layovers under SHORT_MINUTES, or NULL without any: an
+    # aggregate over the minutes CTE joined as m, the shape of sql below.
+    SHORT_SHARE_SQL = "CAST(count(m.minutes) FILTER (WHERE m.minutes < #{SHORT_MINUTES}) AS double precision) / nullif(count(m.minutes), 0)"
+
     Row = Data.define(:go_back, :stop_name, :n_layovers, :percentiles, :short_share)
 
     def initialize(route_days)
@@ -39,13 +47,12 @@ module RoutePage
             ORDER BY go_back, seq DESC
         ),
         minutes AS (
-            SELECT go_back, CAST(extract(epoch FROM next_start_time - end_time) / 60 AS double precision) AS minutes
+            SELECT go_back, #{MINUTES_SQL} AS minutes
             FROM layovers
             WHERE route_day_id IN (:ids)
         )
         SELECT s.go_back, s.stop_name, count(m.minutes) AS n_layovers, #{percentiles.join(', ')},
-               CAST(count(m.minutes) FILTER (WHERE m.minutes < #{SHORT_MINUTES}) AS double precision)
-                 / nullif(count(m.minutes), 0) AS short_share
+               #{SHORT_SHARE_SQL} AS short_share
         FROM last_stops s
         LEFT JOIN minutes m ON m.go_back = s.go_back
         GROUP BY s.go_back, s.stop_name
