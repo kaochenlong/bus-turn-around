@@ -38,6 +38,9 @@ RSpec.describe "Routes", type: :request do
 
   def covered_labels = page.css("[data-covered-days] [data-day]").map { it.text.squish }
 
+  # Each covered day with the title of its tag, nil when the tag has none.
+  def covered_titles = page.css("[data-covered-days] [data-day]").to_h { [ it["data-day"], it["title"] ] }
+
   def covered_day_type = page.at_css("header [data-day-type]")&.[]("data-day-type")
 
   # The link to the other day type: which type it names, where it goes, and whether it names the day.
@@ -250,10 +253,11 @@ RSpec.describe "Routes", type: :request do
       store_holiday("2026-10-26", note: "補假")
     end
 
-    it "選 10-26、最近 7 天：標成假日，只涵蓋 10-24 到 10-26，10-26 帶著補假，連到 10-23 為止的平日" do
+    it "選 10-26、最近 7 天：標成假日，只涵蓋 10-24 到 10-26，10-26 的備註補假是標籤的 title，連到 10-23 為止的平日" do
       get route_path(9001), params: { day: "2026-10-26", range: "7d" }
-      expect([ covered_day_type, covered_labels, other_type_link("2026-10-23（五）") ]).to eq(
-        [ "holiday", [ "2026-10-24（六）", "2026-10-25（日）", "2026-10-26（一）補假" ], [ "weekday", "/routes/9001?day=2026-10-23&range=7d", true ] ]
+      expect([ covered_day_type, covered_labels, covered_titles, other_type_link("2026-10-23（五）") ]).to eq(
+        [ "holiday", [ "2026-10-24（六）", "2026-10-25（日）", "2026-10-26（一）" ], { "2026-10-24" => nil, "2026-10-25" => nil, "2026-10-26" => "補假" },
+          [ "weekday", "/routes/9001?day=2026-10-23&range=7d", true ] ]
       )
     end
 
@@ -263,11 +267,11 @@ RSpec.describe "Routes", type: :request do
     end
   end
 
-  it "沒帶參數時是最新的 10-26：標成假日、帶著補假，連到 10-23 那一天" do
+  it "沒帶參數時是最新的 10-26：標成假日、備註補假是標籤的 title，連到 10-23 那一天" do
     store_days("2026-10-23").then { store_holiday("2026-10-26", note: "補假") }
     get route_path(9001)
-    expect([ covered_day_type, covered_labels, other_type_link("2026-10-23（五）") ]).to eq(
-      [ "holiday", [ "2026-10-26（一）補假" ], [ "weekday", "/routes/9001?day=2026-10-23&range=day", true ] ]
+    expect([ covered_day_type, covered_labels, covered_titles, other_type_link("2026-10-23（五）") ]).to eq(
+      [ "holiday", [ "2026-10-26（一）" ], { "2026-10-26" => "補假" }, [ "weekday", "/routes/9001?day=2026-10-23&range=day", true ] ]
     )
   end
 

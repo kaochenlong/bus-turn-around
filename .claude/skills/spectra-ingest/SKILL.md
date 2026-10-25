@@ -145,7 +145,7 @@ For a conversation source, map the resolved context while updating artifacts.
 5. **Inline Self-Review** (before CLI analysis)
 
    Check placeholders, consistency, scope, ambiguity, and preservation:
-   - scope: more than 15 pending tasks, any >1 hour task, or unrelated subsystems; over these limits, propose splitting into several changes or smaller tasks, keeping the root-cause solution whole.
+   - scope: more than 15 pending tasks, any >1 hour task, or unrelated subsystems; over these limits, propose splitting into several changes or smaller tasks, keeping the root-cause solution whole. If some of those changes depend on others, name each change that is part of a dependency, the one under review included, with a two-digit order prefix (`01-`, `02-`, and so on) that places it after the changes it depends on, starting at `01` for each split; a change outside every dependency keeps its plain kebab-case name. Example: `link-issues` waits for `add-issue-config` while `refresh-readme` stands alone, so the three are `01-add-issue-config`, `02-link-issues` and `refresh-readme`.
    - quantitative claims: label every number (size, count, duration, percentage) measured or estimated. For an estimate, name the measurement that would confirm or refute it; record any decision depending on that unmeasured estimate.
    - completed tasks `[x]` still present and unchanged.
    - existing `[P]` markers preserved unchanged.

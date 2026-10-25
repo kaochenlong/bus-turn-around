@@ -36,6 +36,23 @@ RSpec.describe TimetableHeaderComponent, type: :component do
       .to eq([ "測試幹線", "weekday", [ "2026-10-19" ] ])
   end
 
+  it "平日時日型別標籤與日期標籤都不是綠色，沒有備註的日期標籤沒有 title" do
+    row = render_header.at_css("[data-covered-days]").parent
+    tags = [ row.css("span").find { it.text == I18n.t("day_types.weekday") }, row.at_css("[data-day]") ]
+    expect([ tags.map { |tag| tag.classes.grep(/green-/) }, tags.last["title"] ]).to eq([ [ [], [] ], nil ])
+  end
+
+  describe "那一天是備註「補假」的假日時" do
+    let(:route_day) { super().tap { it.update!(day_type: "holiday", day_note: "補假") } }
+
+    it "日期標籤只寫日期、備註是 title，日型別標籤與日期標籤都是綠色" do
+      row = render_header.at_css("[data-covered-days]").parent
+      day_tag = row.at_css("[data-day]")
+      day_type_tag = row.css("span").find { it.text == I18n.t("day_types.holiday") }
+      expect([ day_tag.text.squish, day_tag["title"], [ day_type_tag, day_tag ].map { |tag| tag.classes.include?("bg-green-50") } ]).to eq([ "2026-10-19（一）", "補假", [ true, true ] ])
+    end
+  end
+
   it "伺服器填 p、休息、量到的平均每天車數；車數、每個方向的班數、手動改過的格數留給瀏覽器，先寫 —" do
     rendered = render_header
     expect(%w[percentile buffer vehicles-per-day vehicles departures-0 departures-1 edited].map { figure(rendered, it) }).to eq(%w[85 15 1.0 — — — —])

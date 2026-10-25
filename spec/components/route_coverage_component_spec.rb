@@ -47,8 +47,13 @@ RSpec.describe RouteCoverageComponent, type: :component do
       expect([ covered["data-day-type"], covered.text.include?(I18n.t("day_types.holiday")) ]).to eq([ "holiday", true ])
     end
 
-    it "10-26 跟著它的備註" do
-      expect(render_coverage(day: "2026-10-26").at_css("[data-day='2026-10-26']").text.squish).to eq("2026-10-26（一）補假")
+    it "10-26 的標籤只寫日期，備註「補假」是標籤的 title" do
+      day_tag = render_coverage(day: "2026-10-26").at_css("[data-day='2026-10-26']")
+      expect([ day_tag.text.squish, day_tag["title"] ]).to eq([ "2026-10-26（一）", "補假" ])
+    end
+
+    it "沒有備註的日子，標籤沒有 title" do
+      expect(render_coverage(day: "2026-10-23", range: "7d").css("[data-day]").map { it["title"] }).to eq([ nil, nil ])
     end
 
     it "另一類的連結跳到 10-26 以前最近的平日 10-23，範圍不變，名稱是平日" do
@@ -58,6 +63,30 @@ RSpec.describe RouteCoverageComponent, type: :component do
 
     it "10-23 以前沒有已寫入的假日，就沒有另一類的連結" do
       expect(render_coverage(day: "2026-10-23", range: "7d").css("a[data-other-day-type]")).to be_empty
+    end
+  end
+
+  # The example of the route page spec's "Tag colour follows the day type".
+  describe "10-19 到 10-23 是平日、10-24 到 10-26 是假日時" do
+    before do
+      (20..23).each { create(:route_day, day: Date.new(2026, 10, it)) }
+      (24..26).each { create(:route_day, day: Date.new(2026, 10, it), day_type: "holiday") }
+    end
+
+    # The day type tag, then every covered day tag, each as its text and
+    # whether it carries the holiday green.
+    def tags(day)
+      row = render_coverage(day:, range: "7d").at_css("[data-day-type]")
+      day_type_label = I18n.t("day_types.#{row["data-day-type"]}")
+      [ row.css("span").find { |span| span.text == day_type_label }, *row.css("[data-day]") ].map { |tag| [ tag.text.squish, tag.classes.include?("bg-green-50") ] }
+    end
+
+    it "選 10-26、最近 7 天：日型別標籤與三個日期標籤都是綠色" do
+      expect(tags("2026-10-26")).to eq([ I18n.t("day_types.holiday"), "2026-10-24（六）", "2026-10-25（日）", "2026-10-26（一）" ].map { [ it, true ] })
+    end
+
+    it "選 10-23、最近 7 天：日型別標籤與五個日期標籤都不是綠色" do
+      expect(tags("2026-10-23")).to eq([ I18n.t("day_types.weekday"), *%w[2026-10-19（一） 2026-10-20（二） 2026-10-21（三） 2026-10-22（四） 2026-10-23（五）] ].map { [ it, false ] })
     end
   end
 end

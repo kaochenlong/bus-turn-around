@@ -4,6 +4,12 @@ class ApplicationComponent < ViewComponent::Base
   WEEKDAYS = RoutePage::Format::WEEKDAYS
   NONE = RoutePage::Format::NONE
 
+  # The colours of the day type tag and the covered day tags, by day type.
+  # Holidays are green, a hue apart from the teal of the links next to them;
+  # weekdays keep the page's slate.
+  DAY_TAG_COLORS = { "weekday" => "border-slate-200 bg-slate-50 text-slate-700",
+                     "holiday" => "border-green-200 bg-green-50 text-green-800" }.freeze
+
   # A day with its weekday, as in 2026-10-19（一）.
   def day_label(day) = RoutePage::Format.day_label(day)
 
@@ -24,6 +30,11 @@ class ApplicationComponent < ViewComponent::Base
 
     I18n.t("day_types.#{day_type}", raise: true)
   end
+
+  # The classes of the day type tag and of each covered day tag at the top of
+  # the route and timetable pages. A day type other than weekday or holiday
+  # raises instead of falling back to a colour.
+  def day_tag_class(day_type) = "rounded-full border px-3 py-0.75 #{DAY_TAG_COLORS.fetch(day_type)}"
 
   # The metric a route page block belongs to, above its title, named as in
   # docs/spectra/LANGUAGE.md.

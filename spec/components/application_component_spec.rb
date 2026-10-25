@@ -5,6 +5,8 @@ require "rails_helper"
 RSpec.describe ApplicationComponent, type: :component do
   def label(day_type) = described_class.new.day_type_label(day_type)
 
+  def tag_classes(day_type) = described_class.new.day_tag_class(day_type).split
+
   # Every key of a translation tree, as dotted paths.
   def translation_keys(tree, prefix = "") = tree.flat_map { |key, value| value.is_a?(Hash) ? translation_keys(value, "#{prefix}#{key}.") : [ "#{prefix}#{key}" ] }.sort
 
@@ -33,6 +35,22 @@ RSpec.describe ApplicationComponent, type: :component do
   [ nil, "" ].each do |day_type|
     it "日型別是 #{day_type.inspect} 時丟出 ArgumentError，不把整張 day_types 翻譯表印到頁面上" do
       expect { label(day_type) }.to raise_error(ArgumentError)
+    end
+  end
+
+  # The tags of the day type and the covered days at the top of the route and
+  # timetable pages.
+  it "假日的標籤用綠色，不用平日的灰底" do
+    expect([ tag_classes("holiday").include?("bg-green-50"), tag_classes("holiday").include?("bg-slate-50") ]).to eq([ true, false ])
+  end
+
+  it "平日的標籤維持灰底，沒有任何綠色" do
+    expect([ tag_classes("weekday").include?("bg-slate-50"), tag_classes("weekday").grep(/green-/) ]).to eq([ true, [] ])
+  end
+
+  [ nil, "", "typhoon" ].each do |day_type|
+    it "標籤的日型別是 #{day_type.inspect} 時丟出 KeyError，不默默畫成灰色" do
+      expect { described_class.new.day_tag_class(day_type) }.to raise_error(KeyError)
     end
   end
 
