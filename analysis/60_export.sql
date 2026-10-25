@@ -86,6 +86,8 @@ SELECT to_json({
                     'missing_both': count(*) FILTER (WHERE completeness = 'missing_both')}
             FROM trips
         ),
+        'few_stop_segments': (SELECT count(*) FROM few_stop_segments),
+        'min_trip_stops': getvariable('min_trip_stops'),
         'path_trips': (
             SELECT list({'path_attribute_id': path_attribute_id, 'name': path_attribute_name,
                          'n_trips': n_trips, 'share': share, 'n_first': n_first, 'n_last': n_last}

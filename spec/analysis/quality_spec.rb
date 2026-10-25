@@ -81,6 +81,10 @@ RSpec.describe "analysis/50_quality.sql 與 analysis/60_export.sql" do
                                          %w[last_trips 9001 4], %w[last_trips 9002 0], %w[last_trips 9003 0] ])
     end
 
+    it "長表收齊觀測到的站不到 2 個、不算趟次的段數：fixture 是 0 段" do
+      expect(quality_rows("SELECT subject, value FROM quality WHERE metric = 'few_stop_segments'")).to eq([ { "subject" => "", "value" => "0" } ])
+    end
+
     it "長表收齊各附屬路線的站序比對結果與比對的方向" do
       rows = quality_rows("SELECT subject, value FROM quality WHERE metric = 'sequence_check' ORDER BY subject")
       expect(rows.map(&:values)).to eq([ [ "9001", "identical, directions 0+1" ], [ "9002", "identical, directions 0" ], [ "9003", "not identical, directions 1" ] ])
@@ -111,6 +115,17 @@ RSpec.describe "analysis/50_quality.sql 與 analysis/60_export.sql" do
   end
 
   describe "灌入的資料" do
+    # The first record of the day is an arrival at the outbound last stop; a complete inbound trip follows.
+    let(:first_record_report) do
+      [ [ "TEST-0001", 0, 4, 1, "06:09:00" ], [ "TEST-0001", 1, 5, 0, "06:19:00" ], [ "TEST-0001", 1, 7, 1, "06:50:00" ],
+        [ "TEST-0001", 1, 9, 1, "07:41:00" ] ]
+    end
+
+    it "當天只有 06:09 去程末站的一筆到站與 06:19 起的一趟完整返程：不算趟次的段 1 段，趟次是 complete 1 趟、其他三類 0" do
+      rows = quality_rows("#{replace_stop_events_sql(first_record_report)}SELECT metric, subject, value FROM quality WHERE metric IN ('few_stop_segments', 'trips') ORDER BY metric, subject")
+      expect(rows.map(&:values)).to eq([ [ "few_stop_segments", "", "1" ], %w[trips complete 1], %w[trips missing_both 0], %w[trips missing_end 0], %w[trips missing_start 0] ])
+    end
+
     it "5 站方向兩趟完整趟次觀測到 5 與 4 站時，漏站率 10%" do
       trips = [ { bus_id: "TEST-0001", start: "08:00", finish: "08:40" },
                 { bus_id: "TEST-0002", start: "09:00", finish: "09:40", n_stops_observed: 4 } ]
@@ -176,6 +191,11 @@ RSpec.describe "analysis/50_quality.sql 與 analysis/60_export.sql" do
       card = Dir.mktmpdir { export_to(it) }.first.fetch("card")
       ends = card.dig("quality", "path_trips").map { it.values_at("path_attribute_id", "n_first", "n_last") }
       expect(ends).to eq([ [ 9001, 4, 4 ], [ 9002, 0, 0 ], [ 9003, 0, 0 ] ])
+    end
+
+    it "給卡用的 JSON 在資料品質帶不算趟次的段數與門檻：fixture 是 0 段、門檻 2 站" do
+      card = Dir.mktmpdir { export_to(it) }.first.fetch("card")
+      expect(card.fetch("quality").values_at("few_stop_segments", "min_trip_stops")).to eq([ 0, 2 ])
     end
   end
 end

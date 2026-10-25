@@ -8,7 +8,7 @@ Measure the time a vehicle spends between two consecutive trips (折返停留) a
 
 ### Requirement: Layover definition
 
-For each vehicle, the system SHALL order its trips by start time and SHALL compute a layover for each pair of consecutive trips as the next trip's start time minus the current trip's end time, only when the current trip observed the last stop of its direction (classified `complete` or `missing_start`), the next trip observed the first stop of its direction (classified `complete` or `missing_end`), the vehicle did not run another route between the two trips as defined by Runs on other routes between trips, and the difference is not negative. Pairs that do not qualify SHALL be counted in exactly one of four exclusion categories, taking the first that applies in this order: the current trip did not reach its last stop (`no_last_stop`); the next trip did not leave from its first stop (`no_first_stop`); the vehicle ran another route between the two trips (`other_route`); the difference is negative (`negative`). Excluded pairs SHALL be counted only; their time differences SHALL NOT be reported as layovers. The last trip of a vehicle on the day SHALL have no layover.
+For each vehicle, the system SHALL order its trips by start time and SHALL compute a layover for each pair of consecutive trips as the next trip's start time minus the current trip's end time, only when the current trip observed the last stop of its direction (classified `complete` or `missing_start`), the next trip observed the first stop of its direction (classified `complete` or `missing_end`), the vehicle did not run another route between the two trips as defined by Runs on other routes between trips, and the difference is not negative. Pairs that do not qualify SHALL be counted in exactly one of four exclusion categories, taking the first that applies in this order: the current trip did not reach its last stop (`no_last_stop`); the next trip did not leave from its first stop (`no_first_stop`); the vehicle ran another route between the two trips (`other_route`); the difference is negative (`negative`). Excluded pairs SHALL be counted only; their time differences SHALL NOT be reported as layovers. The last trip of a vehicle on the day SHALL have no layover. Only trips take part: a segment that is not a trip under Segments observing too few stops are not trips SHALL NOT separate the trips before and after it, so those two trips are consecutive trips of the vehicle.
 
 #### Scenario: Qualifying pair
 
@@ -61,6 +61,16 @@ For each vehicle, the system SHALL order its trips by start time and SHALL compu
 - **WHEN** layovers are computed
 - **THEN** the pair yields no layover and the negative-pair count is 1
 
+#### Scenario: Segment that is not a trip between two trips
+
+- **WHEN** a complete trip ends at its last stop at 09:30, the vehicle reports one arrival at that stop at 13:01, which is not a trip, and its next complete trip leaves the first stop of the other direction at 13:14, with no record on another route in between
+- **THEN** one layover of 224.0 minutes is recorded for the pair of the 09:30 and 13:14 trips, and no layover ends at 13:01
+
+#### Scenario: Arrival reported before the first trip of the day
+
+- **WHEN** a vehicle's first record of the day is one arrival at a last stop at 06:09, which is not a trip, and its first trip leaves the first stop of the other direction at 06:19
+- **THEN** no layover ends at 06:09
+
 #### Scenario: Fixture day
 
 - **WHEN** layovers are computed for the analysis fixture on 2026-10-19
@@ -71,85 +81,6 @@ For each vehicle, the system SHALL order its trips by start time and SHALL compu
 - **GIVEN** the trips of the analysis fixture for 2026-10-19, where TEST-0002 has records on route 9100 at three distinct stops between its trip ending at 12:08 and its trip starting at 17:10, and TEST-0001 has records on route 9100 at two distinct stops between its trip ending at 15:40 and its trip starting at 17:05
 - **WHEN** layovers are computed
 - **THEN** there are 18 layovers, 10 ending an outbound trip and 8 ending an inbound trip, TEST-0001's 85.0-minute layover after 15:40 is among them, and the exclusion counts are `no_last_stop` 3, `no_first_stop` 1, `other_route` 1 and `negative` 0
-
-
-<!-- @trace
-source: layover-other-routes
-updated: 2026-10-23
-code:
-  - db/migrate/20261022231802_require_day_type_on_route_days.rb
-  - db/schema.rb
-  - app/models/route_day.rb
-  - app/components/route_coverage_component.html.erb
-  - config/locales/en.yml
-  - app/components/route_list_component.yml
-  - spec/fixtures/analysis/bus_event/2026-10-19/15.jsonl
-  - config/locales/tw.yml
-  - app/models/mrt_exits_snapshot.rb
-  - app/models/office_calendar_snapshot.rb
-  - analysis/10_load.sql
-  - app/components/attribution_component.yml
-  - app/components/layover_table_component.yml
-  - spec/factories/route_days.rb
-  - analysis/README.md
-  - app/components/route_coverage_component.yml
-  - app/components/route_list_component.html.erb
-  - analysis/30_layovers.sql
-  - app/components/attribution_component.html.erb
-  - app/components/route_coverage_component.rb
-  - lib/tasks/external.rake
-  - analysis/60_export.sql
-  - app/models/route_day_loader.rb
-  - spec/fixtures/analysis/external/office-calendar/2026/2026-10-19.csv
-  - app/models/route_page/coverage.rb
-  - spec/fixtures/analysis/README.md
-  - db/migrate/20261022230942_add_day_type_to_route_days.rb
-  - docs/data-sources.md
-  - spec/fixtures/analysis/bus_event/2026-10-19/14.jsonl
-  - spec/support/duckdb.rb
-  - app/components/data_limitations_component.yml
-  - bin/health-card
-  - analysis/params.sql
-  - app/models/http_fetcher.rb
-  - app/components/application_component.rb
-tests:
-  - spec/components/mrt_overlap_component_spec.rb
-  - spec/models/route_page/layover_distribution_spec.rb
-  - spec/components/load_profile_table_component_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/models/route_page/run_times_spec.rb
-  - spec/analysis/fixtures_spec.rb
-  - spec/analysis/card_spec.rb
-  - spec/components/route_coverage_component_spec.rb
-  - spec/analysis/cli_spec.rb
-  - spec/models/home_page/route_list_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/models/route_page/load_profile_spec.rb
-  - spec/requests/pages_spec.rb
-  - spec/models/route_day_loader_spec.rb
-  - spec/components/layover_table_component_spec.rb
-  - spec/components/layover_chart_component_spec.rb
-  - spec/models/route_page/layover_stats_spec.rb
-  - spec/analysis/derived_export_spec.rb
-  - spec/components/route_summary_component_spec.rb
-  - spec/models/office_calendar_snapshot_spec.rb
-  - spec/analysis/chains_spec.rb
-  - spec/models/http_fetcher_spec.rb
-  - spec/components/application_component_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/analysis/duckdb_helpers_spec.rb
-  - spec/components/run_time_table_component_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/models/route_page/coverage_spec.rb
-  - spec/system/home_hero_spec.rb
-  - spec/components/route_list_component_spec.rb
-  - spec/analysis/layovers_spec.rb
-  - spec/models/route_page/mrt_overlap_spec.rb
-  - spec/components/load_chart_component_spec.rb
-  - spec/analysis/load_spec.rb
-  - spec/models/derived_load_command_spec.rb
--->
 
 ---
 ### Requirement: Layover distribution

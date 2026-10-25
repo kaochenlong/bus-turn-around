@@ -1,7 +1,8 @@
 -- Stage 50: the numbers of the 資料品質 section.
 --
 -- Reads load_counts, unknown_stop_events, sequence_check, routes and stops
--- from stage 10, trips, trip_events and path_trip_counts from stage 20.
+-- from stage 10, trips, trip_events, few_stop_segments and path_trip_counts
+-- from stage 20.
 -- Creates views:
 --   completeness_counts    trips per completeness class, every class listed
 --   path_trip_shares       trips and their share per sub-route
@@ -148,6 +149,8 @@ SELECT 'sequence_check',
 FROM sequence_check
 UNION ALL
 SELECT 'trips', completeness, CAST(n_trips AS VARCHAR) FROM completeness_counts
+UNION ALL
+SELECT 'few_stop_segments', '', CAST(count(*) AS VARCHAR) FROM few_stop_segments
 UNION ALL
 SELECT 'trip_share', CAST(path_attribute_id AS VARCHAR), CAST(share AS VARCHAR) FROM path_trip_shares
 UNION ALL

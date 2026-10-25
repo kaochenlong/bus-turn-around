@@ -91,10 +91,56 @@ RSpec.describe "analysis/20_trips.sql" do
       [ [ 0, 2, 1, "08:05:00" ], [ 0, 3, 1, "09:10:00" ], 2, "中斷 65 分鐘" ],
       [ [ 0, 2, 1, "08:05:00" ], [ 0, 2, 0, "08:06:00" ], 1, "同站先到後離" ]
     ].each do |previous, following, expected, label|
-      it "#{label}：#{previous.last} 之後 #{following.last}，切成 #{expected} 趟" do
-        rows = trips_from([ [ "TEST-0001", *previous ], [ "TEST-0001", *following ] ], "SELECT trip_id FROM trips")
+      it "#{label}：#{previous.last} 之後 #{following.last}，切成 #{expected} 段" do
+        rows = trips_from([ [ "TEST-0001", *previous ], [ "TEST-0001", *following ] ], "SELECT segment_no FROM segmented_trips")
         expect(rows.size).to eq(expected)
       end
+    end
+  end
+
+  describe "觀測到的站不到 2 個的段" do
+    # The first record of the day is an arrival at the outbound last stop; a complete inbound trip follows.
+    let(:first_record_report) do
+      [ [ "TEST-0001", 0, 4, 1, "06:09:00" ], [ "TEST-0001", 1, 5, 0, "06:19:00" ], [ "TEST-0001", 1, 7, 1, "06:50:00" ],
+        [ "TEST-0001", 1, 9, 1, "07:41:00" ] ]
+    end
+    # A complete outbound trip, its last stop reported again at 09:40 and, after a gap over the split gap, at 13:01; then a complete inbound trip.
+    let(:report_after_gap) do
+      [ [ "TEST-0001", 0, 0, 0, "07:59:00" ], [ "TEST-0001", 0, 2, 1, "08:40:00" ], [ "TEST-0001", 0, 4, 1, "09:30:00" ],
+        [ "TEST-0001", 0, 4, 1, "09:40:00" ], [ "TEST-0001", 0, 4, 1, "13:01:00" ], [ "TEST-0001", 1, 5, 0, "13:14:00" ],
+        [ "TEST-0001", 1, 7, 1, "14:10:00" ], [ "TEST-0001", 1, 9, 1, "15:05:00" ] ]
+    end
+    let(:two_stops) { [ [ "TEST-0001", 1, 5, 0, "08:00:00" ], [ "TEST-0001", 1, 6, 1, "08:05:00" ] ] }
+    let(:same_stop_arrival_departure) { [ [ "TEST-0001", 0, 4, 1, "13:01:00" ], [ "TEST-0001", 0, 4, 0, "13:05:00" ] ] }
+
+    # The trips' starts with their completeness, and the starts of the segments that are not trips.
+    def starts_query
+      "SELECT (SELECT list([strftime(start_time, '%H:%M'), completeness] ORDER BY start_time) FROM trips) AS trips, " \
+        "(SELECT list(strftime(start_time, '%H:%M') ORDER BY start_time) FROM few_stop_segments) AS few_stop_segments"
+    end
+
+    it "當天第一筆是 06:09 去程末站的到站：那一段不是趟次，趟次只剩 06:19 那趟" do
+      expect(trips_from(first_record_report, starts_query)).to eq([ { "trips" => [ %w[06:19 complete] ], "few_stop_segments" => [ "06:09" ] } ])
+    end
+
+    it "前一趟 09:30 到末站、隔了 60 分鐘以上 13:01 在同一站又報一次到站：13:01 那一段不是趟次，07:59 與 13:14 兩趟都完整" do
+      expect(trips_from(report_after_gap, starts_query)).to eq([ { "trips" => [ %w[07:59 complete], %w[13:14 complete] ], "few_stop_segments" => [ "13:01" ] } ])
+    end
+
+    it "08:00 從返程起站離站、08:05 到下一站，觀測到 2 個站：照舊是一趟，漏末站" do
+      rows = trips_from(two_stops, "SELECT go_back, completeness, n_stops_observed FROM trips")
+      expect(rows).to eq([ { "go_back" => 1, "completeness" => "missing_end", "n_stops_observed" => 2 } ])
+    end
+
+    it "同一站 13:01 到站、13:05 離站，仍只有一個站：不是趟次" do
+      rows = trips_from(same_stop_arrival_departure, "SELECT (SELECT count(*) FROM trips) AS trips, (SELECT count(*) FROM few_stop_segments) AS few_stop_segments")
+      expect(rows).to eq([ { "trips" => 0, "few_stop_segments" => 1 } ])
+    end
+
+    it "fixture 的 2026-10-19 與成員日 2026-10-23 都沒有觀測到的站不到 2 個的段" do
+      query = "SELECT count(*) AS n FROM few_stop_segments"
+      member_day = { member_route_ids: [ 9001, 9050 ], day: Date.new(2026, 10, 23), static_day: Date.new(2026, 10, 23) }
+      expect([ trip_rows(query), run_sql_stages(through: "20_trips", query:, **member_day) ]).to eq([ [ { "n" => 0 } ], [ { "n" => 0 } ] ])
     end
   end
 

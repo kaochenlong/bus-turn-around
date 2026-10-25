@@ -57,14 +57,21 @@ shared:
         # leaves 莊敬里, 34 m away. The 215 layovers there had a median of
         # 13.3 minutes; in 168 of them the bus stood still for at least
         # 2 minutes (median longest standstill 4.8 minutes), at a spot about
-        # 300 m from the stop where no stop is registered.
+        # 300 m from the stop where no stop is registered. Since the change
+        # drop-single-stop-segments the same day has 188 layovers there with
+        # a median of 16.4 minutes: the pairs it removed were short ones that
+        # started from a segment observing a single stop, so it is still a
+        # stop.
         0: stop
         # Verified 2026-10-24 on the data of 2026-10-22: inbound trips end at
         # 臺北客運板橋前站(藝文) and the next trip leaves the same stop. The
         # 225 layovers there had a median of 14.4 minutes; in 198 of them the
         # bus stood still for at least 2 minutes (median longest standstill
         # 11.0 minutes), and nine of ten standstill reports were within 50 m
-        # of the stop.
+        # of the stop. Since the change drop-single-stop-segments the same day
+        # has 185 layovers there with a median of 17.8 minutes: the pairs it
+        # removed were short ones that started from a segment observing a
+        # single stop, so it is still a stop.
         1: stop
 
 test:
