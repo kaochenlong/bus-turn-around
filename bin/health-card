@@ -254,6 +254,7 @@ module HealthCard
         "只有一趟的車兩欄都算。同一台車跑別的路線的趟次不在這張卡讀的資料裡。",
         "趟次依觀測到的第一站與最後一站是不是該方向的起站與末站，分成四類：complete 兩端都有，missing_start 漏起站，missing_end 漏末站，missing_both 兩端都漏。",
         table(%w[完整性 趟數], completeness_rows(quality), "lr"),
+        few_stop_segments(quality),
         missing_stops(quality.fetch("missing_stop_rate")),
         "完整趟次的末站在終點後 #{@data.dig('profile', 'reset_record_minutes')} 分鐘內有沒有離站事件。" \
         "沒有離站事件的趟次，載客剖面一節的「末站下客後」就量不到：",
@@ -283,6 +284,14 @@ module HealthCard
     def completeness_rows(quality)
       counts = quality.fetch("completeness")
       [ *COMPLETENESS.map { [ it, count(counts[it]) ] }, [ "合計", count(@data.dig("trips", "total")) ] ]
+    end
+
+    def few_stop_segments(quality)
+      <<~MARKDOWN.chomp
+        切出來的段至少要觀測到 #{quality['min_trip_stops']} 個不同的站才算一趟，觀測到的站比這少的段不在上面的表裡，也不跟前後的趟次配成折返停留。
+
+        - 觀測到的站少於 #{quality['min_trip_stops']} 站、不算趟次的段：#{count(quality['few_stop_segments'])} 段
+      MARKDOWN
     end
 
     def missing_stops(rate)

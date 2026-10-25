@@ -4,6 +4,9 @@
 -- Trip segmentation: a gap longer than this between two events of the same
 -- vehicle starts a new trip.
 SET VARIABLE split_gap_minutes = 60;
+-- A segment cut this way is a trip only when it observes at least this many
+-- distinct stops: at one stop the vehicle did not run from one stop to another.
+SET VARIABLE min_trip_stops = 2;
 
 -- Read window, by the day and hour in the file path.
 -- Lookback is at least twice the split gap, rounded up to whole hours. The

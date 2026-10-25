@@ -5,7 +5,7 @@ RSpec.describe "analysis/params.sql" do
   let(:values) do
     names = %w[split_gap_minutes lookback_hours overflow_hours short_layover_minutes rest_window_minutes
                rest_min_minutes rest_credit_minutes morning_peak_start_hour daytime_start_hour
-               evening_peak_start_hour evening_peak_end_hour jump_threshold]
+               evening_peak_start_hour evening_peak_end_hour jump_threshold min_trip_stops]
     run_sql_stages(through: "params", query: "SELECT #{names.map { "getvariable('#{it}') AS #{it}" }.join(', ')}").first
   end
 
@@ -17,6 +17,10 @@ RSpec.describe "analysis/params.sql" do
 
   it "往前回看的時數由 60 分鐘的中斷門檻算出，是 2 小時" do
     expect(values.values_at("split_gap_minutes", "lookback_hours")).to eq([ 60, 2 ])
+  end
+
+  it "一段至少要觀測到 2 個不同的站才是一趟" do
+    expect(values["min_trip_stops"]).to eq(2)
   end
 
   it "往後讀兩小時，折返停留不到 15 分鐘算短" do

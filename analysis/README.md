@@ -51,11 +51,13 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 | --- | --- | --- |
 | `params.sql` | | 定義用的常數，全部是變數，另外還有 `minutes_between` macro |
 | `10_load.sql` | 變數 `data_root`、`route_id`、`day`、`static_day`、選用的 `member_route_ids`（一頁的路線 Id 清單，頁面路線在前；沒給就只有 `route_id`），以及原始檔 | `input_files`、`routes`、`bus_events`、`seat_events`、`other_route_events`、`load_counts`、`stops`、`path_stops`、`stop_events`、`unknown_stop_events`、`sequence_check` |
-| `20_trips.sql` | `stop_events`、`stops`、`routes` | `trip_events`、`segmented_trips`、`trips`、`path_trip_counts` |
+| `20_trips.sql` | `stop_events`、`stops`、`routes` | `trip_events`、`segmented_trips`、`trips`、`few_stop_segments`、`path_trip_counts` |
 | `30_layovers.sql` | `trips`、`stops`、`other_route_events` | `layover_pairs`、`layovers`、`layover_exclusions`、`layover_distribution`、`rest_runs`、`rest_windows`、`chains`、`chain_report`、`chain_summary` |
 | `40_load_profile.sql` | `seat_events`、`routes`、`stops`、`trips`、`trip_events` | `seat_stop_events`、`trip_seat_records`、`trip_stop_counts`、`net_boarding`、`count_coverage`、`trip_bands`、`load_profile`、`reset_counts`、`reset_check`、`count_anomalies` |
-| `50_quality.sql` | `load_counts`、`unknown_stop_events`、`sequence_check`、`routes`、`stops`、`trips`、`trip_events`、`path_trip_counts` | `completeness_counts`、`path_trip_shares`、`vehicle_day_ends`、`last_stop_departures`、`missing_stop_rate`、`duty_status_counts`、`duty_status_trip_ends`、`quality` |
+| `50_quality.sql` | `load_counts`、`unknown_stop_events`、`sequence_check`、`routes`、`stops`、`trips`、`trip_events`、`few_stop_segments`、`path_trip_counts` | `completeness_counts`、`path_trip_shares`、`vehicle_day_ends`、`last_stop_departures`、`missing_stop_rate`、`duty_status_counts`、`duty_status_trip_ends`、`quality` |
 | `60_export.sql` | 前面各階段的名字、變數 `inspect_dir` | 檢查目錄的五個 CSV，最後印出一列 `card`，是卡上所有數字的 JSON，也是整段唯一會印東西的敘述 |
+
+`segmented_trips` 是讀檔視窗裡切出來的每一段，不全是趟次。`trips` 只留起點落在 D、而且觀測到至少 `params.sql` 的 `min_trip_stops` 個不同站的段：只觀測到一個站，車在這一段裡沒有從一站開到另一站，不是行駛。不到門檻、起點落在 D 的段列在 `few_stop_segments`，只給資料品質計數。後面的階段都從 `trips` 讀，所以夾著這種段的前後兩趟，配折返停留與接班次串時是相鄰的兩趟。
 
 `layover_pairs` 把每台車相鄰兩趟配成一組。本趟有到末站（`complete` 或 `missing_start`）、下一趟從起站出發（`complete` 或 `missing_end`）、兩趟之間沒有去跑別的路線、差值不為負，才進 `layovers`。另一端漏站不影響，因為折返停留只用本趟的末站到站與下一趟的起站離站。不成立的配對在 `layover_exclusions` 分四類計數，一組只算在第一個符合的類別：`no_last_stop`（本趟沒有到末站）、`no_first_stop`（下一趟不是從起站出發）、`other_route`（兩趟之間跑了別的路線）、`negative`。量不到的配對只計數，因為前兩類的時間差是拿中途某一站代替端點量的，`other_route` 的時間差包含別條路線上的行駛，都不代表停留。
 
@@ -68,6 +70,8 @@ bin/health-card --data <原始檔根目錄> --route 15373 --day 2026-10-19 --out
 `vehicle_day_ends` 給每條附屬路線有幾趟是那台車當天在這條路線的第一趟（`n_first`）與最後一趟（`n_last`），寫進 `quality.csv` 的 metric 是 `first_trips` 與 `last_trips`，subject 是 `pathAttributeId`。
 
 `last_stop_departures` 給每個方向的末站站名、完整趟次數 `complete_trips`，以及其中末站在終點後 `reset_record_minutes` 分鐘內有 `bus_event` 離站事件的趟數 `with_departure`。沒有離站事件的趟次，歸零檢查的「末站下客後」就量不到。寫進 `quality.csv` 的 metric 是 `complete_trips` 與 `last_stop_departures`，subject 是方向 0 或 1。
+
+`few_stop_segments` 的段數寫進 `quality.csv` 的 metric 是 `few_stop_segments`，subject 是空字串。卡的資料品質一節把它跟 `min_trip_stops` 一起印出來。
 
 每個檔案開頭的註解列出它建立的每個名字。改定義只改 `params.sql`，其他檔案不寫那些常數的字面數字。
 

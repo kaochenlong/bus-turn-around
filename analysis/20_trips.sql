@@ -2,10 +2,13 @@
 --
 -- Reads stop_events, stops and routes from stage 10. Creates views, so a test can
 -- replace stop_events and read the trips built from its own events:
---   trip_events       stop_events with the segment (trip) each belongs to
---   segmented_trips   every trip in the read window
---   trips             the trips that start on the requested day, with trip_id
---   path_trip_counts  trips per sub-route of the requested route
+--   trip_events        stop_events with the segment each belongs to
+--   segmented_trips    every segment in the read window, trip or not
+--   trips              the segments that start on the requested day and
+--                      observe at least min_trip_stops stops, with trip_id
+--   few_stop_segments  the segments that start on the requested day and
+--                      observe fewer stops, which are not trips
+--   path_trip_counts   trips per sub-route of the requested route
 
 -- Per vehicle and route, events in time order start a new trip when the
 -- direction changes, the stop sequence goes back, or the gap exceeds the
@@ -34,6 +37,7 @@ SELECT * EXCLUDE (previous_go_back, previous_seq, previous_time, starts_trip),
        ) AS segment_no
 FROM flagged;
 
+-- Every segment, including those that observe too few stops to be a trip.
 -- Start: the departure at the first observed stop, else its arrival. End: the
 -- arrival at the last observed stop, else its departure. When a stop has more
 -- than one departure the latest is taken (the moment the vehicle left), and
@@ -109,12 +113,22 @@ JOIN endpoint_times t USING (bus_id, route_id, segment_no)
 JOIN majority_path m USING (bus_id, route_id, segment_no)
 JOIN direction_range d ON d.route_id = b.route_id AND d.go_back = b.go_back;
 
--- A trip belongs to the day its start time falls on.
+-- A trip belongs to the day its start time falls on. A segment that observes
+-- fewer than min_trip_stops stops is no trip, so the trips on either side of
+-- it are consecutive trips of the vehicle.
 CREATE OR REPLACE VIEW trips AS
 SELECT row_number() OVER (ORDER BY bus_id, start_time, route_id, go_back) AS trip_id,
        *
 FROM segmented_trips
-WHERE CAST(start_time AS DATE) = getvariable('day');
+WHERE CAST(start_time AS DATE) = getvariable('day')
+  AND n_stops_observed >= getvariable('min_trip_stops');
+
+-- Counted in the 資料品質 section only.
+CREATE OR REPLACE VIEW few_stop_segments AS
+SELECT *
+FROM segmented_trips
+WHERE CAST(start_time AS DATE) = getvariable('day')
+  AND n_stops_observed < getvariable('min_trip_stops');
 
 CREATE OR REPLACE VIEW path_trip_counts AS
 SELECT r.path_attribute_id,

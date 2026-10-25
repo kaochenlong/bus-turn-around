@@ -7,6 +7,9 @@ RSpec.describe "analysis/30_layovers.sql" do
   # Injected trips come with injected records on other routes, none by default.
   def from_trips(trips, query, records = []) = layover_rows([ replace_trips_sql(trips), replace_other_route_events_sql(records), query ].join("\n"))
 
+  # Injected stop events (see replace_stop_events_sql), from which stage 20 builds the trips, with no records on other routes.
+  def from_events(events, query) = layover_rows([ replace_stop_events_sql(events), replace_other_route_events_sql([]), query ].join("\n"))
+
   # Six complete trips of one vehicle with layovers of 4, 8, 12, 20 and 45 minutes.
   let(:spaced_trips) do
     [ %w[06:00 06:30], %w[06:34 07:00], %w[07:08 07:30], %w[07:42 08:00], %w[08:20 08:30], %w[09:15 09:45] ]
@@ -181,6 +184,29 @@ RSpec.describe "analysis/30_layovers.sql" do
     it "差值為負的配對沒有「兩趟之間」：記錄落在重疊的那兩分鐘裡，仍算差值為負" do
       records = %w[08:28:30 08:29:00 08:29:30].each_with_index.map { |at, index| [ "TEST-0001", at, 92000 + index ] }
       expect(across(records, next_start: "08:28")).to eq("minutes" => nil, "no_last_stop" => 0, "other_route" => 0, "negative" => 1)
+    end
+  end
+
+  describe "夾著不是趟次的段" do
+    # A complete outbound trip, its last stop reported again at 09:40 and, after a gap over the split gap, at 13:01; then a complete inbound trip.
+    let(:report_after_gap) do
+      [ [ "TEST-0001", 0, 0, 0, "07:59:00" ], [ "TEST-0001", 0, 2, 1, "08:40:00" ], [ "TEST-0001", 0, 4, 1, "09:30:00" ],
+        [ "TEST-0001", 0, 4, 1, "09:40:00" ], [ "TEST-0001", 0, 4, 1, "13:01:00" ], [ "TEST-0001", 1, 5, 0, "13:14:00" ],
+        [ "TEST-0001", 1, 7, 1, "14:10:00" ], [ "TEST-0001", 1, 9, 1, "15:05:00" ] ]
+    end
+    # The first record of the day is an arrival at the outbound last stop; a complete inbound trip follows.
+    let(:first_record_report) do
+      [ [ "TEST-0001", 0, 4, 1, "06:09:00" ], [ "TEST-0001", 1, 5, 0, "06:19:00" ], [ "TEST-0001", 1, 7, 1, "06:50:00" ],
+        [ "TEST-0001", 1, 9, 1, "07:41:00" ] ]
+    end
+
+    it "09:30 到末站、13:01 在同一站又報一次到站、13:14 從返程起站出發：09:30 那趟與 13:14 那趟配成 224.0 分鐘，結束在去程，沒有折返停留結束在 13:01" do
+      rows = from_events(report_after_gap, "SELECT go_back, strftime(end_time, '%H:%M') AS finish, minutes FROM layovers")
+      expect(rows).to eq([ { "go_back" => 0, "finish" => "09:30", "minutes" => 224.0 } ])
+    end
+
+    it "當天第一筆是 06:09 去程末站的到站、06:19 才從返程起站出發：沒有折返停留結束在 06:09" do
+      expect(from_events(first_record_report, "SELECT strftime(end_time, '%H:%M') AS finish FROM layovers")).to eq([])
     end
   end
 end

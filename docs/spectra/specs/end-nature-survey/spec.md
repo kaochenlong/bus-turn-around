@@ -454,7 +454,7 @@ After the route days, the task SHALL write `<OUT>/report-<FROM>_<TO>.csv` with a
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 9001 | 9001・9050 | 0 | 戊站 | 10 | 0 | 4 | 3 | 0.750 | 644.9 | `undetermined` | `few_layovers` | `stop` | `false` |
 | 9001 | 9001・9050 | 1 | 甲站 | 8 | 1 | 1 | 1 | 1.000 | 45.0 | `undetermined` | `few_layovers` | `stop` | `false` |
-| 9100 | 9100 | 0 | 丑站 | 6 | 0 | 0 | 0 | (empty) | (empty) | `undetermined` | `few_layovers` | (empty) | (empty) |
+| 9100 | 9100 | 0 | 丑站 | 5 | 0 | 0 | 0 | (empty) | (empty) | `undetermined` | `few_layovers` | (empty) | (empty) |
 | 9100 | 9100 | 1 | 子站 | 4 | 0 | 0 | 0 | (empty) | (empty) | `undetermined` | `few_layovers` | (empty) | (empty) |
 
 #### Scenario: Summary printed
@@ -466,77 +466,3 @@ After the route days, the task SHALL write `<OUT>/report-<FROM>_<TO>.csv` with a
 
 - **WHEN** the task surveys 2026-10-19 on the fixture data root with `ROUTES=9999`, and the day's `GetRoute.gz` has no row for 9999
 - **THEN** it prints the failure of route 9999 on 2026-10-19, prints that no route day succeeded, writes no `report-2026-10-19_2026-10-19.csv`, and exits with a non-zero status
-
-<!-- @trace
-source: 02-end-nature-survey
-updated: 2026-10-24
-code:
-  - app/frontend/entrypoints/application.js
-  - app/components/run_time_table_component.html.erb
-  - app/components/site_bar_component.yml
-  - app/components/site_bar_component.rb
-  - app/components/site_bar_component.html.erb
-  - config/route_page.yml
-  - app/components/cycle_table_component.html.erb
-  - app/components/mrt_overlap_component.html.erb
-  - app/models/route_day_loader.rb
-  - app/components/origin_story_component.html.erb
-  - app/components/stop_sequence_component.yml
-  - app/components/buffer_trade_component.html.erb
-  - lib/tasks/survey.rake
-  - app/components/turnaround_facilities_component.html.erb
-  - analysis/end_nature_survey.sql
-  - app/components/home_hero_component.html.erb
-  - app/components/turnaround_facilities_component.yml
-  - app/components/layover_table_component.html.erb
-  - docs/background.md
-  - analysis/end_nature_export.sql
-  - app/components/load_chart_component.html.erb
-  - app/models/derived_load_command.rb
-  - app/models/raw_day_check.rb
-  - app/controllers/routes_controller.rb
-  - app/components/layover_chart_component.yml
-  - app/components/section_nav_component.html.erb
-  - analysis/params.sql
-  - app/views/routes/show.html.erb
-  - app/components/route_coverage_component.html.erb
-  - app/components/layover_table_component.yml
-  - app/models/end_nature_survey_command.rb
-  - app/components/data_limitations_component.yml
-  - app/components/route_summary_component.yml
-  - README.md
-  - analysis/end_nature_evidence.sql
-  - app/components/layover_chart_component.html.erb
-  - app/models/route_page/buffer_trade.rb
-  - app/components/buffer_trade_component.yml
-  - docs/decisions.md
-  - lib/analysis_run.rb
-  - app/models/newest_snapshot.rb
-  - app/components/buffer_trade_component.rb
-  - app/components/layover_chart_component.rb
-  - analysis/README.md
-tests:
-  - spec/components/route_summary_component_spec.rb
-  - spec/components/turnaround_facilities_component_spec.rb
-  - spec/analysis/end_nature_evidence_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/models/end_nature_survey_command_spec.rb
-  - spec/models/raw_day_check_spec.rb
-  - spec/analysis/turnaround_facilities_spec.rb
-  - spec/system/end_map_spec.rb
-  - spec/analysis/analysis_run_spec.rb
-  - spec/analysis/end_nature_export_spec.rb
-  - spec/components/layover_chart_component_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/system/rest_command_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/components/cycle_table_component_spec.rb
-  - spec/components/stop_sequence_component_spec.rb
-  - spec/models/newest_snapshot_spec.rb
-  - spec/models/route_page/cycles_spec.rb
-  - spec/system/buffer_trade_spec.rb
-  - spec/analysis/end_nature_survey_spec.rb
-  - spec/components/layover_table_component_spec.rb
-  - spec/models/route_page/ends_spec.rb
--->

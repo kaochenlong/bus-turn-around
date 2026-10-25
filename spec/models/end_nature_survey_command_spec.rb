@@ -208,7 +208,7 @@ RSpec.describe EndNatureSurveyCommand, :duckdb, type: :model do
     let(:example_rows) do
       [ %w[9001 9001・9050 0 戊站 10 0 4 3 0.750 644.9 undetermined few_layovers stop false],
         %w[9001 9001・9050 1 甲站 8 1 1 1 1.000 45.0 undetermined few_layovers stop false],
-        [ "9100", "9100", "0", "丑站", "6", "0", "0", "0", nil, nil, "undetermined", "few_layovers", nil, nil ],
+        [ "9100", "9100", "0", "丑站", "5", "0", "0", "0", nil, nil, "undetermined", "few_layovers", nil, nil ],
         [ "9100", "9100", "1", "子站", "4", "0", "0", "0", nil, nil, "undetermined", "few_layovers", nil, nil ] ]
     end
 
