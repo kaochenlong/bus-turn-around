@@ -51,7 +51,8 @@ Changes can be parked（暫存）— temporarily moved out of `docs/spectra/chan
 - `bin/rails parallel:spec`：平行跑整套測試
 - `bin/ci`：完整檢查（RuboCop、bundler-audit、Brakeman、平行 RSpec、seeds）
 - `bin/rubocop`：style 檢查；`bin/brakeman`：安全掃描
-- `bin/push-derived`：把開發資料庫的衍生表推上正式站，不加參數只印要推的內容；`--push` 才會備份正式站、在一個交易裡換掉、再比對列數
+- `bin/push-derived`：把開發資料庫的衍生表推上正式站，不加參數只印要推的內容；`--push` 才會備份正式站、在一個交易裡換掉、再比對列數；正式站有這台沒有的路線日時拒絕推
+- `bin/nightly-load`：在放原始檔的 Mac mini 上把正式站還沒有的路線日寫進正式站，不加參數只印計畫；`--load` 才寫，`--recompute` 連已有的一起重算（可加 `ROUTE=<頁面路線 Id>`）
 
 ## 慣例
 

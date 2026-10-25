@@ -34,8 +34,8 @@
 ### 衍生表
 
 - 定義：每晚批次從原始檔算出來、寫進 PostgreSQL 的表（趟次、折返停留、載客剖面這些）。Rails 只讀衍生表，不碰原始檔。
-- 在資料或程式碼裡：`route_days`（一條路線一個台北日一列）、`route_day_stops`、`trips`、`layovers`、`trip_stop_counts`，存逐趟資料、不存彙總，彙總在讀取時用 SQL 算。由 `bin/rails derived:load` 寫入，先用 DuckDB 跑 `analysis/` 的各個階段與 `analysis/derived_export.sql` 匯出 CSV，再在一個交易裡替換掉一條路線一天的資料。健檢卡仍由 `bin/health-card` 直接讀原始檔，不經過衍生表。
-- 邊界：目前是手動執行，還沒有每晚排程。一天要等讀檔視窗結束（隔天的 01 時檔出現）才能算。逐趟資料含車牌，畫面上不顯示。
+- 在資料或程式碼裡：`route_days`（一條路線一個台北日一列）、`route_day_stops`、`trips`、`layovers`、`trip_stop_counts`，存逐趟資料、不存彙總，彙總在讀取時用 SQL 算。由 `bin/rails derived:load` 或每晚的 `bin/nightly-load` 寫入（兩者都用 `RouteDayLoader`），先用 DuckDB 跑 `analysis/` 的各個階段與 `analysis/derived_export.sql` 匯出 CSV，再在一個交易裡替換掉一條路線一天的資料。健檢卡仍由 `bin/health-card` 直接讀原始檔，不經過衍生表。
+- 邊界：每晚由 Mac mini 的排程（`bin/nightly-load`）算好，直接寫進正式站，一天要等隔天 02:00 讀檔視窗結束才算；手動跑 `derived:load` 時，隔天的 01 時檔出現就能算。逐趟資料含車牌，畫面上不顯示。
 - 不要用：報表、cache、統計表。
 
 ### 台北日
@@ -228,7 +228,7 @@
 
 ### 路線頁
 
-- 定義：網站上每條路線一頁的畫面，給司機與站長看某一天與最近 7 天的樣子（頁首範圍切換的「當天」「最近 7 天」）。資料由人工載入：`bin/rails derived:load` 在筆電上算好，再用 `bin/push-derived` 推上正式站，所以至少晚一天，也不是每天自動更新。它不是定稿，所以不是健檢卡。
+- 定義：網站上每條路線一頁的畫面，給司機與站長看某一天與最近 7 天的樣子（頁首範圍切換的「當天」「最近 7 天」）。資料由 Mac mini 每晚自動載入（`bin/nightly-load`），一天在隔天 02:00 讀檔視窗結束後的一小時內出現，所以至少晚一天。它不是定稿，所以不是健檢卡。
 - 在資料或程式碼裡：Rails 的 `RoutesController#show` 讀衍生表，網址是 `/routes/<路線 Id>`，有路線頁的路線是 `config/route_page.yml` 的 `routes`，目前是 15373 中山幹線、10712 251、11764 251區 與 16111 307（掛 19108 307西藏三民，`/routes/19108` 回 404）。
 - 邊界：車牌查詢只能從搜尋進入，不做排行榜，預設都是路線層級的彙總，見 `docs/use-cases.md` 第 11 項。
 - 不要用：健檢卡、dashboard。
