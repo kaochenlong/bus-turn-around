@@ -39,7 +39,7 @@ RSpec.describe RunTimeTableComponent, type: :component do
       expect([ 0, 1 ].map { |go_back| rendered.css("[data-direction='#{go_back}'] tr[data-small-sample]").size }).to eq([ 0, 1 ])
     end
 
-    it "樣本少的列在趟數旁標出樣本少，其他列沒有" do
+    it "樣本少的列在趟數格帶給螢幕報讀的「樣本少」，其他列沒有" do
       rows = rendered.css("tbody tr").map { [ it.key?("data-small-sample"), it.text.include?(small_sample_label) ] }
       expect(rows).to eq([ [ false, false ], [ true, true ] ])
     end

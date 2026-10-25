@@ -2,7 +2,7 @@
 tw: &tw
   eyebrow: 行駛時間
   title: 一趟從起站到末站要跑多久？
-  note: 從起站開出去算到抵達末站，照幾點發車分組。只算起站、末站都有記錄到的趟次；一列不到 5 趟就標「樣本少」。
+  note: 從起站開出去算到抵達末站，照幾點發車分組。只算起站、末站都有記錄到的趟次。
   bar_legend: p50 是一半的趟次跑得完的時間，p85、p95 分別是八成五、九成五的趟次跑得完的時間。每列右邊的橫條從 p50 畫到 p95，中間那條直線是 p85，刻度從 %{from} 到 %{to} 分鐘。
   direction_picker: 方向
   directions:
@@ -11,6 +11,8 @@ tw: &tw
   hour: 發車時
   trips: 趟數
   small_sample: 樣本少
+  small_sample_legend_html: "%{orange}數字表示樣本少於 5 趟。"
+  orange: 橘色
   none: 沒有可算的趟次。
   excluded: 另外有 %{count} 趟沒算進來：起站的發車或末站的到站沒有記錄到，算出來會不準。
 zh-TW:
@@ -18,7 +20,7 @@ zh-TW:
 en:
   eyebrow: Run time
   title: How long does a trip from the first stop to the last take?
-  note: Minutes from leaving the first stop to reaching the last stop, complete trips only, by departure hour. Rows with fewer than 5 trips are marked as small samples.
+  note: Minutes from leaving the first stop to reaching the last stop, complete trips only, by departure hour.
   bar_legend: Half the trips finish within p50, 85% within p85 and 95% within p95. The bar on the right of each row runs from p50 to p95, with a line at p85, on a scale of %{from} to %{to} minutes.
   direction_picker: Direction
   directions:
@@ -27,5 +29,7 @@ en:
   hour: Hour
   trips: Trips
   small_sample: small sample
+  small_sample_legend_html: "Numbers in %{orange} mean the sample has fewer than 5 trips."
+  orange: orange
   none: No trips to count.
   excluded: "Complete trips left out because a terminal time is not an observed departure or arrival: %{count}"
