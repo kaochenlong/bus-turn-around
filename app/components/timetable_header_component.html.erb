@@ -15,10 +15,10 @@
   <%# 涵蓋的日子與日型別，寫法同路線頁 %>
   <div class="flex flex-wrap items-center gap-2 text-note">
     <span class="text-slate-500"><%= t(".covered") %></span>
-    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-0.75 text-slate-700"><%= day_type_label(@coverage.day_type) %></span>
+    <span class="<%= day_tag_class(@coverage.day_type) %>"><%= day_type_label(@coverage.day_type) %></span>
     <ul data-covered-days class="contents">
       <% covered.each do |covered_day| %>
-        <li data-day="<%= covered_day.day.iso8601 %>" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-0.75 text-slate-700"><%= day_label(covered_day.day) %><%= covered_day.day_note %></li>
+        <%= tag.li day_label(covered_day.day), data: { day: covered_day.day.iso8601 }, title: covered_day.day_note.presence, class: day_tag_class(covered_day.day_type) %>
       <% end %>
     </ul>
   </div>

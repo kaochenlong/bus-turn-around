@@ -121,7 +121,7 @@ tests:
 ---
 ### Requirement: Day coverage
 
-With `range=day` the page SHALL cover the selected day. With `range=7d` it SHALL cover the selected day and those of the six Taipei days before it that are stored for the route and have the same day type as the selected day, as defined by `day-types`. The page SHALL state whether the covered days are weekdays or holidays, and SHALL list each covered date with its day of week and with its calendar note when it has one. The page SHALL link to the latest stored day on or before the selected day whose day type differs from the selected day's, keeping the range and naming that day and its day type; when there is no such day, the page SHALL NOT show that link. When the selected day is not stored, the page SHALL respond 200, state that the day has no data and list the stored days.
+With `range=day` the page SHALL cover the selected day. With `range=7d` it SHALL cover the selected day and those of the six Taipei days before it that are stored for the route and have the same day type as the selected day, as defined by `day-types`. The page SHALL state whether the covered days are weekdays or holidays in a day type tag, and SHALL list each covered date as a tag whose text is the date with its day of week and nothing else. A covered date with a calendar note SHALL carry the note as the title of its tag, shown when a pointer rests on the tag, and a covered date without a note SHALL carry no title. The day type tag and every date tag SHALL be green when the covered days are holidays and SHALL keep the neutral grey of the page's tags when they are weekdays. The page SHALL link to the latest stored day on or before the selected day whose day type differs from the selected day's, keeping the range and naming that day and its day type; when there is no such day, the page SHALL NOT show that link. When the selected day is not stored, the page SHALL respond 200, state that the day has no data and list the stored days.
 
 #### Scenario: Seven days with gaps
 
@@ -137,7 +137,7 @@ With `range=day` the page SHALL cover the selected day. With `range=7d` it SHALL
 
 - **GIVEN** route 9001 has the stored weekdays 2026-10-19 to 2026-10-23 and the stored holidays 2026-10-24, 2026-10-25 and 2026-10-26, the last with the note 補假
 - **WHEN** a visitor requests `/routes/9001?day=2026-10-26&range=7d`
-- **THEN** the page states holidays, covers exactly 2026-10-24（六）, 2026-10-25（日） and 2026-10-26（一） with the note 補假, and links to `/routes/9001?day=2026-10-23&range=7d`, naming 2026-10-23（五） and weekdays
+- **THEN** the page states holidays, covers exactly the tags 2026-10-24（六）, 2026-10-25（日） and 2026-10-26（一）, the last with the title 補假 and the other two with no title, and links to `/routes/9001?day=2026-10-23&range=7d`, naming 2026-10-23（五） and weekdays
 
 #### Scenario: No day of the other type before the selected day
 
@@ -147,7 +147,21 @@ With `range=day` the page SHALL cover the selected day. With `range=7d` it SHALL
 #### Scenario: One day states its type
 
 - **WHEN** route 9001 has the stored weekday 2026-10-23 and the stored holiday 2026-10-26 with the note 補假, and a visitor requests `/routes/9001` without parameters
-- **THEN** the page covers 2026-10-26, states that it is a holiday, shows the note 補假 and links to `/routes/9001?day=2026-10-23&range=day`
+- **THEN** the page covers 2026-10-26, states that it is a holiday, shows the tag 2026-10-26（一） with the title 補假 and links to `/routes/9001?day=2026-10-23&range=day`
+
+#### Scenario: Tag colour follows the day type
+
+- **WHEN** a visitor requests a day of route 9001 with `range=7d`
+- **THEN** the day type tag and every date tag are green when the covered days are holidays and grey when they are weekdays
+
+##### Example: both day types
+
+- **GIVEN** route 9001 has the stored weekdays 2026-10-19 to 2026-10-23 and the stored holidays 2026-10-24 to 2026-10-26
+
+| Request | Day type tag | Date tags |
+| --- | --- | --- |
+| `?day=2026-10-26&range=7d` | 假日, green | 2026-10-24（六）, 2026-10-25（日）, 2026-10-26（一）, all green |
+| `?day=2026-10-23&range=7d` | 平日, grey | 2026-10-19（一） to 2026-10-23（五）, all grey |
 
 #### Scenario: Day without data
 
@@ -156,63 +170,21 @@ With `range=day` the page SHALL cover the selected day. With `range=7d` it SHALL
 
 
 <!-- @trace
-source: day-types
-updated: 2026-10-23
+source: covered-day-holiday-chip
+updated: 2026-10-26
 code:
-  - lib/tasks/external.rake
-  - app/models/office_calendar_snapshot.rb
-  - docs/data-sources.md
-  - config/locales/tw.yml
-  - app/models/route_day_loader.rb
-  - app/components/data_limitations_component.yml
-  - app/components/route_coverage_component.rb
-  - app/components/route_coverage_component.yml
-  - app/models/mrt_exits_snapshot.rb
+  - .github/skills/spectra-ingest/SKILL.md
   - app/components/route_coverage_component.html.erb
-  - db/schema.rb
-  - app/components/route_list_component.html.erb
-  - db/migrate/20261022230942_add_day_type_to_route_days.rb
-  - spec/factories/route_days.rb
-  - app/components/attribution_component.html.erb
-  - app/components/attribution_component.yml
-  - config/locales/en.yml
-  - spec/fixtures/analysis/README.md
-  - app/models/route_page/coverage.rb
+  - .github/skills/spectra-propose/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
   - app/components/application_component.rb
-  - app/components/route_list_component.yml
-  - app/models/http_fetcher.rb
-  - spec/fixtures/analysis/external/office-calendar/2026/2026-10-19.csv
-  - app/models/route_day.rb
-  - db/migrate/20261022231802_require_day_type_on_route_days.rb
+  - app/components/timetable_header_component.html.erb
+  - .agents/skills/spectra-propose/SKILL.md
 tests:
-  - spec/components/mrt_overlap_component_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/components/route_summary_component_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/models/route_page/load_profile_spec.rb
-  - spec/components/load_profile_table_component_spec.rb
-  - spec/components/run_time_table_component_spec.rb
-  - spec/system/home_hero_spec.rb
-  - spec/models/http_fetcher_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/components/layover_chart_component_spec.rb
-  - spec/components/load_chart_component_spec.rb
   - spec/components/application_component_spec.rb
-  - spec/models/route_page/layover_stats_spec.rb
-  - spec/models/route_page/coverage_spec.rb
-  - spec/components/layover_table_component_spec.rb
-  - spec/components/route_list_component_spec.rb
-  - spec/models/home_page/route_list_spec.rb
-  - spec/models/route_day_loader_spec.rb
-  - spec/models/route_page/mrt_overlap_spec.rb
-  - spec/analysis/fixtures_spec.rb
-  - spec/models/office_calendar_snapshot_spec.rb
-  - spec/requests/pages_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/models/route_page/layover_distribution_spec.rb
-  - spec/models/route_page/run_times_spec.rb
   - spec/components/route_coverage_component_spec.rb
+  - spec/components/timetable_header_component_spec.rb
 -->
 
 ---
