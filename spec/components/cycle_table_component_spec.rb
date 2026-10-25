@@ -45,7 +45,7 @@ RSpec.describe CycleTableComponent, type: :component do
     render_inline(described_class.new(cycles: RoutePage::Cycles.new(RouteDay.where(id: days.map(&:id)).order(:day), ends:)))
   end
 
-  # A cell's own text, without the small sample label inside it.
+  # A cell's own text, without the screen reader words inside it.
   def cell_text(cell) = cell.xpath("./text()").text.squish
 
   # The rows of a measure's table as their cells; the all-day row starts with
@@ -80,7 +80,7 @@ RSpec.describe CycleTableComponent, type: :component do
       expect(table_rows(render_block, "cycle")).to eq([ %w[08 1 121.0 121.0], [ :total, "1", "121.0", "121.0" ] ])
     end
 
-    it "筆數少於 5 的列都標成樣本少，並在筆數旁寫出來" do
+    it "筆數少於 5 的列都標成樣本少，筆數格帶給螢幕報讀的「樣本少」" do
       rendered = render_block
       expect([ small_sample_marks(rendered, "round_trip"), small_sample_marks(rendered, "cycle") ]).to eq([ [ [ true, true ] ] * 3, [ [ true, true ] ] * 2 ])
     end

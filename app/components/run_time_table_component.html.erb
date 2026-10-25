@@ -18,6 +18,9 @@
       </button>
     <% end %>
   </div>
+  <% if scale %>
+    <p data-small-sample-legend class="mb-3 text-note text-slate-600"><%= t(".small_sample_legend_html", orange: tag.span(t(".orange"), class: "font-semibold text-orange-700")) %></p>
+  <% end %>
   <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
     <% directions.each do |go_back| %>
       <div data-direction="<%= go_back %>" x-bind:class="direction === <%= go_back %> ? '' : 'max-sm:hidden'" class="min-w-0">
@@ -40,11 +43,11 @@
             <tbody>
               <% rows_for(go_back).each do |row| %>
                 <% p50, p85, p95 = row.percentiles %>
-                <tr <%= "data-small-sample" if row.small_sample %> class="<%= "text-slate-500" if row.small_sample %>">
+                <tr <%= "data-small-sample" if row.small_sample %>>
                   <td class="text-left"><%= hour_label(row.hour) %></td>
-                  <td><%= row.n_trips %><% if row.small_sample %><span class="ml-1.5 inline-block rounded-[5px] bg-slate-100 px-1.5 align-[1px] text-label-sm leading-5 font-medium text-slate-600 sm:ml-2 sm:px-1.75"><%= t(".small_sample") %></span><% end %></td>
+                  <td class="<%= "text-orange-700" if row.small_sample %>"><%= row.n_trips %><% if row.small_sample %><span class="sr-only"> <%= t(".small_sample") %></span><% end %></td>
                   <td><%= minutes(p50) %></td>
-                  <td class="font-semibold <%= "text-slate-900" unless row.small_sample %>"><%= minutes(p85) %></td>
+                  <td class="font-semibold text-slate-900"><%= minutes(p85) %></td>
                   <td><%= minutes(p95) %></td>
                   <td data-bar-from="<%= minutes(p50) %>" data-bar-to="<%= minutes(p95) %>" data-bar-mark="<%= minutes(p85) %>" class="hidden w-37.5 sm:table-cell sm:pl-4.5">
                     <div class="relative h-3 rounded-[3px] bg-slate-100">

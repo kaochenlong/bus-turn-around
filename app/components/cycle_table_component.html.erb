@@ -16,6 +16,7 @@
         </button>
       <% end %>
     </div>
+    <p data-small-sample-legend class="mb-3 text-note text-slate-600"><%= t(".small_sample_legend_html", orange: tag.span(t(".orange"), class: "font-semibold text-orange-700")) %></p>
     <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
       <% measures.each do |measure| %>
         <div data-measure="<%= measure %>" x-bind:class="measure === '<%= measure %>' ? '' : 'max-sm:hidden'" class="min-w-0">
@@ -36,9 +37,9 @@
                 <% small_sample = small_sample?(row, measure) %>
                 <% all_day = row.hour.nil? %>
                 <%= tag.tr data: { hour: row.hour, total: (true if all_day), small_sample: (true if small_sample) },
-                           class: class_names("font-semibold": all_day, "text-slate-500": small_sample, "text-slate-900": all_day && !small_sample).presence do %>
+                           class: ("font-semibold text-slate-900" if all_day) do %>
                   <td class="text-left"><%= hour_label(row) %></td>
-                  <td><%= count(row, measure) %><% if small_sample %><span class="ml-1.5 inline-block rounded-[5px] bg-slate-100 px-1.5 align-[1px] text-label-sm leading-5 font-medium text-slate-600 sm:ml-2 sm:px-1.75"><%= t(".small_sample") %></span><% end %></td>
+                  <td class="<%= "text-orange-700" if small_sample %>"><%= count(row, measure) %><% if small_sample %><span class="sr-only"> <%= t(".small_sample") %></span><% end %></td>
                   <% percentiles(row, measure).each do |value| %>
                     <td><%= minutes(value) %></td>
                   <% end %>

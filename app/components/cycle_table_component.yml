@@ -2,7 +2,7 @@
 tw: &tw
   eyebrow: 來回一趟與週期
   title: 跑得完嗎？來回一趟要多久，週期給了多久
-  note_html: 來回一趟是從%{first_stop}發車，到回到%{last_stop}為止，中間含另一端的停留。週期是這台車回到%{last_stop}，到下一次再回到這一站，中間的休息都算在內。%{far_end_rest}兩種都照幾點發車分組，只算兩段都有量到起站與末站、中間也沒有去開別的路線的車。一列不到 5 筆就標「樣本少」。
+  note_html: 來回一趟是從%{first_stop}發車，到回到%{last_stop}為止，中間含另一端的停留。週期是這台車回到%{last_stop}，到下一次再回到這一站，中間的休息都算在內。%{far_end_rest}兩種都照幾點發車分組，只算兩段都有量到起站與末站、中間也沒有去開別的路線的車。
   far_end_rest: 另一端也是停車的一端，那裡的停留算休息。
   first_stop_fallback: 起站
   last_stop_fallback: 末站
@@ -17,12 +17,14 @@ tw: &tw
   count: 筆數
   all_day: 全天
   small_sample: 樣本少
+  small_sample_legend_html: "%{orange}數字表示樣本少於 5 筆。"
+  orange: 橘色
 zh-TW:
   <<: *tw
 en:
   eyebrow: Round trips and cycles
   title: Can they make it? How long a round trip takes, and how long a cycle allows
-  note_html: "A round trip runs from leaving %{first_stop} to getting back to %{last_stop}, including the stay at the other end; a cycle is the time from a vehicle getting back to %{last_stop} to its next return there, every break in between included.%{far_end_rest} Both are grouped by departure hour and count only vehicles whose two trips were observed at their first and last stops and that ran no other route in between. Rows with fewer than 5 values are marked as small samples."
+  note_html: "A round trip runs from leaving %{first_stop} to getting back to %{last_stop}, including the stay at the other end; a cycle is the time from a vehicle getting back to %{last_stop} to its next return there, every break in between included.%{far_end_rest} Both are grouped by departure hour and count only vehicles whose two trips were observed at their first and last stops and that ran no other route in between."
   far_end_rest: " The stay at the other end is a break, not a pass-through."
   first_stop_fallback: the first stop
   last_stop_fallback: the last stop
@@ -37,3 +39,5 @@ en:
   count: Count
   all_day: All day
   small_sample: small sample
+  small_sample_legend_html: "Numbers in %{orange} mean the sample has fewer than 5 values."
+  orange: orange
