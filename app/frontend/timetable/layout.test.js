@@ -48,6 +48,12 @@ describe("layOut：發車交給在那一端等最久的車，沒有車就多開�
     expect([vehicles.map((vehicle) => vehicle.number), new Set(marks.map(String))]).toEqual([[1, 2, 3], new Set(["false,false"])])
   })
 
+  it("鋪出來的趟次都不是調度員打的，原本的發車時刻就是鋪排的時刻：06:00、07:30、06:30、07:00", () => {
+    const vehicles = layout({ "0:6": 2, "1:7": 2 }, runTimesTable({ 0: 50, 1: 45 }))
+    const origins = vehicles.flatMap((vehicle) => vehicle.trips.map((trip) => [trip.typed, trip.original]))
+    expect(origins).toEqual([[false, at("06:00")], [false, at("07:30")], [false, at("06:30")], [false, at("07:00")]])
+  })
+
   it("在那一端等最久的車先發：1 號車 07:05 可用、2 號車 07:35 可用，08 時的兩班返程先給 1 號再給 2 號", () => {
     const vehicles = layout({ "0:6": 2, "1:8": 2 }, runTimesTable({ 0: 50, 1: 45 }))
     expect(runs(vehicles).map((trips) => trips.map(([, departure]) => departure))).toEqual([[at("06:00"), at("08:00")], [at("06:30"), at("08:30")]])

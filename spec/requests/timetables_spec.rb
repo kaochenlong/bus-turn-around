@@ -90,11 +90,11 @@ RSpec.describe "Timetables", type: :request do
       get route_timetable_path(9001)
     end
 
-    it "頁首：路線名、涵蓋 2026-10-19 平日、p 85、休息 15、量到每天 1.0 台車；車數、班數與手動改過的格數留給瀏覽器填" do
+    it "頁首：路線名、涵蓋 2026-10-19 平日、p 85、休息 15、量到每天 1.0 台車；車數、班數、手動改過與跟著往後推的格數留給瀏覽器填" do
       header = page.at_css("[data-timetable-header]")
       expect([ header.at_css("h1").text.squish, header["data-day-type"], header.css("[data-covered-days] [data-day]").map { it["data-day"] },
-               *figures("percentile", "buffer", "vehicles-per-day", "vehicles", "departures-0", "departures-1", "edited") ])
-        .to eq([ "測試幹線", "weekday", [ "2026-10-19" ], "85", "15", "1.0", "—", "—", "—", "—" ])
+               *figures("percentile", "buffer", "vehicles-per-day", "vehicles", "departures-0", "departures-1", "edited", "pushed") ])
+        .to eq([ "測試幹線", "weekday", [ "2026-10-19" ], "85", "15", "1.0", "—", "—", "—", "—", "—" ])
     end
 
     it "控制項不是表單：p 的選單、buffer、departures[0][0] 到 departures[1][23] 帶量到的值，後面緊接著改了會重新鋪排的提醒" do

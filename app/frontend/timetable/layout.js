@@ -39,14 +39,16 @@ export function plan(runTimes, percentile, goBack, departure, edited = false) {
   return { goBack, departure, arrival: departure + minutes, fallback, edited }
 }
 
-// The vehicles in order of creation, each with its trips in time order.
+// The vehicles in order of creation, each with its trips in time order. A
+// laid-out trip was not typed by the dispatcher, and its laid-out departure
+// is its original one, the earliest the manual edits let it leave.
 // departures: { 0: [24 counts], 1: [24 counts] }; holds: minutes a vehicle
 // waits after arriving from a trip of each direction.
 export function layOut({ departures, runTimes, percentile, holds }) {
   const standing = []
   for (const [departure, goBack] of departuresInOrder(departures)) {
     const vehicle = waitingLongest(standing, goBack, departure) ?? newVehicle(standing, goBack, departure)
-    const trip = plan(runTimes, percentile, goBack, departure)
+    const trip = { ...plan(runTimes, percentile, goBack, departure), typed: false, original: departure }
     vehicle.trips.push(trip)
     vehicle.position = OTHER_END[goBack]
     vehicle.available = trip.arrival + holds[goBack]

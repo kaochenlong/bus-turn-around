@@ -4,7 +4,7 @@
 // stored; the rest and the percentile are written into the address, so a
 // reload starts from them. The page is complete without the sheets only in
 // the sense that it says it needs JavaScript.
-import { addRow, addVehicle, changeDeparture, countEdited, deleteRow } from "./edits.js"
+import { addRow, addVehicle, changeDeparture, countEdited, countPushed, deleteRow, pushedMinutes } from "./edits.js"
 import { clock, fieldClock, parseClock, stopText } from "./format.js"
 import { layOut, plan } from "./layout.js"
 import { minimumCredit } from "./rest_windows.js"
@@ -102,8 +102,9 @@ export function timetable() {
 
     // A departure typed anew, when its field is left or on Enter: an invalid
     // time is rejected and the previous time put back; the trip's own time
-    // again only rewrites the field; any other time plans that trip again and
-    // writes its sheet anew in place, leaving the other departures alone.
+    // again only rewrites the field; any other time plans that trip again,
+    // pushes the trips after it on the same sheet that no longer connect, and
+    // writes that sheet anew in place, leaving the other sheets alone.
     // Nothing is drawn again, so the focus stays where the dispatcher put it.
     // A field not typed into since it was last submitted has nothing to
     // submit, whatever it reads: Chrome fires change for a field the page
@@ -126,7 +127,7 @@ export function timetable() {
         return
       }
       const number = Number(cell.dataset.sheet)
-      this.vehicles = changeDeparture(this.vehicles, { vehicle: number, index: Number(cell.dataset.index), departure: minutes }, this.planner())
+      this.vehicles = changeDeparture(this.vehicles, { vehicle: number, index: Number(cell.dataset.index), departure: minutes }, this.planner(), this.holds())
       this.writeSheet(cell.closest("[data-vehicle]"), this.vehicles.find((vehicle) => vehicle.number === number))
       this.writeFigures()
     },
@@ -134,7 +135,7 @@ export function timetable() {
     sheetClicked(event) {
       const remove = event.target.closest("[data-delete-row]")
       if (remove) {
-        this.vehicles = deleteRow(this.vehicles, { vehicle: Number(remove.dataset.sheet), row: Number(remove.dataset.row) })
+        this.vehicles = deleteRow(this.vehicles, { vehicle: Number(remove.dataset.sheet), row: Number(remove.dataset.row) }, this.planner(), this.holds())
         this.render()
         return
       }
@@ -275,6 +276,7 @@ export function timetable() {
         this.figure(`departures-${goBack}`, this.vehicles.reduce((count, vehicle) => count + vehicle.trips.filter((trip) => trip.goBack === goBack).length, 0))
       }
       this.figure("edited", countEdited(this.vehicles))
+      this.figure("pushed", countPushed(this.vehicles))
       this.figure("percentile", this.percentile)
       this.figure("buffer", this.buffer)
     },
@@ -368,17 +370,29 @@ export function timetable() {
 
     // A departure cell: the printed time, the editable field with the
     // service-day time, which sheet and trip it belongs to (data-sheet, so
-    // that data-vehicle marks sheets only), and the edited mark.
+    // that data-vehicle marks sheets only), and the edited and pushed marks,
+    // which the field's title puts in words.
     departureCell(cell, trip, vehicle, index, labels) {
+      const pushed = pushedMinutes(trip)
       cell.dataset.departure = trip.departure
       cell.dataset.sheet = vehicle.number
       cell.dataset.index = index
       cell.toggleAttribute("data-edited", trip.edited)
+      cell.toggleAttribute("data-pushed", pushed > 0)
       cell.querySelector("span").textContent = clock(trip.departure, labels.nextDay)
       const input = cell.querySelector("input")
       input.value = fieldClock(trip.departure)
-      input.title = trip.edited ? labels.editedTitle : ""
+      input.title = this.marksTitle(trip, pushed, labels)
       EDITED_CLASSES.forEach((name) => input.classList.toggle(name, trip.edited))
+    },
+
+    // What marks a departure says: edited by hand, pushed by how many minutes
+    // from when, or both, joined; nothing for a trip as laid out.
+    marksTitle(trip, pushed, labels) {
+      const marks = []
+      if (trip.edited) marks.push(labels.editedTitle)
+      if (pushed > 0) marks.push(labels.pushedTitle.replace("%{minutes}", pushed).replace("%{time}", clock(trip.original, labels.nextDay)))
+      return marks.join(labels.titleSeparator)
     },
 
     arrivalCell(cell, trip, labels) {

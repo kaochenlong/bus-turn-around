@@ -23,12 +23,12 @@
     </ul>
   </div>
 
-  <%# 車數、班數與手動改過的格數由瀏覽器鋪完再填；伺服器先放 — %>
+  <%# 車數、班數、手動改過與跟著往後推的格數由瀏覽器鋪完再填；伺服器先放 — %>
   <dl class="grid grid-cols-2 gap-3 sm:grid-cols-4">
     <% figures.each do |key, value, name| %>
       <div class="rounded-[10px] bg-white px-3.5 py-3 ring-1 ring-slate-200">
         <dt class="text-label leading-[1.45] text-slate-600"><%= t(".figures.#{key}") %></dt>
-        <dd class="font-route-figure text-figure-minor-sm leading-[1.2] font-semibold text-slate-900"><span data-value="<%= name %>"><%= value %></span><% if key == :edited %><span class="ml-1 font-route text-table font-medium text-slate-500"><%= t(".edited_unit") %></span><% end %></dd>
+        <dd class="font-route-figure text-figure-minor-sm leading-[1.2] font-semibold text-slate-900"><span data-value="<%= name %>"><%= value %></span><% if CELL_FIGURES.include?(key) %><span class="ml-1 font-route text-table font-medium text-slate-500"><%= t(".cell_unit") %></span><% end %></dd>
       </div>
     <% end %>
   </dl>

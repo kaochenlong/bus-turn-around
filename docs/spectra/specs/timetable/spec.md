@@ -893,12 +893,12 @@ tests:
 ---
 ### Requirement: Header, controls and limitations of the timetable
 
-The page SHALL show, before the sheets: the route name; the covered days and their day type as the route page states them; the average number of distinct vehicles per covered day as `buffer-trade` reports it; the number of vehicles of the timetable and the number of departures per direction, recomputed from the sheets as shown; and the number of manually edited cells. It SHALL show controls for the percentile, the rest minutes and the departures per direction and hour, filled with the values in use, and next to the controls the statement that changing them lays the timetable out again and discards manual edits. Changing a control SHALL lay the timetable out again in the browser without a request. After the sheets and the overrun table, the page SHALL state the limitations of the timetable: a sheet is a vehicle and not a driver; planned run times are measured percentiles, not guarantees; the hold at a pass-through end is the measured median and is not rest; a negative stop means the trips do not connect; trips missing a terminal are left out of run times; the default departures are the measured average and include every trip. The page SHALL carry the attribution footer of `site-layout`. The document title SHALL carry the route name, the word 班表 and the site name.
+The page SHALL show, before the sheets: the route name; the covered days and their day type as the route page states them; the average number of distinct vehicles per covered day as `buffer-trade` reports it; the number of vehicles of the timetable and the number of departures per direction, recomputed from the sheets as shown; the number of manually edited cells; and the number of pushed cells, counted as in "Manual edits recomputed in the browser". It SHALL show controls for the percentile, the rest minutes and the departures per direction and hour, filled with the values in use, and next to the controls the statement that changing them lays the timetable out again and discards manual edits. Changing a control SHALL lay the timetable out again in the browser without a request. After the sheets and the overrun table, the page SHALL state the limitations of the timetable: a sheet is a vehicle and not a driver; planned run times are measured percentiles, not guarantees; the hold at a pass-through end is the measured median and is not rest; a negative stop means a typed departure leaves before the previous trip's arrival, while departures that were not typed are pushed later to keep the hold at that end; trips missing a terminal are left out of run times; the default departures are the measured average and include every trip. The page SHALL carry the attribution footer of `site-layout`. The document title SHALL carry the route name, the word 班表 and the site name.
 
 #### Scenario: Header content
 
 - **WHEN** the timetable of route 9001 for 2026-10-19 is laid out with defaults from the four-departure day
-- **THEN** the header shows the route name, 2026-10-19 with its day type, the vehicles per day of the covered days, 3 vehicles, 2 departures in each direction and 0 edited cells, and the controls read p 85, 15 rest minutes and the measured departures
+- **THEN** the header shows the route name, 2026-10-19 with its day type, the vehicles per day of the covered days, 3 vehicles, 2 departures in each direction, 0 edited cells and 0 pushed cells, and the controls read p 85, 15 rest minutes and the measured departures
 
 #### Scenario: Regeneration in the browser
 
@@ -910,83 +910,44 @@ The page SHALL show, before the sheets: the route name; the covered days and the
 - **WHEN** `/routes/9001/timetable` is requested
 - **THEN** exactly one `footer[data-attribution][data-license="OGDL-Taiwan-1.0"]` is present
 
+#### Scenario: Limitation of negative stops
+
+- **WHEN** `/routes/9001/timetable` is requested
+- **THEN** the limitations state that a negative stop means a typed departure leaves before the previous trip's arrival and that departures that were not typed are pushed later to keep the hold at that end
+
 
 <!-- @trace
-source: timetable-draft
-updated: 2026-10-25
+source: timetable-push-later-trips
+updated: 2026-10-26
 code:
-  - app/components/timetable_overrun_table_component.yml
-  - app/models/route_page.rb
-  - app/components/timetable_limitations_component.rb
-  - app/models/route_page/measured_departures.rb
-  - app/components/timetable_header_component.rb
-  - app/components/timetable_sheet_component.rb
   - app/components/timetable_header_component.html.erb
-  - app/views/layouts/application.html.erb
-  - config/locales/tw.yml
-  - app/components/site_bar_component.rb
-  - app/frontend/timetable/layout.js
-  - app/components/timetable_overrun_table_component.html.erb
-  - app/frontend/timetable/rows.js
-  - package.json
-  - app/frontend/timetable/rest_windows.js
-  - app/components/timetable_sheet_component.yml
+  - app/components/timetable_header_component.rb
+  - app/components/timetable_sheet_component.html.erb
   - app/frontend/timetable/edits.js
   - app/frontend/timetable/component.js
-  - app/models/route_page/timetable_overruns.rb
-  - app/components/timetable_sheet_component.html.erb
-  - app/components/buffer_trade_component.html.erb
-  - app/controllers/application_controller.rb
-  - app/views/timetables/show.html.erb
-  - app/models/route_page/planned_run_times.rb
-  - app/controllers/timetables_controller.rb
-  - app/frontend/timetable/support.js
-  - app/controllers/routes_controller.rb
-  - app/components/timetable_header_component.yml
-  - config/routes.rb
-  - app/components/buffer_trade_component.yml
-  - app/components/site_bar_component.html.erb
-  - docs/use-cases.md
-  - config/ci.rb
-  - app/frontend/entrypoints/application.js
-  - app/components/buffer_trade_component.rb
-  - app/frontend/timetable/format.js
   - app/components/timetable_limitations_component.yml
-  - app/frontend/stylesheets/application.css
-  - app/components/timetable_overrun_table_component.rb
-  - app/components/timetable_limitations_component.html.erb
-  - app/components/site_bar_component.yml
-  - app/models/route_page/timetable.rb
-  - config/locales/en.yml
-  - README.md
+  - app/frontend/timetable/layout.js
+  - app/components/timetable_header_component.yml
+  - app/frontend/timetable/support.js
+  - app/components/timetable_sheet_component.yml
+  - app/components/timetable_sheet_component.rb
 tests:
-  - spec/models/route_page/timetable_spec.rb
+  - spec/components/timetable_header_component_spec.rb
   - spec/components/timetable_sheet_component_spec.rb
   - spec/requests/timetables_spec.rb
-  - spec/requests/site_layout_spec.rb
-  - spec/components/timetable_overrun_table_component_spec.rb
-  - spec/system/timetable_layout_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/system/timetable_print_spec.rb
   - app/frontend/timetable/layout.test.js
-  - spec/system/timetable_entry_spec.rb
-  - spec/components/timetable_header_component_spec.rb
-  - app/frontend/timetable/edits.test.js
-  - app/frontend/timetable/rows.test.js
-  - app/frontend/timetable/rest_windows.test.js
-  - spec/models/route_page/planned_run_times_spec.rb
-  - spec/models/route_page/measured_departures_spec.rb
   - spec/system/timetable_edit_spec.rb
-  - app/frontend/timetable/format.test.js
-  - spec/models/route_page/timetable_overruns_spec.rb
+  - app/frontend/timetable/edits.test.js
 -->
 
 ---
 ### Requirement: Manual edits recomputed in the browser
 
-The two departure times of each row SHALL be editable cells. The page SHALL offer, per row, a control that deletes that row's trips, and, per sheet, a control that adds a row from a typed departure time of the sheet's first direction, whose second trip departs at the first trip's arrival plus the hold at that end. On an edit the browser SHALL recompute, without a request and storing nothing, every arrival, stop, four-hour credit and header total from the departures as they now stand, leaving every other departure time unchanged. A stop that comes out negative SHALL be shown as a negative number of minutes. A trip SHALL be marked edited when a departure different from its current one was typed, or when it belongs to an added row, until the timetable is laid out again; edited departure cells SHALL be marked on the page and counted in the header.
+The two departure times of each row SHALL be editable cells. The page SHALL offer, per row, a control that deletes that row's trips, and, per sheet, a control that adds a row from a typed departure time of the sheet's first direction, whose second trip departs at the first trip's arrival plus the hold at that end. On an edit the browser SHALL recompute, without a request and storing nothing, the edited vehicle's sheet as described below, and every stop, four-hour credit and header total from the sheets as they now stand; no other vehicle's sheet SHALL change. A stop that comes out negative SHALL be shown as a negative number of minutes. A trip SHALL be marked edited when a departure different from its current one was typed, or when it belongs to an added row, until the timetable is laid out again; edited departure cells SHALL be marked on the page and counted in the header.
 
-A typed time SHALL be read as a time of the service day, with hours 00 to 29 and minutes 00 to 59, written either as one or two digits of hours, a colon and two digits of minutes, or as three or four digits without a colon whose last two digits are the minutes; spaces around it SHALL be ignored. An accepted departure SHALL be shown in its field as two digits of hours, a colon and two digits of minutes. A typed departure equal to the trip's current departure SHALL change nothing in the timetable but the field's writing, and the trip SHALL NOT be marked edited because of it. A departure field SHALL be submitted when Enter is pressed in it or when it is left, and only when something was typed into it since the page last wrote a time into it; typing the time it already shows SHALL count as typing. Pressing Enter in or leaving a departure field with nothing typed since then SHALL change nothing and SHALL NOT clear a rejection.
+Every trip SHALL have an original departure and SHALL be either typed or not typed. A trip laid out from the controls SHALL NOT be typed, and its original departure SHALL be its laid-out departure. A trip whose departure the dispatcher typed into a departure cell, an add field or the add-vehicle field SHALL be typed, and its original departure SHALL be the typed time. The second trip of an added row or an added vehicle SHALL NOT be typed, and its original departure SHALL be the first trip's arrival plus the hold at that end when the row or vehicle was added. After a departure is changed, a row is deleted, a row is added or a vehicle is added, that vehicle's sheet SHALL be recomputed trip by trip in sheet order: a typed trip SHALL depart at its typed time; the first trip of the sheet, when it is not typed, SHALL depart at its original departure; any other trip that is not typed SHALL depart at the later of its original departure and the previous trip's arrival plus the hold at the end where the previous trip arrives; every arrival SHALL be the trip's departure plus the planned run time of its departure's hour. No trip SHALL depart earlier than its original departure. A trip that is not typed and departs later than its original departure SHALL be marked pushed. A pushed departure cell SHALL carry a mark distinct from the edited mark and SHALL state how many minutes later than its original departure it departs and that original departure; the header SHALL count pushed departure cells separately from edited cells, and a cell that is both SHALL count in both. Pushed marks SHALL NOT be printed.
+
+A typed time SHALL be read as a time of the service day, with hours 00 to 29 and minutes 00 to 59, written either as one or two digits of hours, a colon and two digits of minutes, or as three or four digits without a colon whose last two digits are the minutes; spaces around it SHALL be ignored. An accepted departure SHALL be shown in its field as two digits of hours, a colon and two digits of minutes. A typed departure equal to the trip's current departure SHALL change nothing in the timetable but the field's writing, and the trip SHALL NOT be marked edited or become typed because of it. A departure field SHALL be submitted when Enter is pressed in it or when it is left, and only when something was typed into it since the page last wrote a time into it; typing the time it already shows SHALL count as typing. Pressing Enter in or leaving a departure field with nothing typed since then SHALL change nothing and SHALL NOT clear a rejection.
 
 Editing a departure SHALL leave the keyboard focus where the dispatcher put it: after Enter the focus SHALL stay in that field, after Tab it SHALL move to the next control in the page's order, and a field or control clicked right after typing SHALL take the click. After a row is added, the focus SHALL be in that sheet's add field, which SHALL be empty.
 
@@ -1011,6 +972,50 @@ A typed time that cannot be read SHALL be rejected. A rejected departure cell SH
 
 - **WHEN** the dispatcher types 06:45 as the second departure of that row
 - **THEN** the row's first stop reads −5
+
+#### Scenario: Pushing the return trip
+
+- **WHEN** vehicle 1's row reads 06:00, 甲站, 06:50, 40, 07:30, 08:15, the hold at both ends is 15 minutes, the planned run time of direction 0 in the 06 hour is 50 minutes and of direction 1 in the 07 hour is 45 minutes, and the dispatcher types 06:45 as the first departure
+- **THEN** the row reads 06:45, 甲站, 07:35, 15, 07:50, 08:35, the 06:45 cell is marked edited, the 07:50 cell is marked pushed and states 20 minutes and 07:30, every other sheet is unchanged, and the header counts 1 edited cell and 1 pushed cell
+
+#### Scenario: Typing the earlier departure back
+
+- **WHEN** that row reads 06:45, 甲站, 07:35, 15, 07:50, 08:35 after the push and the dispatcher types 06:00 as the first departure
+- **THEN** the row reads 06:00, 甲站, 06:50, 40, 07:30, 08:15, no cell is marked pushed, and the header counts 1 edited cell and 0 pushed cells
+
+#### Scenario: Same time typed into a pushed cell
+
+- **WHEN** the 07:50 cell of that row is marked pushed and the dispatcher types 0750 into it
+- **THEN** the field reads 07:50, the cell is still marked pushed and is not marked edited, and the header still counts 1 edited cell and 1 pushed cell
+
+#### Scenario: Pushing later rows
+
+- **WHEN** vehicle 1's sheet reads 06:00, 甲站, 06:50, 40, 07:30, 08:15, 75 and 09:30, 甲站, 10:20, 15, 10:35, 11:20, the hold at both ends is 15 minutes, direction 0 runs 50 minutes and direction 1 runs 45 minutes in every hour, and the dispatcher types a time as the first departure
+- **THEN** the sheet reads as below, the typed cell is marked edited, and exactly the listed cells are marked pushed
+
+##### Example: First departure typed
+
+| Typed | Row 1 | Row 2 | Pushed cells |
+| --- | --- | --- | --- |
+| 06:10 | 06:10, 甲站, 07:00, 30, 07:30, 08:15, 75 | 09:30, 甲站, 10:20, 15, 10:35, 11:20 | none |
+| 05:30 | 05:30, 甲站, 06:20, 70, 07:30, 08:15, 75 | 09:30, 甲站, 10:20, 15, 10:35, 11:20 | none |
+| 07:00 | 07:00, 甲站, 07:50, 15, 08:05, 08:50, 40 | 09:30, 甲站, 10:20, 15, 10:35, 11:20 | 08:05, 35 minutes after 07:30 |
+| 08:00 | 08:00, 甲站, 08:50, 15, 09:05, 09:50, 15 | 10:05, 甲站, 10:55, 15, 11:10, 11:55 | 09:05, 95 minutes after 07:30; 10:05, 35 minutes after 09:30; 11:10, 35 minutes after 10:35 |
+
+#### Scenario: Typed departures are not pushed
+
+- **WHEN** on that two-row sheet the dispatcher types 09:00 as row 2's first departure and then 08:00 as row 1's first departure
+- **THEN** row 1 reads 08:00, 甲站, 08:50, 15, 09:05, 09:50, −50, row 2 reads 09:00, 甲站, 09:50, 45, 10:35, 11:20, the 08:00 and 09:00 cells are marked edited, and only the 09:05 cell is marked pushed
+
+#### Scenario: Deleting a row lets later trips go back
+
+- **WHEN** on that two-row sheet the dispatcher types 08:00 as row 1's first departure and then deletes row 1
+- **THEN** the sheet has one row reading 09:30, 甲站, 10:20, 15, 10:35, 11:20 and no cell is marked pushed
+
+#### Scenario: The return of an added row follows its first departure
+
+- **WHEN** the dispatcher added the row 11:00, 甲站, 11:48, 15, 12:03, 12:49 to vehicle 1 as in Adding a row, with the planned run time of direction 0 in the 11 hour 48 minutes, the hold 15 minutes and the planned run time of direction 1 in the 12 hour 46 minutes, and then types 11:30 as that row's first departure
+- **THEN** that row reads 11:30, 甲站, 12:18, 15, 12:33, 13:19, both its departure cells are marked edited, the 12:33 cell is also marked pushed and states 30 minutes and 12:03, and the header counts 2 edited cells and 1 pushed cell
 
 #### Scenario: Focus after Enter
 
@@ -1092,20 +1097,27 @@ A typed time that cannot be read SHALL be rejected. A rejected departure cell SH
 
 
 <!-- @trace
-source: timetable-sheet-touchups
+source: timetable-push-later-trips
 updated: 2026-10-26
 code:
+  - app/components/timetable_header_component.html.erb
+  - app/components/timetable_header_component.rb
   - app/components/timetable_sheet_component.html.erb
+  - app/frontend/timetable/edits.js
+  - app/frontend/timetable/component.js
+  - app/components/timetable_limitations_component.yml
+  - app/frontend/timetable/layout.js
+  - app/components/timetable_header_component.yml
+  - app/frontend/timetable/support.js
   - app/components/timetable_sheet_component.yml
   - app/components/timetable_sheet_component.rb
-  - app/frontend/timetable/format.js
-  - app/frontend/timetable/component.js
-  - app/views/timetables/show.html.erb
 tests:
-  - app/frontend/timetable/format.test.js
-  - spec/system/timetable_edit_spec.rb
+  - spec/components/timetable_header_component_spec.rb
   - spec/components/timetable_sheet_component_spec.rb
-  - spec/system/timetable_print_spec.rb
+  - spec/requests/timetables_spec.rb
+  - app/frontend/timetable/layout.test.js
+  - spec/system/timetable_edit_spec.rb
+  - app/frontend/timetable/edits.test.js
 -->
 
 ---

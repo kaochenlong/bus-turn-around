@@ -25,8 +25,11 @@ class TimetableSheetComponent < ApplicationComponent
   # The rest window the sheet's statement is about: the same 240 minutes as
   # app/frontend/timetable/rest_windows.js, which the component spec checks.
   WINDOW_HOURS = 4
-  # A time field; red-bordered while its typed time is the one rejected.
+  # A time field; red-bordered while its typed time is the one rejected, and
+  # amber in a departure cell its trip was pushed out of (data-pushed), the
+  # colours of the site's notices.
   FIELD_CLASSES = "w-18 rounded border border-slate-300 bg-white px-1.5 py-1 text-center text-table text-slate-900 aria-[invalid=true]:border-red-600 " \
+                  "in-data-pushed:border-amber-300 in-data-pushed:bg-amber-50 " \
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 print:hidden"
   BUTTON_CLASSES = "min-h-9 rounded-md border border-slate-300 bg-white px-2.5 text-note text-slate-700 select-none hover:border-slate-400 hover:text-slate-900 " \
                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"

@@ -71,10 +71,10 @@ RSpec.describe "班表在瀏覽器裡鋪排與微調", :js, type: :system do
 
   # Every hour of this day has two trips, so every planned run time falls back
   # to the whole day and every arrival carries the mark.
-  it "載入後三張單：車次 1 一列 06:00、甲站、06:50＊、40、07:30、08:15＊；頁首 3 台車、去返各 2 班、改過 0 處" do
+  it "載入後三張單：車次 1 一列 06:00、甲站、06:50＊、40、07:30、08:15＊；頁首 3 台車、去返各 2 班、改過 0 處、跟著往後推 0 處" do
     open_timetable
-    expect([ sheet_numbers, find("[data-vehicle='1'] [data-slot=title]").text, row_cells(1, 1), figures("vehicles", "departures-0", "departures-1", "edited") ])
-      .to eq([ %w[1 2 3], "車次 1", [ "06:00", "甲站", "06:50＊", "40", "07:30", "08:15＊", "" ], %w[3 2 2 0] ])
+    expect([ sheet_numbers, find("[data-vehicle='1'] [data-slot=title]").text, row_cells(1, 1), figures("vehicles", "departures-0", "departures-1", "edited", "pushed") ])
+      .to eq([ %w[1 2 3], "車次 1", [ "06:00", "甲站", "06:50＊", "40", "07:30", "08:15＊", "" ], %w[3 2 2 0 0] ])
   end
 
   it "加一列的說明寫著那張單第一趟的方向：1 號車是去程，3 號車是返程" do
@@ -255,6 +255,38 @@ RSpec.describe "班表在瀏覽器裡鋪排與微調", :js, type: :system do
       retype(1, 1, 1, "06:45")
       find("[data-vehicle='1'] tr[data-row='1'] td[data-stop]", text: "−5")
       expect(row_cells(1, 1)[3]).to eq("−5")
+    end
+
+    it "1 號車去程打 06:45：那一列 06:45、甲站、07:35、15、07:50、08:35，07:50 標跟著往後推、說明寫 20 分與原本 07:30，頁首改過 1、推 1，2 號車不動" do
+      open_for_edits
+      retype(1, 1, 0, "0645").then { find("[data-vehicle='1'] tr[data-row='1'] [data-departure][data-pushed]") }
+      pushed = departure_cell(1, 1, 1)
+      expect([ row_cells(1, 1), pushed.find("input")[:title], figures("edited", "pushed"), row_cells(2, 1)[0..2] ])
+        .to eq([ [ "06:45", "甲站", "07:35", "15", "07:50", "08:35", "" ], sheet_text("pushed", minutes: 20, time: "07:30"), %w[1 1], [ "07:00", "乙站", "07:45" ] ])
+    end
+
+    it "去程打 06:45 再打回 06:00：返程回到 07:30，那一列 06:00、甲站、06:50、40、07:30、08:15，沒有標跟著往後推的格子，頁首推 0" do
+      open_for_edits
+      retype(1, 1, 0, "0645").then { find("[data-vehicle='1'] [data-departure][data-pushed]") }
+      retype(1, 1, 0, "0600").then { find("[data-vehicle='1'] tr[data-row='1'] td[data-stop]", text: "40") }
+      expect([ row_cells(1, 1), all("[data-sheets] [data-departure][data-pushed]").size, figures("edited", "pushed") ])
+        .to eq([ [ "06:00", "甲站", "06:50", "40", "07:30", "08:15", "" ], 0, %w[1 0] ])
+    end
+
+    it "被推過的 07:50 照原樣打 0750：仍標跟著往後推、沒有標改過，頁首改過 1、推 1" do
+      open_for_edits
+      retype(1, 1, 0, "0645").then { find("[data-vehicle='1'] [data-departure][data-pushed]") }
+      retype(1, 1, 1, "0750")
+      cell = departure_cell(1, 1, 1)
+      expect([ cell.find("input").value, cell[:"data-pushed"].nil?, cell[:"data-edited"].nil?, figures("edited", "pushed") ]).to eq([ "07:50", false, true, %w[1 1] ])
+    end
+
+    it "在 1 號車加一列 11:00，再把那一列的去程改成 11:30：那一列 11:30、甲站、12:18、15、12:33、13:19，12:33 同時標改過與跟著往後推" do
+      open_for_edits
+      within("[data-vehicle='1']") { find("[data-add-input]").set("11:00").then { click_button "加一列" } }
+      retype(1, 2, 0, "1130").then { find("[data-vehicle='1'] tr[data-row='2'] [data-departure][data-pushed][data-edited]") }
+      expect([ row_cells(1, 2), departure_cell(1, 2, 1).find("input")[:title], figures("edited", "pushed") ])
+        .to eq([ [ "11:30", "甲站", "12:18", "15", "12:33", "13:19", "" ], [ sheet_text("edited"), sheet_text("pushed", minutes: 30, time: "12:03") ].join(sheet_text("title_separator")), %w[2 1] ])
     end
 
     it "刪第一列：08 時兩班去程讓 1 號車多一列 08:30，刪第一列後只剩列號 1、08:30 發" do
