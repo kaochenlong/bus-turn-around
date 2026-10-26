@@ -48,10 +48,11 @@ RSpec.describe TimetableSheetComponent, type: :component do
     expect([ rendered.css("template[data-sheet-template]").size, rendered.css("template[data-row-template]").size ]).to eq([ 1, 1 ])
   end
 
-  it "單子的 template 帶瀏覽器要填的文案，留著要填的位子：標題的車次、隔日時刻、加一列的方向、四小時那一句的分鐘數、資料依據的百分位數與休息" do
+  it "單子的 template 帶瀏覽器要填的文案，留著要填的位子：標題的車次、隔日時刻、加一列的方向、四小時那一句的分鐘數、資料依據的百分位數與休息、被退回的字；時刻可以怎麼打已經寫好" do
     placeholders = { "data-title" => "%{number}", "data-next-day" => "%{time}", "data-add-label" => "%{direction}", "data-rest-credit-text" => "%{minutes}",
-                     "data-print-header" => "%{percentile}" }
-    expect([ placeholders.map { |name, placeholder| sheet_template[name]&.include?(placeholder) }, sheet_template["data-print-header"].include?("%{buffer}") ]).to eq([ [ true ] * 5, true ])
+                     "data-print-header" => "%{percentile}", "data-rejected-typed" => "%{typed}" }
+    expect([ placeholders.map { |name, placeholder| sheet_template[name]&.include?(placeholder) }, sheet_template["data-print-header"].include?("%{buffer}"), sheet_template["data-accepted-writings"].present? ])
+      .to eq([ [ true ] * 6, true, true ])
   end
 
   it "單子的 template 帶兩個方向的名字與退回全天的標記；四小時那兩句已經填好小時數；印刷時至少補到 14 列" do
@@ -82,9 +83,9 @@ RSpec.describe TimetableSheetComponent, type: :component do
              sheet.at_css("[data-fallback-legend]").key?("hidden"), sheet.css("[data-rest-credit]").size ]).to eq([ 1, 0, 1, 1, true, 1 ])
   end
 
-  it "列的 template 照紙本的欄位順序：職號、姓名、發車、起點、調度員、到達、停留、返回發車、累計里程、返站、回站後停留、行駛里程、調度員，最後是操作；沒有列號" do
+  it "列的 template 最前面是操作，接著照紙本的欄位順序：職號、姓名、發車、起點、調度員、到達、停留、返回發車、累計里程、返站、回站後停留、行駛里程、調度員；沒有列號" do
     expect([ cell_kinds(row_template.at_css("tr[data-row]")), sheet_template.css("thead th").size ])
-      .to eq([ %w[blank blank departure origin blank arrival stop departure blank arrival stop blank blank actions], 14 ])
+      .to eq([ %w[actions blank blank departure origin blank arrival stop departure blank arrival stop blank blank], 14 ])
   end
 
   it "兩個時刻格各有輸入框與印刷用的文字" do

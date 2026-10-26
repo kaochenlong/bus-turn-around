@@ -27,12 +27,14 @@
       </label>
       <label class="flex flex-col gap-1.5 text-note text-slate-700">
         <%= t(".add_vehicle.departure") %>
-        <input type="text" data-add-vehicle-input inputmode="numeric" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" class="<%= field %> w-24">
+        <input type="text" data-add-vehicle-input inputmode="numeric" placeholder="HH:MM" class="<%= field %> w-24 aria-[invalid=true]:border-red-600">
       </label>
       <button type="button" data-add-vehicle-button
               class="min-h-11 rounded-lg border border-slate-300 bg-white px-4 font-semibold text-slate-700 select-none hover:border-slate-400 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
         <%= t(".add_vehicle.button") %>
       </button>
+      <%# 時刻被退回時的說明，字讀單子 template 的同一組 data 屬性；被退回的輸入框用 aria-describedby 指到它 %>
+      <p data-add-vehicle-rejection id="add-vehicle-rejection" hidden role="alert" class="w-full text-note text-red-700"></p>
     </div>
     <%= render TimetableSheetComponent.new(timetable: @timetable, coverage: @coverage) %>
     <%= render TimetableOverrunTableComponent.new(overruns: @timetable.overruns, percentile: @timetable.percentile, buffer: @timetable.buffer) %>
