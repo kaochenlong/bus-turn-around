@@ -1,9 +1,11 @@
 // Times of the timetable as text. Times are minutes of the day and may pass
-// 1440 after midnight; typed times are "HH:MM" of the service day, so a
-// return trip after midnight reads 24:45.
+// 1440 after midnight; typed times are of the service day, so a return trip
+// after midnight reads 24:45.
 
 const MINUTES_PER_DAY = 24 * 60
-const TIME = /^(\d{2}):(\d{2})$/
+// One or two digits of hours, then two of minutes, with or without a colon
+// between them: 5:30, 05:30, 530 and 0530 are all 05:30.
+const TIME = /^(\d{1,2}):?(\d{2})$/
 // The last hour a typed time of the service day may name: the layout runs
 // past 24:00 when the last departures are late.
 const LAST_HOUR = 29
@@ -23,10 +25,11 @@ export function fieldClock(minutes) {
   return `${twoDigits(Math.floor(minutes / 60))}:${twoDigits(minutes % 60)}`
 }
 
-// Minutes of the service day from a typed "HH:MM", or null when the text is
-// not one: two digits each, hours up to LAST_HOUR, minutes up to 59.
+// Minutes of the service day from a typed time, or null when the text is not
+// one: written as TIME, spaces around it ignored, hours up to LAST_HOUR,
+// minutes up to 59.
 export function parseClock(text) {
-  const match = TIME.exec(text ?? "")
+  const match = TIME.exec((text ?? "").trim())
   if (!match) return null
   const [hour, minute] = [Number(match[1]), Number(match[2])]
   if (hour > LAST_HOUR || minute > 59) return null

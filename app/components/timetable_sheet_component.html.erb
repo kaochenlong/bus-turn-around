@@ -7,6 +7,8 @@
           data-direction-1="<%= t("directions.1") %>"
           data-fallback-mark="<%= t(".fallback_mark") %>"
           data-edited-title="<%= t(".edited") %>"
+          data-rejected-typed="<%= t(".rejected_typed", typed: "%{typed}", writings: t(".accepted_writings")) %>"
+          data-accepted-writings="<%= t(".accepted_writings") %>"
           data-rest-credit-text="<%= t(".rest_credit", hours: WINDOW_HOURS, minutes: "%{minutes}") %>"
           data-shorter-text="<%= t(".shorter", hours: WINDOW_HOURS) %>"
           data-print-header="<%= print_header %>"
@@ -23,26 +25,29 @@
       <p data-slot="print-header" class="mt-1 text-note text-slate-600"></p>
     </div>
     <h2 data-slot="title" class="mb-4 text-section-sm leading-snug font-bold text-slate-900 sm:text-section print:hidden"></h2>
-    <%# 十三欄在手機上放不下，表放在可橫向捲動的框裡。框要 relative：表頭「操作」那一格的 sr-only 文字是絕對定位的，
-        沒有 relative 的框它會以整頁為準定位到表的最右邊，把手機的版面撐寬 %>
+    <%# 表在手機上放不下，放在可橫向捲動的框裡。框要 relative：表頭「操作」那一格的 sr-only 文字是絕對定位的，
+        沒有 relative 的框它會以整頁為準定位，可能跑出框外把手機的版面撐寬 %>
     <div class="relative overflow-x-auto">
       <table class="data-table">
         <thead>
           <tr>
-            <%# data-column 給印刷樣式定每一欄的寬度 %>
-            <% COLUMNS.each do |column| %>
-              <th data-column="<%= column %>" class="<%= "text-left" if column == "origin" %> <%= "min-w-20" if blank?(column) %>"><%= t(".columns.#{column}") %></th>
-            <% end %>
+            <%# 操作欄在最前面，刪除鈕不用捲到最右邊才按得到 %>
             <th class="print:hidden"><span class="sr-only"><%= t(".columns.actions") %></span></th>
+            <%# data-column 給印刷樣式定每一欄的寬度；手填欄在螢幕上永遠是空的，只在印的時候出現 %>
+            <% COLUMNS.each do |column| %>
+              <th data-column="<%= column %>" class="<%= "text-left" if column == "origin" %> <%= "hidden print:table-cell" if blank?(column) %>"><%= t(".columns.#{column}") %></th>
+            <% end %>
           </tr>
         </thead>
         <tbody data-slot="rows"></tbody>
       </table>
     </div>
+    <%# 這張單上被退回的時刻（發車格或加一列）的說明，瀏覽器照車號給 id，被退回的輸入框用 aria-describedby 指到它；不印 %>
+    <p data-rejection hidden role="alert" class="mt-3 text-note text-red-700 print:hidden"></p>
     <div data-add-row class="mt-4 flex flex-wrap items-center gap-2 print:hidden">
       <label class="flex flex-wrap items-center gap-2 text-table text-slate-700">
         <span data-slot="add-label"></span>
-        <input type="text" data-add-input inputmode="numeric" pattern="<%= TIME_PATTERN %>" placeholder="HH:MM" class="<%= FIELD_CLASSES %>">
+        <input type="text" data-add-input inputmode="numeric" placeholder="HH:MM" class="<%= FIELD_CLASSES %>">
       </label>
       <button type="button" data-add class="<%= BUTTON_CLASSES %>"><%= t(".add") %></button>
     </div>
@@ -51,22 +56,29 @@
     <p data-rest-credit class="mt-4 text-slate-700"></p>
   </section>
 </template>
-<%# 一列一個來回，欄位照紙本：職號、姓名、發車、起點、調度員、到達、停留、返回發車、累計里程、返站、回站後停留、行駛里程、調度員 %>
+<%# 一列一個來回：最前面是刪除鈕，接著照紙本：職號、姓名、發車、起點、調度員、到達、停留、返回發車、累計里程、返站、回站後停留、行駛里程、調度員。
+    刪除鈕只有垃圾桶圖示，字放在 title 與 aria-label %>
 <template data-row-template>
   <tr data-row>
-    <td data-blank></td>
-    <td data-blank></td>
-    <td data-departure><span class="hidden print:inline"></span><input type="text" data-departure-input inputmode="numeric" pattern="<%= TIME_PATTERN %>" aria-label="<%= t(".departure_field") %>" class="<%= FIELD_CLASSES %>"></td>
+    <td class="print:hidden">
+      <button type="button" data-delete-row title="<%= t(".delete") %>" aria-label="<%= t(".delete") %>" class="<%= ICON_BUTTON_CLASSES %>">
+        <svg aria-hidden="true" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="size-5 fill-none stroke-current stroke-2">
+          <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M10 11v6M14 11v6" />
+        </svg>
+      </button>
+    </td>
+    <td data-blank class="hidden print:table-cell"></td>
+    <td data-blank class="hidden print:table-cell"></td>
+    <td data-departure><span class="hidden print:inline"></span><input type="text" data-departure-input inputmode="numeric" aria-label="<%= t(".departure_field") %>" class="<%= FIELD_CLASSES %>"></td>
     <td data-slot="origin" class="text-left"></td>
-    <td data-blank></td>
+    <td data-blank class="hidden print:table-cell"></td>
     <td data-arrival></td>
     <td data-stop></td>
-    <td data-departure><span class="hidden print:inline"></span><input type="text" data-departure-input inputmode="numeric" pattern="<%= TIME_PATTERN %>" aria-label="<%= t(".return_field") %>" class="<%= FIELD_CLASSES %>"></td>
-    <td data-blank></td>
+    <td data-departure><span class="hidden print:inline"></span><input type="text" data-departure-input inputmode="numeric" aria-label="<%= t(".return_field") %>" class="<%= FIELD_CLASSES %>"></td>
+    <td data-blank class="hidden print:table-cell"></td>
     <td data-arrival></td>
     <td data-stop></td>
-    <td data-blank></td>
-    <td data-blank></td>
-    <td class="print:hidden"><button type="button" data-delete-row class="<%= BUTTON_CLASSES %>"><%= t(".delete") %></button></td>
+    <td data-blank class="hidden print:table-cell"></td>
+    <td data-blank class="hidden print:table-cell"></td>
   </tr>
 </template>

@@ -22,6 +22,12 @@ export function timetable() {
     buffer: null,
     departures: null,
     vehicles: [],
+    // The one field on the page whose typed time was rejected, if any: the
+    // field, the cell or control marked invalid, and the message about it.
+    rejection: null,
+    // The departure field typed into since it was last submitted, if any:
+    // only the focused field takes typing, so there is at most one.
+    typedField: null,
 
     init() {
       const script = this.$root.querySelector("script[data-timetable-data]")
@@ -38,8 +44,14 @@ export function timetable() {
         print.hidden = false
         print.addEventListener("click", () => window.print())
       }
+      // Turbo caches the page for the back button as the dispatcher left it,
+      // but without the rejection: it answers what was just typed, and the
+      // component that comes back with the page knows nothing of it.
+      this.restoreBeforeCache = () => this.clearRejection()
+      document.addEventListener("turbo:before-cache", this.restoreBeforeCache)
       this.controls.addEventListener("change", () => this.regenerate())
-      this.sheets.addEventListener("change", (event) => this.departureChanged(event))
+      this.sheets.addEventListener("input", (event) => this.departureTyped(event))
+      this.sheets.addEventListener("focusout", (event) => this.departureLeft(event))
       this.sheets.addEventListener("click", (event) => this.sheetClicked(event))
       this.sheets.addEventListener("keydown", (event) => this.sheetKeyPressed(event))
       this.addVehicleControl = this.$root.querySelector("[data-add-vehicle]")
@@ -55,39 +67,68 @@ export function timetable() {
       this.layOut()
     },
 
+    destroy() {
+      document.removeEventListener("turbo:before-cache", this.restoreBeforeCache)
+    },
+
     // A vehicle added beside the laid-out ones, from the direction and the
-    // first departure typed into the control below the sheets; an invalid
-    // time marks the control and adds nothing.
+    // first departure typed into the control below the sheets, with the
+    // focus back in its emptied field; an invalid time is rejected and adds
+    // nothing.
     newVehicle() {
       const control = this.addVehicleControl
       const input = control.querySelector("[data-add-vehicle-input]")
       const minutes = parseClock(input.value)
       if (minutes === null) {
-        control.setAttribute("data-invalid", "")
+        this.reject(input, control, control.querySelector("[data-add-vehicle-rejection]"), input.value)
         return
       }
-      control.removeAttribute("data-invalid")
       const goBack = Number(control.querySelector("[data-add-vehicle-direction]").value)
       this.vehicles = addVehicle(this.vehicles, { goBack, departure: minutes }, this.planner(), this.holds())
       input.value = ""
       this.render()
+      input.focus()
     },
 
-    // A departure typed anew: an invalid time marks the cell and puts the
-    // previous time back; a valid one plans that trip again and recomputes
-    // everything that follows from it, leaving the other departures alone.
-    departureChanged(event) {
+    departureTyped(event) {
       const input = event.target.closest("[data-departure-input]")
-      if (!input) return
+      if (input) this.typedField = input
+    },
+
+    departureLeft(event) {
+      const input = event.target.closest("[data-departure-input]")
+      if (input) this.submitDeparture(input)
+    },
+
+    // A departure typed anew, when its field is left or on Enter: an invalid
+    // time is rejected and the previous time put back; the trip's own time
+    // again only rewrites the field; any other time plans that trip again and
+    // writes its sheet anew in place, leaving the other departures alone.
+    // Nothing is drawn again, so the focus stays where the dispatcher put it.
+    // A field not typed into since it was last submitted has nothing to
+    // submit, whatever it reads: Chrome fires change for a field the page
+    // wrote back, and none for the same text typed again.
+    submitDeparture(input) {
+      if (input !== this.typedField) return
+      this.typedField = null
       const cell = input.closest("[data-departure]")
-      const minutes = parseClock(input.value)
+      const current = Number(cell.dataset.departure)
+      const typed = input.value
+      const minutes = parseClock(typed)
       if (minutes === null) {
-        cell.setAttribute("data-invalid", "")
-        input.value = fieldClock(Number(cell.dataset.departure))
+        input.value = fieldClock(current)
+        this.reject(input, cell, cell.closest("[data-vehicle]").querySelector("[data-rejection]"), typed)
         return
       }
-      this.vehicles = changeDeparture(this.vehicles, { vehicle: Number(cell.dataset.sheet), index: Number(cell.dataset.index), departure: minutes }, this.planner())
-      this.render()
+      this.clearRejection()
+      if (minutes === current) {
+        input.value = fieldClock(minutes)
+        return
+      }
+      const number = Number(cell.dataset.sheet)
+      this.vehicles = changeDeparture(this.vehicles, { vehicle: number, index: Number(cell.dataset.index), departure: minutes }, this.planner())
+      this.writeSheet(cell.closest("[data-vehicle]"), this.vehicles.find((vehicle) => vehicle.number === number))
+      this.writeFigures()
     },
 
     sheetClicked(event) {
@@ -100,24 +141,66 @@ export function timetable() {
       if (event.target.closest("[data-add]")) this.addRow(event.target.closest("[data-vehicle]"))
     },
 
-    // Enter in the add control's field adds the row, as the button does.
+    // Enter submits a departure as leaving its field does, and in the add
+    // control's field adds the row, as the button does.
     sheetKeyPressed(event) {
-      if (event.key !== "Enter" || !event.target.closest("[data-add-input]")) return
-      event.preventDefault()
-      this.addRow(event.target.closest("[data-vehicle]"))
+      if (event.key !== "Enter") return
+      const departure = event.target.closest("[data-departure-input]")
+      if (departure) {
+        event.preventDefault()
+        this.submitDeparture(departure)
+      } else if (event.target.closest("[data-add-input]")) {
+        event.preventDefault()
+        this.addRow(event.target.closest("[data-vehicle]"))
+      }
     },
 
     // A row added to a sheet from the time typed into its add control; an
-    // invalid time marks the control and adds nothing.
+    // invalid time is rejected and adds nothing. The sheets are drawn
+    // anew, so the focus goes to the new sheet's add field, empty, found by
+    // the vehicle's number.
     addRow(section) {
       const control = section.querySelector("[data-add-row]")
-      const minutes = parseClock(control.querySelector("[data-add-input]").value)
+      const input = control.querySelector("[data-add-input]")
+      const minutes = parseClock(input.value)
       if (minutes === null) {
-        control.setAttribute("data-invalid", "")
+        this.reject(input, control, section.querySelector("[data-rejection]"), input.value)
         return
       }
-      this.vehicles = addRow(this.vehicles, { vehicle: Number(section.dataset.vehicle), departure: minutes }, this.planner(), this.holds())
+      const number = Number(section.dataset.vehicle)
+      this.vehicles = addRow(this.vehicles, { vehicle: number, departure: minutes }, this.planner(), this.holds())
       this.render()
+      this.sheets.querySelector(`[data-vehicle="${number}"] [data-add-input]`).focus()
+    },
+
+    // A typed time that cannot be read: the cell or control is marked
+    // invalid, the field is marked as an error and pointed at the message,
+    // which quotes what was typed, when anything was, and says how to write a
+    // time. The typed text goes in as text and is never read as a pattern.
+    // Only the latest rejection on the page is marked.
+    reject(field, invalid, message, typed) {
+      this.clearRejection()
+      const labels = this.sheetTemplate.dataset
+      const quoted = typed.trim()
+      invalid.setAttribute("data-invalid", "")
+      field.setAttribute("aria-invalid", "true")
+      field.setAttribute("aria-describedby", message.id)
+      message.textContent = quoted === "" ? labels.acceptedWritings : labels.rejectedTyped.replace("%{typed}", () => quoted)
+      message.hidden = false
+      this.rejection = { field, invalid, message }
+    },
+
+    // The rejection's marks taken off, once a time is accepted or the sheets
+    // are drawn anew.
+    clearRejection() {
+      if (!this.rejection) return
+      const { field, invalid, message } = this.rejection
+      invalid.removeAttribute("data-invalid")
+      field.removeAttribute("aria-invalid")
+      field.removeAttribute("aria-describedby")
+      message.hidden = true
+      message.textContent = ""
+      this.rejection = null
     },
 
     // The controls as they stand: the server's values on the first load, the
@@ -172,8 +255,21 @@ export function timetable() {
       window.history.replaceState(window.history.state, "", url)
     },
 
+    // Every sheet drawn anew, for the edits that change how many sheets or
+    // rows there are and for a new layout; each of them clears a rejection.
     render() {
+      this.clearRejection()
       this.sheets.replaceChildren(...this.vehicles.map((vehicle) => this.sheet(vehicle)))
+      this.writeFigures()
+      for (const row of this.$root.querySelectorAll("[data-section=overruns] tr[data-percentile]")) {
+        const selected = Number(row.dataset.percentile) === this.percentile
+        row.toggleAttribute("data-selected", selected)
+        SELECTED_ROW_CLASSES.forEach((name) => row.classList.toggle(name, selected))
+      }
+    },
+
+    // The header's figures from the vehicles as they stand.
+    writeFigures() {
       this.figure("vehicles", this.vehicles.length)
       for (const goBack of DIRECTIONS) {
         this.figure(`departures-${goBack}`, this.vehicles.reduce((count, vehicle) => count + vehicle.trips.filter((trip) => trip.goBack === goBack).length, 0))
@@ -181,11 +277,6 @@ export function timetable() {
       this.figure("edited", countEdited(this.vehicles))
       this.figure("percentile", this.percentile)
       this.figure("buffer", this.buffer)
-      for (const row of this.$root.querySelectorAll("[data-section=overruns] tr[data-percentile]")) {
-        const selected = Number(row.dataset.percentile) === this.percentile
-        row.toggleAttribute("data-selected", selected)
-        SELECTED_ROW_CLASSES.forEach((name) => row.classList.toggle(name, selected))
-      }
     },
 
     figure(name, value) {
@@ -198,34 +289,44 @@ export function timetable() {
       return this.sheetTemplate.getAttribute(`data-direction-${goBack}`)
     },
 
-    // One vehicle's sheet from the template: the title, the rows, the add
-    // control's wording, the all-day legend when a trip fell back, and the
-    // rest in the tightest four hours.
+    // One vehicle's sheet from the template: a row from the row template for
+    // each of its rows, the blank rows the paper has, then its values.
     sheet(vehicle) {
-      const labels = this.sheetTemplate.dataset
       const fragment = this.sheetTemplate.content.cloneNode(true)
       const section = fragment.querySelector("[data-vehicle]")
+      const body = section.querySelector("[data-slot=rows]")
+      const count = rows(vehicle.trips).length
+      for (let i = 0; i < count; i += 1) body.append(this.rowTemplate.content.cloneNode(true))
+      this.fillRows(body, count)
+      this.writeSheet(section, vehicle)
+      return fragment
+    },
+
+    // A sheet's values, into a sheet just cloned or one already on the page
+    // with a row element for each of the vehicle's rows: the title, the rows,
+    // the add control's wording, the all-day legend when a trip fell back,
+    // and the rest in the tightest four hours.
+    writeSheet(section, vehicle) {
+      const labels = this.sheetTemplate.dataset
       section.dataset.vehicle = vehicle.number
       section.id = `vehicle-${vehicle.number}`
+      section.querySelector("[data-rejection]").id = `rejection-${vehicle.number}`
       const title = labels.title.replace("%{number}", vehicle.number)
       section.querySelector("[data-slot=title]").textContent = title
       section.querySelector("[data-slot=run-number]").textContent = title
       section.querySelector("[data-slot=print-header]").textContent = labels.printHeader.replace("%{percentile}", this.percentile).replace("%{buffer}", this.buffer)
-      const body = section.querySelector("[data-slot=rows]")
       const sheetRows = rows(vehicle.trips)
-      for (const row of sheetRows) body.append(this.row(vehicle, row, labels))
-      this.fillRows(body, sheetRows.length)
+      section.querySelectorAll("tr[data-row]").forEach((tr, i) => this.writeRow(tr, vehicle, sheetRows[i], labels))
       section.querySelector("[data-slot=add-label]").textContent = labels.addLabel.replace("%{direction}", this.directionName(vehicle.trips[0].goBack))
       section.querySelector("[data-fallback-legend]").hidden = !vehicle.trips.some((trip) => trip.fallback)
       const credit = minimumCredit(vehicle.trips)
       const line = section.querySelector("[data-rest-credit]")
       line.dataset.restCredit = credit ?? ""
       line.textContent = credit === null ? labels.shorterText : labels.restCreditText.replace("%{minutes}", credit)
-      return fragment
     },
 
     // Blank rows after the trips until the sheet has the paper's row count,
-    // shown only when printed; the last cell is the actions column, which is
+    // shown only when printed; the first cell is the actions column, which is
     // not printed either.
     fillRows(body, count) {
       const columns = this.sheetTemplate.content.querySelectorAll("thead th").length
@@ -235,16 +336,16 @@ export function timetable() {
         tr.className = "hidden print:table-row"
         for (let c = 0; c < columns; c += 1) {
           const td = document.createElement("td")
-          if (c === columns - 1) td.className = "print:hidden"
+          if (c === 0) td.className = "print:hidden"
           tr.append(td)
         }
         body.append(tr)
       }
     },
 
-    row(vehicle, row, labels) {
-      const fragment = this.rowTemplate.content.cloneNode(true)
-      const tr = fragment.querySelector("[data-row]")
+    // A row's values: the two trips' times and the stops after them, the
+    // first stop's name, and which row the delete control takes out.
+    writeRow(tr, vehicle, row, labels) {
       tr.dataset.row = row.number
       const departures = tr.querySelectorAll("[data-departure]")
       const arrivals = tr.querySelectorAll("[data-arrival]")
@@ -263,7 +364,6 @@ export function timetable() {
       const remove = tr.querySelector("[data-delete-row]")
       remove.dataset.sheet = vehicle.number
       remove.dataset.row = row.number
-      return fragment
     },
 
     // A departure cell: the printed time, the editable field with the

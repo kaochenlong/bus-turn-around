@@ -45,6 +45,7 @@ RSpec.describe "班表的列印", :js, type: :system do
                           needs_script: "[data-needs-script]", print: "button[data-print]", add_vehicle: "[data-add-vehicle]", delete: "button[data-delete-row]",
                           add_row: "[data-add-row]", departure_input: "[data-departure] input", departure_text: "[data-departure] span",
                           sheet_header: "[data-sheet-form-header]", screen_title: "[data-vehicle] [data-slot=title]", filler: "tr[data-filler]",
+                          blank_header: "th[data-column=driver_number]", blank_cell: "td[data-blank]",
                           overruns: "[data-section=overruns]", footer: "footer[data-attribution]", limitations: "[data-section=limitations]" }
       const display = (element) => {
         for (let node = element; node; node = node.parentElement) {
@@ -65,6 +66,11 @@ RSpec.describe "班表的列印", :js, type: :system do
   # How many rows each sheet prints, trips and blank ones together.
   def printed_rows = '[...document.querySelectorAll("[data-sheets] [data-vehicle]")].map((sheet) => [...sheet.querySelectorAll("tbody tr")].filter((tr) => getComputedStyle(tr).display === "table-row").length)'
 
+  # For each printed row, trips and blank ones together, the positions of its
+  # cells that are not printed.
+  def unprinted_cells = '[...document.querySelectorAll("[data-sheets] [data-vehicle] tbody tr")].filter((tr) => getComputedStyle(tr).display === "table-row")' \
+                        '.map((tr) => [...tr.cells].flatMap((td, i) => (getComputedStyle(td).display === "none" ? [i] : [])))'
+
   # The ruled lines: the top border of the first printed cell.
   def first_cell_border = 'getComputedStyle(document.querySelector("[data-sheets] [data-vehicle] tbody td")).borderTopWidth'
 
@@ -84,11 +90,12 @@ RSpec.describe "班表的列印", :js, type: :system do
     expect(page.evaluate_script("window.printCalls")).to eq(1)
   end
 
-  it "列印樣式下：名稱列、頁首、控制項、提醒、需要 JavaScript 那一句、列印鈕、再加一台車、刪除鈕、加一列與時刻輸入框都不印；時刻印成文字，每張單的抬頭、超時表、資料限制與頁尾照印" do
+  it "列印樣式下：名稱列、頁首、控制項、提醒、需要 JavaScript 那一句、列印鈕、再加一台車、刪除鈕、加一列與時刻輸入框都不印；時刻印成文字，每張單的抬頭、手填欄、超時表、資料限制與頁尾照印" do
     open_timetable
     expect(under_print_styles(displays)).to eq("site_bar" => "none", "header" => "none", "controls" => "none", "notice" => "none", "needs_script" => "none", "print" => "none",
                                                 "add_vehicle" => "none", "delete" => "none", "add_row" => "none", "departure_input" => "none", "departure_text" => "inline",
-                                                "sheet_header" => "block", "screen_title" => "none", "filler" => "table-row", "overruns" => "block", "footer" => "block", "limitations" => "block")
+                                                "sheet_header" => "block", "screen_title" => "none", "filler" => "table-row", "blank_header" => "table-cell", "blank_cell" => "table-cell",
+                                                "overruns" => "block", "footer" => "block", "limitations" => "block")
   end
 
   it "一車一頁：三張單各自印完就換頁；印出來至少四頁（最後一頁是超時表、資料限制與頁尾）" do
@@ -101,6 +108,11 @@ RSpec.describe "班表的列印", :js, type: :system do
     headers = under_print_styles(sheet_headers)
     expect([ headers.map { |text| %w[公司 站 測試幹線 車號 星期 2026-10-19 平日 p85 15].all? { text.include?(it) } }.uniq, headers.first.include?("車次 1"), under_print_styles(printed_rows).min,
              under_print_styles(first_cell_border) ]).to eq([ [ true ], true, 14, "1px" ])
+  end
+
+  it "印出來每一列只有最前面的操作格不印：有趟次的列與補的空白列的欄位對得齊" do
+    open_timetable
+    expect(under_print_styles(unprinted_cells).uniq).to eq([ [ 0 ] ])
   end
 
   # The width inside the page's own margins of an A4 landscape page, in CSS
@@ -133,5 +145,11 @@ RSpec.describe "班表的列印", :js, type: :system do
   it "螢幕上看不到印刷用的表單抬頭與空白列：它們只為了印" do
     open_timetable
     expect([ page.has_no_css?("[data-sheet-form-header]", visible: :visible), page.has_no_css?("tr[data-filler]", visible: :visible) ]).to eq([ true, true ])
+  end
+
+  it "螢幕上看不到手填欄：職號、姓名、兩個調度員、兩個里程的表頭與格子只為了印" do
+    open_timetable
+    headers = %w[driver_number driver_name dispatcher accumulated_mileage trip_mileage dispatcher_again].map { "th[data-column='#{it}']" }.join(", ")
+    expect([ page.has_no_css?(headers, visible: :visible), page.has_no_css?("td[data-blank]", visible: :visible) ]).to eq([ true, true ])
   end
 end
