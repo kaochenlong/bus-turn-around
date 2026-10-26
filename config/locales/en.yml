@@ -46,9 +46,22 @@ en:
   day_types:
     weekday: weekday
     holiday: holiday
+  times:
+    next_day: "next day %{time}"
+    rejected_typed: "“%{typed}” is not a time. %{writings}"
+    accepted_writings: "Type a time as 0530, 530, 5:30 or 05:30; past midnight keep counting from 24, so 00:45 is 2445, up to 29:59."
+  plan_controls:
+    percentile: Run time percentile
+    percentile_option: "p%{value}"
+    buffer: Rest at the stopping end (min)
   directions:
     "0": outbound
     "1": inbound
+  day_dispatches:
+    show:
+      document_title: "%{route} day dispatch | %{site}"
+      document_title_without_route: "Day dispatch | %{site}"
+      needs_script: "This page needs JavaScript: the day dispatch is kept and worked out in this browser."
   timetables:
     show:
       eyebrow: Timetable

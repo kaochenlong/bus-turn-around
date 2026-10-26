@@ -1,0 +1,17 @@
+<%# 底色跟班表頁一樣設在 body 上，layout 在頁面之後輸出的顯名聲明 footer 才會同一個底色 %>
+<% content_for :body_class, "bg-slate-50" %>
+<% content_for :title, @route_name ? t(".document_title", route: @route_name, site: t("site.name")) : t(".document_title_without_route", site: t("site.name")) %>
+<%# 換過來時不拿 Turbo 快取裡上一次的畫面當預覽，免得先閃一下別的一天；上一頁照舊用快取，元件初始化時重新畫 %>
+<% content_for :head do %><meta name="turbo-cache-control" content="no-preview"><% end %>
+<%# 當天調度只在瀏覽器裡：dayDispatch 找這個分頁交過來的、或這台電腦存著的今天那一天畫出來，找不到就打開今天的計畫，從那裡開始當天 %>
+<%= tag.main data: { day_dispatch_page: true }, "x-data": "dayDispatch",
+             class: "page-column flex flex-col gap-4 py-8 font-route text-body text-slate-800 [font-variant-numeric:tabular-nums] sm:gap-6" do %>
+  <%# 沒有 JavaScript 就只有這一句，Alpine 初始化時把它藏起來 %>
+  <p data-needs-script class="rounded border border-amber-300 bg-amber-50 p-4"><%= t(".needs_script") %></p>
+  <% if @timetable %>
+    <%# 今天的計畫要鋪的資料，跟班表頁嵌的同一份；json_escape 讓內容不會提早關掉 script %>
+    <script type="application/json" data-plan-data><%= ERB::Util.json_escape(@timetable.data.to_json).html_safe %></script>
+  <% end %>
+  <%= render DayStartComponent.new(route_id: @route_id, route_name: @route_name, day_type: @plan.day_type, timetable: @timetable, percentile: @percentile, buffer: @buffer) %>
+  <%= render DayDispatchComponent.new(route_id: @route_id, route_name: @route_name, stop_names: @stop_names) %>
+<% end %>

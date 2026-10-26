@@ -132,6 +132,10 @@ RSpec.describe "Timetables", type: :request do
       expect(page.at_css("[data-add-vehicle]")&.key?("hidden")).to be(true)
     end
 
+    it "班表頁只排班：沒有開始當天、繼續那一天，也沒有當天調度區塊" do
+      expect(%w[[data-day-start] [data-day-continue] [data-day-dispatch]].map { page.css(it).size }).to eq([ 0, 0, 0 ])
+    end
+
     it "文件標題帶路線名、班表與站名" do
       expect(page.at_css("title").text).to eq(I18n.t("timetables.show.document_title", route: "測試幹線", site: I18n.t("site.name")))
     end

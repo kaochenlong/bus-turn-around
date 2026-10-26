@@ -151,7 +151,7 @@ RSpec.describe "班表在瀏覽器裡鋪排與微調", :js, type: :system do
     within("[data-add-vehicle]") { find("input").set("25:70").then { click_button "加一台車" } }
     message = find("[data-add-vehicle] [data-add-vehicle-rejection]")
     input = find("[data-add-vehicle-input]")
-    expect([ input[:"aria-invalid"], input[:"aria-describedby"] == message[:id], message.text ]).to eq([ "true", true, sheet_text("rejected_typed", typed: "25:70", writings: sheet_text("accepted_writings")) ])
+    expect([ input[:"aria-invalid"], input[:"aria-describedby"] == message[:id], message.text ]).to eq([ "true", true, I18n.t("times.rejected_typed", typed: "25:70", writings: I18n.t("times.accepted_writings")) ])
   end
 
   it "加一台車打 25:70 被退回後改打 1500 再加：說明不見，沒有標成錯誤或無效的地方，多一張 4 號車" do
@@ -324,7 +324,7 @@ RSpec.describe "班表在瀏覽器裡鋪排與微調", :js, type: :system do
       input = retype(1, 1, 1, "23:70")
       message = find("[data-vehicle='1'] [data-rejection]")
       expect([ input.value, input[:"aria-invalid"], input[:"aria-describedby"] == message[:id], message.text ])
-        .to eq([ "07:30", "true", true, sheet_text("rejected_typed", typed: "23:70", writings: sheet_text("accepted_writings")) ])
+        .to eq([ "07:30", "true", true, I18n.t("times.rejected_typed", typed: "23:70", writings: I18n.t("times.accepted_writings")) ])
     end
 
     it "23:70 被退回後，同一列的發車格打 0605：頁面上沒有標成錯誤或無效的格子，說明不見" do
@@ -361,7 +361,7 @@ RSpec.describe "班表在瀏覽器裡鋪排與微調", :js, type: :system do
     it "加一列什麼都沒打就按加一列：加一列的輸入框標成錯誤，1 號車的說明只寫時刻可以怎麼打" do
       open_for_edits
       within("[data-vehicle='1']") { click_button "加一列" }
-      expect([ find("[data-vehicle='1'] [data-add-input]")[:"aria-invalid"], find("[data-vehicle='1'] [data-rejection]").text ]).to eq([ "true", sheet_text("accepted_writings") ])
+      expect([ find("[data-vehicle='1'] [data-add-input]")[:"aria-invalid"], find("[data-vehicle='1'] [data-rejection]").text ]).to eq([ "true", I18n.t("times.accepted_writings") ])
     end
 
     # Chrome fires change on leaving a field whose text differs from when it

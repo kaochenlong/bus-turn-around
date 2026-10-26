@@ -1,17 +1,21 @@
-<% text_link = "inline-flex min-h-11 items-center rounded-sm text-table font-medium text-slate-600 select-none hover:text-slate-900 " \
+<%# 連結的字色跟著 aria-current：班表頁上「班表」是目前這一頁，當天調度頁上是「當天調度」。
+    relative：關於的後半段在手機上是 sr-only（絕對定位），以連結為準，不會把版面撐寬 %>
+<% text_link = "relative inline-flex min-h-11 items-center rounded-sm text-table font-medium text-slate-600 select-none hover:text-slate-900 aria-[current=page]:text-slate-900 " \
                "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700" %>
 <header data-site-bar class="border-b border-slate-200 bg-white font-route">
-  <div class="page-column flex items-center justify-between gap-4 py-3.5">
+  <%# 選單接在標誌旁邊靠左 %>
+  <div class="page-column flex items-center gap-4 py-3.5 sm:gap-7">
     <%= link_to helpers.root_path, class: "inline-flex rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700" do %>
       <%= image_tag "turnaround-logo.webp", alt: "", width: 640, height: 219, class: "h-12 w-auto", aria: { hidden: true } %>
       <span class="sr-only"><%= t("site.name") %></span>
     <% end %>
     <div class="flex items-center gap-5 sm:gap-7">
       <% if timetable_link? %>
-        <%# 班表頁上是目前這一頁：標 aria-current，字色深一點 %>
-        <%= link_to t(".timetable"), timetable_path, aria: { current: timetable_current }, class: [ text_link, ("text-slate-900" if timetable_current) ] %>
+        <%= link_to t(".timetable"), timetable_path, aria: { current: current_for(:timetable) }, data: { timetable_link: true }, class: text_link %>
+        <%= link_to t(".day_dispatch"), day_dispatch_path, aria: { current: current_for(:dispatch) }, data: { day_dispatch_link: true }, class: text_link %>
       <% end %>
-      <%= link_to t(".about"), ABOUT_URL, class: text_link %>
+      <%# 手機上（640px 以下）只顯示「關於」，後半段留給讀螢幕軟體，連結文字照舊是完整的 %>
+      <%= link_to ABOUT_URL, class: text_link do %><%= t(".about_lead") %><span class="max-sm:sr-only"><%= t(".about_rest") %></span><% end %>
     </div>
   </div>
 </header>

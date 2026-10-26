@@ -5,8 +5,9 @@
 // reload starts from them. The page is complete without the sheets only in
 // the sense that it says it needs JavaScript.
 import { addRow, addVehicle, changeDeparture, countEdited, countPushed, deleteRow, pushedMinutes } from "./edits.js"
+import { wholeInRange } from "./fields.js"
 import { clock, fieldClock, parseClock, stopText } from "./format.js"
-import { layOut, plan } from "./layout.js"
+import { holdsFor, layOut, plan } from "./layout.js"
 import { minimumCredit } from "./rest_windows.js"
 import { rows } from "./rows.js"
 
@@ -208,20 +209,11 @@ export function timetable() {
     // dispatcher's when Turbo brings the page back from its cache.
     readControls() {
       this.percentile = Number(this.controls.querySelector("select[name=p]").value)
-      this.buffer = this.inRange(this.controls.querySelector("input[name=buffer]"), this.data.bufferRange, this.buffer ?? this.data.buffer)
+      this.buffer = wholeInRange(this.controls.querySelector("input[name=buffer]"), this.data.bufferRange, this.buffer ?? this.data.buffer)
       this.departures = Object.fromEntries(DIRECTIONS.map((goBack) => [goBack, HOURS.map((hour) => {
         const input = this.controls.querySelector(`input[name="departures[${goBack}][${hour}]"]`)
-        return this.inRange(input, this.data.departuresRange, this.departures?.[goBack]?.[hour] ?? this.data.departures[goBack][hour])
+        return wholeInRange(input, this.data.departuresRange, this.departures?.[goBack]?.[hour] ?? this.data.departures[goBack][hour])
       })]))
-    },
-
-    // A number input's whole value within the range; otherwise the fallback,
-    // written back into the input so the page and the layout agree.
-    inRange(input, [min, max], fallback) {
-      const value = Number(input.value)
-      const ok = input.value.trim() !== "" && Number.isInteger(value) && value >= min && value <= max
-      if (!ok) input.value = fallback
-      return ok ? value : fallback
     },
 
     // A control changed: lay the whole timetable out again from the controls,
@@ -240,7 +232,7 @@ export function timetable() {
     // The hold after a trip of each direction now: the rest at a stopping end,
     // the measured median at a pass-through end.
     holds() {
-      return Object.fromEntries(DIRECTIONS.map((goBack) => [goBack, this.data.stoppingEnds.includes(goBack) ? this.buffer : this.data.holds[goBack]]))
+      return holdsFor(this.data, this.buffer)
     },
 
     planner() {

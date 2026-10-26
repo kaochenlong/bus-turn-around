@@ -40,15 +40,15 @@
     <div data-timetable-controls class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4.5 py-4 sm:px-5.5 sm:py-4.5 print:hidden">
       <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
         <label class="flex flex-col gap-1.5 font-semibold text-slate-900">
-          <%= t(".controls.percentile") %>
+          <%= t("plan_controls.percentile") %>
           <select name="p" class="<%= field %>">
             <% percentiles.each do |percentile| %>
-              <%= tag.option t(".controls.percentile_option", value: percentile), value: percentile, selected: percentile == @timetable.percentile %>
+              <%= tag.option t("plan_controls.percentile_option", value: percentile), value: percentile, selected: percentile == @timetable.percentile %>
             <% end %>
           </select>
         </label>
         <label class="flex flex-col gap-1.5 font-semibold text-slate-900">
-          <%= t(".controls.buffer") %>
+          <%= t("plan_controls.buffer") %>
           <input type="number" name="buffer" min="<%= buffer_range.min %>" max="<%= buffer_range.max %>" step="1" value="<%= @timetable.buffer %>" class="<%= field %> w-24">
         </label>
       </div>

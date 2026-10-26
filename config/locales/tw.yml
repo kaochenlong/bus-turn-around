@@ -18,10 +18,25 @@ tw:
   day_types:
     weekday: 平日
     holiday: 假日
+  # 時刻的寫法，班表的單子與當天調度共用：過了午夜的時刻，與打不出來的時刻怎麼說
+  times:
+    next_day: "隔日 %{time}"
+    rejected_typed: "「%{typed}」不是時刻。%{writings}"
+    accepted_writings: "時刻可以打 0530、530、5:30 或 05:30；過了午夜從 24 接著算，凌晨 00:45 打 2445，最晚 29:59。"
+  # 鋪排用的行駛時間百分位數與停車端的休息，班表頁與當天調度頁的今天的計畫共用
+  plan_controls:
+    percentile: 行駛時間取第幾百分位
+    percentile_option: "p%{value}"
+    buffer: 停車端每次休息（分）
   # 趟次的兩個方向（go_back），班表頁與單子共用
   directions:
     "0": 去程
     "1": 返程
+  day_dispatches:
+    show:
+      document_title: "%{route} 當天調度｜%{site}"
+      document_title_without_route: "當天調度｜%{site}"
+      needs_script: 這一頁要有 JavaScript：當天調度存在這台電腦的瀏覽器裡，也在瀏覽器裡算。
   timetables:
     show:
       eyebrow: 班表
@@ -31,6 +46,7 @@ tw:
         direction: 第一趟的方向
         departure: 第一趟的發車時間
         button: 加一台車
+      # 當天調度的入口：用鋪好的單開始當天，或繼續這台電腦存著的那一天
       document_title: "%{route} 班表｜%{site}"
       document_title_without_route: "班表｜%{site}"
       no_data: "%{day} 沒有資料，鋪不出班表。"

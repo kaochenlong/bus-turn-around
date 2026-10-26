@@ -1,0 +1,157 @@
+<%# 當天調度：排班時藏著，沒有腳本就一直藏著；瀏覽器開始或繼續一天之後打開，排班的部分同時藏起來。
+    這裡只有骨架、文案與伺服器知道的路線；當天的計畫與修改只在瀏覽器裡，數字、列與清單由 app/frontend/timetable/day_view.js
+    照下面的 template 與 data-labels 的字填，車只寫單子上的車號 %>
+<section data-day-dispatch hidden data-route-id="<%= route_id %>" data-labels="<%= labels_json %>"
+         class="flex flex-col gap-4">
+  <header class="flex flex-wrap items-end justify-between gap-3">
+    <div class="flex flex-col gap-1">
+      <%= eyebrow(t(".eyebrow")) %>
+      <h1 class="text-section-sm leading-tight font-bold text-slate-900 sm:text-section"><%= route_name %>　<span data-slot="date"></span></h1>
+      <p data-slot="basis" class="text-label-sm text-slate-600"></p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <%# 計畫的班表連到班表頁：瀏覽器照顯示的那一天把計畫依據填進網址，打開就是同一份單子 %>
+      <a href="<%= timetable_path %>" data-plan-timetable class="<%= BUTTON_CLASSES %> inline-flex items-center"><%= t(".plan_timetable") %></a>
+      <button type="button" data-restart class="<%= BUTTON_CLASSES %>"><%= t(".restart") %></button>
+    </div>
+  </header>
+
+  <%# 存不進這台電腦的瀏覽器時（無痕視窗、被擋、滿了）才出現；改的照樣算 %>
+  <p data-not-kept hidden role="status" class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-label text-slate-800"><%= t(".not_kept") %></p>
+
+  <%# 頁首四個數字：只報數字，不標好壞 %>
+  <dl class="flex flex-wrap gap-2 text-label-sm text-slate-700">
+    <% %w[swaps typed waiting shortest].each do |figure| %>
+      <div class="inline-flex items-baseline gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5">
+        <dt><%= t(".figures.#{figure}") %></dt>
+        <dd class="inline-flex items-baseline gap-1">
+          <span data-figure="<%= figure %>" class="font-route-figure text-lead font-bold text-slate-900"></span><%= t(".figures.#{figure}_unit") %>
+          <% if figure == "shortest" %><span data-slot="shortest-detail"></span><% end %>
+        </dd>
+      </div>
+    <% end %>
+  </dl>
+
+  <div class="flex flex-wrap items-start gap-4">
+    <section class="flex min-w-0 flex-[999_1_640px] flex-col gap-2.5 rounded-lg border border-slate-200 bg-white p-4">
+      <div role="group" aria-label="<%= t(".ends_label") %>" class="flex flex-wrap gap-2">
+        <% ends.each do |an_end| %>
+          <button type="button" data-end="<%= an_end.go_back %>" data-name="<%= an_end.name %>" aria-pressed="false" class="<%= END_BUTTON_CLASSES %>"><%= an_end.label %></button>
+        <% end %>
+      </div>
+      <p class="text-label-sm text-slate-600"><%= t(".departures_note") %></p>
+      <%# 發車表的格子沒有地方寫原因：先打在這裡，下一個換車或改發車時刻一起記下，記下之後清空 %>
+      <label class="flex flex-col gap-1 text-tick text-slate-600">
+        <%= t(".change_reason") %>
+        <input type="text" data-change-reason placeholder="<%= t(".record.reason_placeholder") %>" class="<%= FIELD_CLASSES %> w-full max-w-sm">
+      </label>
+      <%# 手機上放不下，表放在可橫向捲動的框裡 %>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-150 table-fixed border-collapse text-label text-slate-900">
+          <colgroup>
+            <col class="w-19"><col class="w-22"><col class="w-45"><col><col class="w-19"><col class="w-23">
+          </colgroup>
+          <thead>
+            <tr class="h-8 border-b border-slate-300 text-left text-tick font-semibold text-slate-600">
+              <th class="px-1.5"><%= t(".columns.departure") %></th>
+              <th class="px-1.5"><%= t(".columns.planned") %></th>
+              <th class="px-1.5"><%= t(".columns.vehicle") %></th>
+              <th data-slot="arrival-column" class="px-1.5"></th>
+              <th class="px-1.5 text-right"><%= t(".columns.stop") %></th>
+              <th class="px-1.5"><%= t(".columns.status") %></th>
+            </tr>
+          </thead>
+          <tbody data-slot="departures"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside class="flex min-w-0 flex-[1_1_320px] flex-col gap-3">
+      <section class="<%= CARD_CLASSES %>">
+        <h2 data-slot="standing-heading" class="text-note font-bold text-slate-900"></h2>
+        <ul data-slot="standing" class="flex flex-col gap-1.5"></ul>
+        <p data-standing-none hidden class="text-label-sm text-slate-500"><%= t(".standing_none") %></p>
+        <h3 class="mt-1.5 text-label-sm font-semibold text-slate-600"><%= t(".arriving_heading") %></h3>
+        <ul data-slot="arriving" class="grid grid-cols-[72px_56px_minmax(0,1fr)] gap-y-1 text-label-sm"></ul>
+        <p data-arriving-none hidden class="text-label-sm text-slate-500"><%= t(".arriving_none") %></p>
+      </section>
+
+      <section class="<%= CARD_CLASSES %>">
+        <h2 data-slot="record-heading" class="text-note font-bold text-slate-900"></h2>
+        <%# 不是送出的表單：瀏覽器記下之後存在這台電腦 %>
+        <form data-record novalidate class="flex flex-col gap-2.5">
+          <div class="flex flex-wrap gap-2.5">
+            <label class="flex flex-col gap-1 text-tick text-slate-600">
+              <%= t(".record.vehicle") %>
+              <select data-record-vehicle class="<%= FIELD_CLASSES %> min-w-24"></select>
+            </label>
+            <label class="flex flex-col gap-1 text-tick text-slate-600">
+              <%= t(".record.time") %>
+              <input type="text" data-record-time inputmode="numeric" placeholder="HH:MM" class="<%= FIELD_CLASSES %> w-22 font-route-figure text-note">
+            </label>
+            <label class="flex flex-[1_1_140px] flex-col gap-1 text-tick text-slate-600">
+              <%= t(".record.reason") %>
+              <input type="text" data-record-reason placeholder="<%= t(".record.reason_placeholder") %>" class="<%= FIELD_CLASSES %> w-full">
+            </label>
+          </div>
+          <button type="submit" class="<%= PRIMARY_BUTTON_CLASSES %> self-start"><%= t(".record.submit") %></button>
+          <p data-record-message id="day-record-message" hidden role="alert" class="text-label text-red-700"></p>
+        </form>
+      </section>
+
+      <section class="<%= CARD_CLASSES %>">
+        <h2 class="text-note font-bold text-slate-900"><%= t(".credits_heading", hours: WINDOW_HOURS) %></h2>
+        <ul data-slot="credits" class="grid grid-cols-[72px_minmax(0,1fr)] gap-y-1 text-label-sm"></ul>
+      </section>
+
+      <section class="<%= CARD_CLASSES %>">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 data-slot="changes-heading" class="text-note font-bold text-slate-900"></h2>
+          <button type="button" data-undo class="<%= BUTTON_CLASSES %>"><%= t(".undo") %></button>
+        </div>
+        <ol data-slot="changes" class="grid grid-cols-[48px_minmax(0,1fr)] gap-x-2 gap-y-1.5 text-label-sm"></ol>
+        <p data-changes-none hidden class="text-label-sm text-slate-500"><%= t(".changes_none") %></p>
+      </section>
+    </aside>
+  </div>
+
+  <%# 發車表的一列：發車可以打時刻、派車是選單；換過車時派車底下寫原排；時刻被退回或換車不成立時，下一列寫原因 %>
+  <template data-departure-row>
+    <tr data-trip class="border-b border-slate-100 data-[status=departed]:text-slate-500 data-[status=next]:bg-teal-50">
+      <td class="h-12 px-1.5 in-data-[status=departed]:h-10">
+        <input type="text" data-control="departure" inputmode="numeric"
+               class="w-16 rounded border border-transparent bg-transparent px-1 py-0.5 font-route-figure text-note hover:border-slate-300 aria-[invalid=true]:border-red-600 in-data-[status=next]:text-[17px] in-data-[status=next]:font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+      </td>
+      <td data-slot="planned" class="px-1.5 text-slate-500"></td>
+      <td class="px-1.5 py-1">
+        <select data-control="vehicle" class="<%= FIELD_CLASSES %> w-full in-data-swapped:border-2 in-data-swapped:border-teal-700"></select>
+        <span data-slot="swapped" class="block text-tick text-teal-700"></span>
+      </td>
+      <td class="px-1.5"><span data-slot="arrival" class="font-route-figure text-note text-slate-700"></span><span data-slot="recorded" hidden class="ml-1.5 text-tick text-slate-600"><%= t(".recorded") %></span></td>
+      <td data-slot="stop" class="px-1.5 text-right font-route-figure text-note in-data-[status=next]:text-[17px] in-data-[status=next]:font-bold in-data-[status=next]:text-teal-700"></td>
+      <td data-slot="status" class="px-1.5 text-label-sm in-data-[status=next]:font-semibold in-data-[status=planned]:text-slate-500 in-data-[status=waiting]:font-semibold in-data-[status=waiting]:text-amber-800"></td>
+    </tr>
+  </template>
+  <template data-row-message>
+    <tr data-row-message><td colspan="6" class="px-1.5 pb-2"><p role="alert" class="text-label text-red-700"></p></td></tr>
+  </template>
+  <template data-now-line>
+    <tr data-now-line>
+      <td colspan="6" class="h-5.5 px-1.5">
+        <span class="flex items-center gap-2 text-tick font-semibold text-teal-700"><span aria-hidden="true" class="h-0.5 flex-1 bg-teal-700"></span><span data-slot="now"></span><span aria-hidden="true" class="h-0.5 flex-1 bg-teal-700"></span></span>
+      </td>
+    </tr>
+  </template>
+  <template data-standing-item>
+    <li class="flex items-center gap-2.5 rounded-md border border-slate-300 px-2.5 py-2"><span data-slot="vehicle" class="shrink-0 font-bold whitespace-nowrap text-slate-900"></span><span data-slot="detail" class="text-slate-700"></span></li>
+  </template>
+  <template data-arriving-item>
+    <li class="contents"><span data-slot="vehicle" class="font-semibold whitespace-nowrap text-slate-900"></span><span data-slot="arrival" class="font-route-figure text-label"></span><span data-slot="next" class="text-slate-600"></span></li>
+  </template>
+  <template data-credit-item>
+    <li class="contents"><span data-slot="vehicle" class="font-semibold whitespace-nowrap text-slate-900"></span><span><span data-slot="now" class="font-route-figure text-label"></span> <span data-slot="planned" class="text-slate-500"></span></span></li>
+  </template>
+  <template data-change-item>
+    <li class="contents"><span data-slot="at" class="font-route-figure text-label font-semibold"></span><span class="in-data-undone:text-slate-500"><span data-slot="text" class="in-data-undone:line-through"></span><span data-slot="reason" class="in-data-undone:line-through"></span><span data-slot="undone" hidden class="ml-1.5 rounded bg-slate-100 px-1.5 text-tick text-slate-600"><%= t(".undone") %></span></span></li>
+  </template>
+</section>

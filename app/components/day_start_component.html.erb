@@ -1,0 +1,62 @@
+<%# 今天的計畫：當天調度頁上沒有可以顯示的那一天時，瀏覽器打開這一塊；沒有腳本就一直藏著。
+    app/frontend/timetable/day_page.js 照頁面嵌的資料鋪（跟班表頁沒改過的單子同一種鋪法），填今天的日期與鋪成幾台車；
+    日型別、百分位數與休息在同一個送回這一頁的 GET 表單裡：換日型別時送出，伺服器換一份涵蓋的資料；改百分位數與休息只在瀏覽器重鋪 %>
+<%= tag.section hidden: true, data: { day_start: true, labels: labels_json, days: (covered_days.map(&:iso8601).to_json if timetable), day_type: (day_type if timetable) },
+                class: "flex flex-col gap-4 sm:gap-6" do %>
+  <header class="flex flex-col gap-1">
+    <%= eyebrow(t(".eyebrow")) %>
+    <h1 class="text-section-sm leading-tight font-bold text-slate-900 sm:text-section"><%= route_name %>　<span data-slot="date"></span></h1>
+    <p class="text-label-sm text-slate-600"><%= t(".note") %></p>
+  </header>
+  <section aria-labelledby="day-start-title" class="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:px-6 sm:py-5">
+    <div class="flex flex-col gap-1">
+      <h2 id="day-start-title" class="text-lead font-bold text-slate-900"><%= t(".title") %></h2>
+      <% if timetable %>
+        <p data-basis class="text-label text-slate-600"><%= basis %></p>
+      <% else %>
+        <p data-no-plan class="text-label text-slate-600"><%= t(".no_plan", day_type: day_type_label(day_type)) %></p>
+      <% end %>
+    </div>
+    <%# 這台電腦存著昨天的那一天、或存著的讀不出來時，瀏覽器才打開這兩句 %>
+    <p data-yesterday hidden class="flex flex-wrap items-center gap-x-3 gap-y-2 text-label text-slate-600">
+      <span data-slot="yesterday"></span>
+      <button type="button" data-continue class="<%= BUTTON_CLASSES %>"><%= t(".continue") %></button>
+    </p>
+    <p data-unreadable hidden class="text-label text-slate-600"></p>
+    <form action="<%= dispatch_path %>" method="get" data-plan-controls class="flex flex-wrap items-start gap-x-5 gap-y-4">
+      <div class="flex flex-col gap-1.5">
+        <label for="day-start-type" class="text-label font-semibold text-slate-900"><%= t(".type") %></label>
+        <select id="day-start-type" name="type" aria-describedby="day-start-type-hint" class="<%= FIELD_CLASSES %> w-30">
+          <% DAY_TYPES.each do |type| %>
+            <%= tag.option day_type_label(type), value: type, selected: type == day_type %>
+          <% end %>
+        </select>
+        <span id="day-start-type-hint" class="text-tick text-slate-600"><%= t(".type_hint") %></span>
+      </div>
+      <% if timetable %>
+        <label class="flex flex-col gap-1.5 text-label font-semibold text-slate-900">
+          <%= t("plan_controls.percentile") %>
+          <select name="p" class="<%= FIELD_CLASSES %> w-35 font-normal">
+            <% percentiles.each do |value| %>
+              <%= tag.option t("plan_controls.percentile_option", value:), value:, selected: value == percentile %>
+            <% end %>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1.5 text-label font-semibold text-slate-900">
+          <%= t("plan_controls.buffer") %>
+          <input type="number" name="buffer" min="<%= buffer_range.min %>" max="<%= buffer_range.max %>" step="1" value="<%= buffer %>" class="<%= FIELD_CLASSES %> w-24 font-normal">
+        </label>
+      <% else %>
+        <%# 沒有計畫時沒有這兩個欄位，換日型別時照樣帶著 %>
+        <input type="hidden" name="p" value="<%= percentile %>">
+        <input type="hidden" name="buffer" value="<%= buffer %>">
+      <% end %>
+    </form>
+    <% if timetable %>
+      <p data-plan-summary class="text-note text-slate-700"><%= summary %></p>
+      <div class="flex">
+        <button type="button" data-start-button class="<%= PRIMARY_BUTTON_CLASSES %>"><%= t(".start") %></button>
+      </div>
+    <% end %>
+  </section>
+<% end %>
