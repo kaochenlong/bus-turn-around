@@ -45,6 +45,17 @@ RSpec.describe "路線頁（fixture 寫入後）", :duckdb, type: :request do
     expect([ data["cells"], data["coverage"]["share"] ]).to eq([ [], 0.0 ])
   end
 
+  def stop_speed_cells = response.parsed_body.css("[data-section=stop-speeds] [data-table-direction='0'] tr[data-seq='1'] td[data-band]")
+
+  it "站間車速的格子都只有外框：沒有任何一格有 5 趟" do
+    expect(response.parsed_body.css("[data-section=stop-speeds] svg rect[data-level]").size).to eq(0)
+  end
+
+  it "站間車速的表：去程 leg 1 的其餘時段 18.0 公里、1 趟、樣本少，其他三個時段沒有量到" do
+    cells = stop_speed_cells.to_h { [ it["data-band"], [ it["data-kmh"], it["data-trips"], it.key?("data-small-sample") ] ] }
+    expect(cells).to eq("morning_peak" => [ nil, "0", false ], "daytime" => [ nil, "0", false ], "evening_peak" => [ nil, "0", false ], "other" => [ "18.0", "1", true ])
+  end
+
   it "來回與週期全天那一列：來回一趟 7 筆、週期 5 筆" do
     counts = %w[round_trip cycle].map { response.parsed_body.at_css("[data-section=cycles] [data-measure=#{it}] tr[data-total]")&.css("td")&.[](1)&.text&.squish }
     expect(counts).to eq(%w[7 5])

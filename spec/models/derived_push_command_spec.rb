@@ -44,9 +44,9 @@ RSpec.describe DerivedPushCommand, type: :model do
     create(:route_day_depot, route_day:)
   end
 
-  it "衍生表是 route_days 加上沿外鍵連到它的每一張表，目前十張" do
+  it "衍生表是 route_days 加上沿外鍵連到它的每一張表，目前十一張" do
     expect(described_class.derived_tables).to eq(%w[route_days layovers route_day_depots route_day_ends route_day_shapes route_day_stops trips
-                                                     route_day_end_cells route_day_end_toilets trip_stop_counts])
+                                                     route_day_end_cells route_day_end_toilets trip_stop_counts trip_stop_speeds])
   end
 
   it "沒加 --push：印出目標、每張表的列數與每條路線的日子，不跑任何指令，結束碼 0" do

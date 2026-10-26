@@ -98,6 +98,13 @@ RSpec.describe "Routes", type: :request do
     expect(page.at_css("[data-section=limitations] li[data-member-routes]")&.text).to include("9001 1 趟、9050 2 趟")
   end
 
+  it "有成員的路線，合算說明那一條寫站間車速只算頁面路線 9001 的車" do
+    route_day = create(:route_day, day: Date.new(2026, 10, 23))
+    [ [ 9050, "07:00" ], [ 9001, "08:00" ], [ 9050, "09:00" ] ].each { |route_id, start| add_member_trip(route_day, route_id, start) }
+    get route_path(9001)
+    expect(page.at_css("[data-section=limitations] li[data-member-routes]")&.text).to include("站間車速只算 9001 的車")
+  end
+
   it "沒有成員的路線沒有合算說明那一條" do
     create(:route_day, route_id: 10712, route_name: "251", departure: "深坑", destination: "臺北車站")
     get route_path(10712)
@@ -275,11 +282,11 @@ RSpec.describe "Routes", type: :request do
     )
   end
 
-  it "有資料的那一天，頁面依序是摘要、站序、折返停留分佈圖、折返停留、來回與週期、折返點設施、試算、行駛時間、沿線人數圖、捷運重疊、載客剖面、資料限制" do
+  it "有資料的那一天，頁面依序是摘要、站序、折返停留分佈圖、折返停留、來回與週期、折返點設施、試算、行駛時間、站間車速、沿線人數圖、捷運重疊、載客剖面、資料限制" do
     store_days("2026-10-19")
     get route_path(9001), params: { day: "2026-10-19" }
     expect(page.css("[data-section]").map { it["data-section"] })
-      .to eq(%w[summary stop-sequence layover-chart layovers cycles facilities buffer-trade run-times load-chart mrt-overlap load-profile limitations])
+      .to eq(%w[summary stop-sequence layover-chart layovers cycles facilities buffer-trade run-times stop-speeds load-chart mrt-overlap load-profile limitations])
   end
 
   it "涵蓋的日子沒有兩端的列時，折返點設施那一區說要重新載入，也沒有地圖容器" do
@@ -316,7 +323,7 @@ RSpec.describe "Routes", type: :request do
     store_days("2026-10-19")
     get route_path(9001), params: { day: "2026-10-19" }
     expect(section_links).to eq([ [ "#layovers", %w[layover-chart layovers] ], [ "#cycles", %w[cycles] ], [ "#facilities", %w[facilities] ], [ "#buffer", %w[buffer-trade] ],
-                                  [ "#runtimes", %w[run-times] ], [ "#load", %w[load-chart mrt-overlap load-profile] ], [ "#mrt", %w[mrt-overlap] ],
+                                  [ "#runtimes", %w[run-times stop-speeds] ], [ "#load", %w[load-chart mrt-overlap load-profile] ], [ "#mrt", %w[mrt-overlap] ],
                                   [ "#limits", %w[limitations] ] ])
   end
 

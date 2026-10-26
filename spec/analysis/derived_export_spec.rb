@@ -6,8 +6,9 @@ require_relative "../support/duckdb"
 require_relative "../../lib/analysis_run"
 
 RSpec.describe "analysis/derived_export.sql" do
-  # Runs every stage, mrt_overlap.sql, turnaround_facilities.sql,
-  # route_shape.sql, depots.sql and derived_export.sql on the fixture day with
+  # Runs every stage, mrt_overlap.sql, gps_reports.sql, turnaround_facilities.sql,
+  # route_shape.sql, depots.sql, stop_speeds.sql and derived_export.sql on the
+  # fixture day with
   # both ends stopping, returns the derived CSV files as { name => bytes }.
   # `public_toilets_path` replaces the fixture's toilet snapshot,
   # `bus_shape_path` its route shapes file and `provider_path` its operators
@@ -21,7 +22,7 @@ RSpec.describe "analysis/derived_export.sql" do
         inspect_dir: dir, derived_dir:, mrt_exits_path: fixture_path("external/taipei-mrt-exits/2026-10-19.csv"), mrt_exits_day: Date.new(2026, 10, 19),
         public_toilets_path:, public_toilets_day: Date.new(2026, 10, 19), end_nature_0: "stop", end_nature_1: "stop", bus_shape_path:, provider_path:
       ).merge(variables)
-      AnalysisRun.run("duckdb", variables, extra_files: %w[mrt_overlap.sql turnaround_facilities.sql route_shape.sql depots.sql derived_export.sql])
+      AnalysisRun.run("duckdb", variables, extra_files: %w[mrt_overlap.sql gps_reports.sql turnaround_facilities.sql route_shape.sql depots.sql stop_speeds.sql derived_export.sql])
       Dir.children(derived_dir).sort.to_h { [ it, File.binread(File.join(derived_dir, it)) ] }
     end
   end
@@ -38,7 +39,8 @@ RSpec.describe "analysis/derived_export.sql" do
       "layovers.csv" => "bus_id,go_back,end_time,next_start_time",
       "route_day.csv" => "route_id,day,route_name,departure,destination,static_day,mrt_exits_day,public_toilets_day,member_names",
       "shapes.csv" => "go_back,shape_updated_at,points,issue",
-      "stops.csv" => "go_back,seq,stop_name,latitude,longitude,nearest_exit_name,nearest_exit_meters,route_id,stop_location_id",
+      "stop_speeds.csv" => "bus_id,start_time,seq,band,meters,seconds",
+      "stops.csv" => "go_back,seq,stop_name,latitude,longitude,nearest_exit_name,nearest_exit_meters,route_id,stop_location_id,shape_meters",
       "trip_stop_counts.csv" => "bus_id,start_time,seq,on_board",
       "trips.csv" => "bus_id,path_attribute_id,go_back,band,start_time,end_time,first_seq,last_seq,n_events," \
                      "n_stops_observed,completeness,start_from_arrival,end_from_departure,route_id" }
@@ -48,7 +50,12 @@ RSpec.describe "analysis/derived_export.sql" do
 
   def rows(name, from = files) = from.fetch(name).dup.force_encoding(Encoding::UTF_8).lines.drop(1).map(&:chomp)
 
-  it "寫出十個檔，欄位名照固定順序" do
+  it "analysis/ 裡只有 gps_reports.sql 把 bus_data 傳給 day_files" do
+    readers = Dir[File.join(DuckdbHelpers::ANALYSIS_DIR, "*.sql")].select { File.read(it).match?(/day_files\(\s*'bus_data'/) }
+    expect(readers.map { File.basename(it) }).to eq(%w[gps_reports.sql])
+  end
+
+  it "寫出十一個檔，欄位名照固定順序" do
     expect(files.transform_values { it.lines.first.chomp }).to eq(expected_headers)
   end
 
@@ -67,14 +74,22 @@ RSpec.describe "analysis/derived_export.sql" do
     expect(rows("route_day.csv").first).to eq("9001,2026-10-19,測試幹線,甲站,戊站,2026-10-19,2026-10-19,2026-10-19,{}")
   end
 
-  it "站牌帶經緯度與最近的捷運出入口，尾端是路線 Id 與站位：去程丙站在出入口上，0.0 公尺" do
-    expect(rows("stops.csv")[2]).to eq("0,2,丙站,25.055,121.5,丙站捷運出口1,0.0,9001,81002")
+  it "站牌帶經緯度與最近的捷運出入口，尾端是路線 Id、站位與在路線軌跡上的位置：去程丙站在出入口上，0.0 公尺，在軌跡的 556.0 公尺" do
+    expect(rows("stops.csv")[2]).to eq("0,2,丙站,25.055,121.5,丙站捷運出口1,0.0,9001,81002,556.0")
+  end
+
+  it "去程五站在路線軌跡上的位置是 0.0、278.0、556.0、834.0、1111.9 公尺" do
+    expect(rows("stops.csv").first(5).map { it.split(",").last }).to eq(%w[0.0 278.0 556.0 834.0 1111.9])
+  end
+
+  it "站間車速一列：TEST-0001 06:00 那趟的 leg 1，其餘時段，200.0 公尺 40 秒" do
+    expect(rows("stop_speeds.csv")).to eq([ "TEST-0001,2026-10-19 06:00:00+08:00,1,other,200.0,40" ])
   end
 
   describe "成員日 2026-10-23，9001 掛成員路線 9050" do
     it "站序 20 列：9001 的 10 列在前、9050 的 10 列在後，各帶路線 Id 與站位，9050 的己站有自己的出入口距離" do
       stops = rows("stops.csv", member_files)
-      expect([ stops.size, stops.map { it.split(",")[7] }.uniq, stops[12] ]).to eq([ 20, %w[9001 9050], "0,2,己站,25.055,121.501,丙站捷運出口1,100.7,9050,85002" ])
+      expect([ stops.size, stops.map { it.split(",")[7] }.uniq, stops[12] ]).to eq([ 20, %w[9001 9050], "0,2,己站,25.055,121.501,丙站捷運出口1,100.7,9050,85002," ])
     end
 
     it "3 趟依序帶路線 Id 9050、9001、9050" do
@@ -150,7 +165,7 @@ RSpec.describe "analysis/derived_export.sql" do
     expect(stored).to eq([ "0,,,no_row", "1,,,no_row" ])
   end
 
-  it "連跑兩次，十個檔位元組相同" do
+  it "連跑兩次，十一個檔位元組相同" do
     expect(export).to eq(files)
   end
 end

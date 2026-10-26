@@ -1,19 +1,16 @@
 -- Turnaround facilities: where each end of the route stood still between
 -- trips, the public toilets near that location, and the standstill cells of
--- each end for a map. It runs after params.sql, every numbered stage and
--- mrt_overlap.sql, whose haversine_meters it uses, and before
--- derived_export.sql; its name does not start with a digit, so
--- bin/health-card never runs it, and only this file reads bus_data.
+-- each end for a map. It runs after params.sql, every numbered stage,
+-- mrt_overlap.sql, whose haversine_meters it uses, and gps_reports.sql, and
+-- before derived_export.sql; its name does not start with a digit, so
+-- bin/health-card never runs it.
 --
--- Reads stops from stage 10, layovers from stage 30, the bus_data hour files
--- of the read window of stage 10 (day_files, window_start and window_end),
--- and the variables public_toilets_path, a snapshot written by
+-- Reads stops from stage 10, layovers from stage 30, gps_reports from
+-- gps_reports.sql, and the variables public_toilets_path, a snapshot written by
 -- bin/rails external:public_toilets, and end_nature_0 and end_nature_1, the
 -- configured nature of each end: 'stop', 'pass_through', or 'unknown' when
 -- the route is not configured. Creates:
 --   public_toilets      the snapshot's toilets, one row per toilet
---   gps_reports         bus_data records of the vehicles that had a layover
---                       that day, one per (BusID, DataTime)
 --   standstill_records  speed-0 reports during the layovers of both ends (a view)
 --   turnaround_ends     per end: last stop, location, its source and the check
 --                       numbers (a view)
@@ -53,53 +50,6 @@ FROM read_csv(getvariable('public_toilets_path'), header = true, delim = ',', qu
     'address': 'VARCHAR', 'administration': 'VARCHAR', 'latitude': 'DOUBLE', 'longitude': 'DOUBLE',
     'grade': 'VARCHAR', 'type2': 'VARCHAR', 'type': 'VARCHAR', 'exec': 'VARCHAR', 'diaper': 'VARCHAR'
 });
-
--- The bus_data hour files of the read window, listed the way stage 10 lists
--- the other two feeds. derived:load checks beforehand that the day has one,
--- because read_json fails on an empty list.
-SET VARIABLE bus_data_files = (
-    WITH listed AS (
-        SELECT file FROM day_files('bus_data', getvariable('day') - INTERVAL 1 DAY)
-        UNION ALL SELECT file FROM day_files('bus_data', getvariable('day'))
-        UNION ALL SELECT file FROM day_files('bus_data', getvariable('day') + INTERVAL 1 DAY)
-    ),
-    hourly AS (
-        SELECT file, regexp_extract(file, '/(\d{4}-\d{2}-\d{2})/(\d{2})\.jsonl(\.gz)?$', ['file_day', 'file_hour']) AS parts
-        FROM listed
-        WHERE regexp_matches(file, '/\d{4}-\d{2}-\d{2}/\d{2}\.jsonl(\.gz)?$')
-    ),
-    dated AS (
-        SELECT file, CAST(parts.file_day AS DATE) + to_hours(CAST(parts.file_hour AS INTEGER)) AS file_start
-        FROM hourly
-    )
-    SELECT list(file ORDER BY file)
-    FROM dated
-    WHERE file_start >= getvariable('window_start') AND file_start < getvariable('window_end')
-);
-
--- Raw records are read with explicit VARCHAR columns, as in stage 10, and
--- only those of vehicles with a layover that day are kept. Speed is compared
--- as a number, so "0.0" is as still as "0". One record per (BusID, DataTime),
--- the one fetched first, as in the other feeds.
-CREATE OR REPLACE TABLE gps_reports AS
-SELECT bus_id, latitude, longitude, speed, data_time
-FROM (
-    SELECT BusID AS bus_id,
-           TRY_CAST(Latitude AS DOUBLE) AS latitude,
-           TRY_CAST(Longitude AS DOUBLE) AS longitude,
-           TRY_CAST(Speed AS DOUBLE) AS speed,
-           CAST(DataTime AS TIMESTAMP) AS data_time,
-           CAST(_fetched_at AS TIMESTAMPTZ) AS fetched_at,
-           filename AS source_file
-    FROM read_json(
-        getvariable('bus_data_files'),
-        format = 'newline_delimited',
-        filename = true,
-        columns = { BusID: 'VARCHAR', Longitude: 'VARCHAR', Latitude: 'VARCHAR', Speed: 'VARCHAR', DataTime: 'VARCHAR', _fetched_at: 'VARCHAR' }
-    )
-    WHERE BusID IN (SELECT bus_id FROM layovers)
-)
-QUALIFY row_number() OVER (PARTITION BY bus_id, data_time ORDER BY fetched_at, source_file, latitude, longitude, speed) = 1;
 
 -- A standstill report is a speed-0 record of the layover's vehicle from the
 -- end of its trip to the start of the next, both included, whatever its

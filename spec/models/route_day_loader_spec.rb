@@ -9,7 +9,7 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
 
   def stored_counts
     [ Trip.count, Layover.count, TripStopCount.count, RouteDayStop.count, RouteDay.count, RouteDayEnd.count, RouteDayEndToilet.count, RouteDayEndCell.count,
-      RouteDayShape.count, RouteDayDepot.count ]
+      RouteDayShape.count, RouteDayDepot.count, TripStopSpeed.count ]
   end
 
   def fixture(path) = File.join(DuckdbHelpers::FIXTURE_DATA, path)
@@ -23,19 +23,34 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     dir
   end
 
-  # Makes the next export write a trip stop count whose trip does not exist, so
-  # the load fails after the old day has been deleted inside the transaction.
-  def break_next_export
+  # Makes the next export write a row of `file` whose trip does not exist, a
+  # trip stop count unless another file and row are given, so the load fails
+  # after the old day has been deleted inside the transaction.
+  def break_next_export(file = "trip_stop_counts.csv", row = "TEST-9999,2026-10-19 06:00:00+08:00,0,1")
     allow(AnalysisRun).to receive(:run).and_wrap_original do |original, *args, **options|
       original.call(*args, **options).tap do
-        File.open(File.join(args[1].fetch(:derived_dir), "trip_stop_counts.csv"), "a") { it.puts("TEST-9999,2026-10-19 06:00:00+08:00,0,1") }
+        File.open(File.join(args[1].fetch(:derived_dir), file), "a") { it.puts(row) }
       end
     end
   end
 
-  it "fixture 2026-10-19 寫入兩次，趟次 27、折返停留 18、趟次站 96、站序 20（9001 與成員路線 9050 各 10）、路線日 1、兩端 2、公廁 5、靜止格 1、路線軌跡 2、調度站 1，第二次後不變" do
+  it "fixture 2026-10-19 寫入兩次，趟次 27、折返停留 18、趟次站 96、站序 20（9001 與成員路線 9050 各 10）、路線日 1、兩端 2、公廁 5、靜止格 1、路線軌跡 2、調度站 1、站間車速 1，第二次後不變" do
     load_day
-    expect { load_day }.not_to(change { stored_counts }.from([ 27, 18, 96, 20, 1, 2, 5, 1, 2, 1 ]))
+    expect { load_day }.not_to(change { stored_counts }.from([ 27, 18, 96, 20, 1, 2, 5, 1, 2, 1, 1 ]))
+  end
+
+  describe "寫入後的站間車速" do
+    before { load_day }
+
+    it "一列：TEST-0001 06:00 那趟的 leg 1，其餘時段，200.0 公尺 40 秒" do
+      rows = TripStopSpeed.joins(:trip).pluck("trips.bus_id", "trips.start_time", :seq, :band, :meters, :seconds)
+      expect(rows).to eq([ [ "TEST-0001", Time.zone.parse("2026-10-19 06:00"), 1, "other", 200.0, 40 ] ])
+    end
+
+    it "9001 去程五站在路線軌跡上的 0.0、278.0、556.0、834.0、1111.9 公尺，成員 9050 的站都沒有位置" do
+      positions = RouteDayStop.where(route_id: 9001, go_back: 0).order(:seq).pluck(:shape_meters)
+      expect([ positions, RouteDayStop.where(route_id: 9050).where.not(shape_meters: nil).count ]).to eq([ [ 0.0, 278.0, 556.0, 834.0, 1111.9 ], 0 ])
+    end
   end
 
   describe "寫入後的成員路線（test 設定的 9001 掛 9050）" do
@@ -61,7 +76,7 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
   end
 
   it "回傳寫入的趟次、折返停留、趟次站、兩端、公廁、靜止格、路線軌跡與調度站筆數" do
-    expect(load_day).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, ends: 2, end_toilets: 5, end_cells: 1, shapes: 2, depots: 1)
+    expect(load_day).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, trip_stop_speeds: 1, ends: 2, end_toilets: 5, end_cells: 1, shapes: 2, depots: 1)
   end
 
   describe "寫入後的調度站" do
@@ -213,6 +228,18 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     expect { load_day_ignoring_failure }.not_to(change { Trip.order(:id).ids })
   end
 
+  describe "站間車速有一列對不到趟次" do
+    before { load_day.then { break_next_export("stop_speeds.csv", "TEST-9999,2026-10-19 06:00:00+08:00,1,other,1.0,1") } }
+
+    it "那一天失敗，錯誤訊息指出 trip_stop_speeds" do
+      expect { load_day }.to raise_error(RouteDayLoader::Error, /trip_stop_speeds/)
+    end
+
+    it "失敗之後，先前那次的站間車速還在" do
+      expect { load_day_ignoring_failure }.not_to(change { TripStopSpeed.order(:id).ids })
+    end
+  end
+
   it "站牌帶著最近的捷運出入口與距離：9001 去程丙站 0.0 公尺、去程甲站 556.0 公尺；成員路線 9050 的己站 100.7 公尺" do
     load_day
     expect(RouteDayStop.where(go_back: 0, seq: [ 0, 2 ]).order(:route_id, :seq).pluck(:route_id, :nearest_exit_name, :nearest_exit_meters)).to eq(
@@ -285,8 +312,8 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
 
     def load_unconfigured = described_class.new(route_id: 9001, day:, data_root: DuckdbHelpers::FIXTURE_DATA, duckdb: "duckdb", out:).call
 
-    it "趟次、折返停留、趟次站、路線軌跡與調度站照寫，兩端、公廁與靜止格都是 0 列" do
-      expect(load_unconfigured).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, ends: 0, end_toilets: 0, end_cells: 0, shapes: 2, depots: 1)
+    it "趟次、折返停留、趟次站、站間車速、路線軌跡與調度站照寫，兩端、公廁與靜止格都是 0 列" do
+      expect(load_unconfigured).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, trip_stop_speeds: 1, ends: 0, end_toilets: 0, end_cells: 0, shapes: 2, depots: 1)
     end
 
     it "資料庫裡兩端、公廁與靜止格都沒有列" do

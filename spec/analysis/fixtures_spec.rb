@@ -319,10 +319,13 @@ RSpec.describe "spec/fixtures/analysis" do
   describe "bus_data" do
     let(:records) { feed_records("bus_data") }
 
-    # The coordinate points of the README section on vehicle GPS.
+    # The coordinate points of the README section on vehicle GPS: A to E stand
+    # at the ends, P1 to P4 lie on the outbound shape 300 to 600 metres along it.
     def point(record)
       { %w[25.060400 121.500300] => "A", %w[25.060580 121.500300] => "B", %w[25.065800 121.500300] => "C",
-        %w[25.060490 121.500300] => "D", %w[25.049700 121.500600] => "E" }.fetch(record.values_at("Latitude", "Longitude"))
+        %w[25.060490 121.500300] => "D", %w[25.049700 121.500600] => "E",
+        %w[25.052698 121.500000] => "P1", %w[25.053597 121.500000] => "P2", %w[25.054497 121.500000] => "P3",
+        %w[25.055396 121.500000] => "P4" }.fetch(record.values_at("Latitude", "Longitude"))
     end
 
     def points_and_speeds(bus, from, to) = slice(bus, from, to).uniq { it["DataTime"] }.map { [ point(it), it["Speed"] ] }.tally
@@ -360,7 +363,14 @@ RSpec.describe "spec/fixtures/analysis" do
     end
 
     it "時間窗外的靜止回報：TEST-0001 06:30 在 A、速度 0，是 06:00 到 06:50 那趟的途中" do
-      expect(points_and_speeds("TEST-0001", "06:00:01", "06:49:59")).to eq([ "A", "0" ] => 1)
+      expect(points_and_speeds("TEST-0001", "06:00:01", "06:49:59").select { |(_point, speed), _count| speed == "0" }).to eq([ "A", "0" ] => 1)
+    end
+
+    it "06:00 到 06:50 那一趟的途中另有四筆在去程線上、速度 18：06:10:00、06:10:20、06:10:40、06:11:00" do
+      moving = slice("TEST-0001", "06:00:01", "06:49:59").reject { it["Speed"] == "0" }
+      expect(moving.map { [ point(it), it["Speed"], it["DataTime"][11, 8] ] }).to eq(
+        [ %w[P1 18 06:10:00], %w[P2 18 06:10:20], %w[P3 18 06:10:40], %w[P4 18 06:11:00] ]
+      )
     end
   end
 end

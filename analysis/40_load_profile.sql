@@ -107,18 +107,10 @@ SELECT trips_with_count,
        CASE WHEN n_trip_stops = 0 THEN NULL ELSE stops_with_count / n_trip_stops END AS stop_share
 FROM totals;
 
--- Each band includes its start hour and excludes its end hour.
+-- A trip's band is the band of its start, by time_band of params.sql: each
+-- band includes its start hour and excludes its end hour.
 CREATE OR REPLACE VIEW trip_bands AS
-SELECT trip_id,
-       CASE
-           WHEN hour(start_time) >= getvariable('morning_peak_start_hour')
-            AND hour(start_time) < getvariable('daytime_start_hour') THEN 'morning_peak'
-           WHEN hour(start_time) >= getvariable('daytime_start_hour')
-            AND hour(start_time) < getvariable('evening_peak_start_hour') THEN 'daytime'
-           WHEN hour(start_time) >= getvariable('evening_peak_start_hour')
-            AND hour(start_time) < getvariable('evening_peak_end_hour') THEN 'evening_peak'
-           ELSE 'other'
-       END AS band
+SELECT trip_id, time_band(start_time) AS band
 FROM trips;
 
 -- Only stops with at least one count appear; n_trips is the number of trips

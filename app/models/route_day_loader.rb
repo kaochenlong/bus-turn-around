@@ -5,11 +5,11 @@ require "tmpdir"
 # one Taipei day into the derived tables. The route Ids of the run come from
 # RoutePage.member_route_ids unless the caller gives them. DuckDB runs the
 # stages of analysis/, analysis/mrt_overlap.sql with the newest MRT entrance
-# snapshot, analysis/turnaround_facilities.sql with the newest public toilet
-# snapshot and the configured nature of the route's ends,
-# analysis/route_shape.sql with the route shapes file of the day's static
-# snapshot, analysis/depots.sql with its operators file, and
-# analysis/derived_export.sql into CSV files; then, in one transaction, the
+# snapshot, analysis/gps_reports.sql, analysis/turnaround_facilities.sql with
+# the newest public toilet snapshot and the configured nature of the route's
+# ends, analysis/route_shape.sql with the route shapes file of the day's static
+# snapshot, analysis/depots.sql with its operators file, analysis/stop_speeds.sql
+# and analysis/derived_export.sql into CSV files; then, in one transaction, the
 # stored day is deleted and the files are copied in, together with the day
 # type of the newest office calendar snapshot of the day's year. A failure
 # anywhere leaves the stored day as it was, and loading the same input again
@@ -24,12 +24,14 @@ class RouteDayLoader
     "route_day" => "route_id integer, day date, route_name text, departure text, destination text, static_day date, " \
                    "mrt_exits_day date, public_toilets_day date, member_names jsonb",
     "stops" => "go_back integer, seq integer, stop_name text, latitude double precision, longitude double precision, " \
-               "nearest_exit_name text, nearest_exit_meters double precision, route_id integer, stop_location_id integer",
+               "nearest_exit_name text, nearest_exit_meters double precision, route_id integer, stop_location_id integer, " \
+               "shape_meters double precision",
     "trips" => "bus_id text, path_attribute_id integer, go_back integer, band text, start_time timestamptz, " \
                "end_time timestamptz, first_seq integer, last_seq integer, n_events integer, n_stops_observed integer, " \
                "completeness text, start_from_arrival boolean, end_from_departure boolean, route_id integer",
     "layovers" => "bus_id text, go_back integer, end_time timestamptz, next_start_time timestamptz",
     "trip_stop_counts" => "bus_id text, start_time timestamptz, seq integer, on_board integer",
+    "stop_speeds" => "bus_id text, start_time timestamptz, seq integer, band text, meters double precision, seconds integer",
     "ends" => "go_back integer, end_seq integer, end_stop_name text, end_latitude double precision, " \
               "end_longitude double precision, location_source text, latitude double precision, longitude double precision, " \
               "n_layovers integer, n_located_layovers integer, n_standstill_records integer, end_stop_meters double precision",
@@ -45,7 +47,8 @@ class RouteDayLoader
   # ever built at run time.
   STAGING_TABLES = {
     "route_day" => "staging_route_day", "stops" => "staging_stops", "trips" => "staging_trips",
-    "layovers" => "staging_layovers", "trip_stop_counts" => "staging_trip_stop_counts", "ends" => "staging_ends",
+    "layovers" => "staging_layovers", "trip_stop_counts" => "staging_trip_stop_counts",
+    "stop_speeds" => "staging_stop_speeds", "ends" => "staging_ends",
     "end_toilets" => "staging_end_toilets", "end_cells" => "staging_end_cells", "shapes" => "staging_shapes",
     "depots" => "staging_depots"
   }.freeze
@@ -79,8 +82,8 @@ class RouteDayLoader
     @out = out
   end
 
-  # Returns the numbers of trips, layovers, trip stop counts, ends, end
-  # toilets, end cells, route shapes and depots written.
+  # Returns the numbers of trips, layovers, trip stop counts, trip stop speeds,
+  # ends, end toilets, end cells, route shapes and depots written.
   def call
     mrt_exits = newest_snapshot(MrtExitsSnapshot::DIRECTORY, "捷運出入口", "bin/rails external:mrt_exits")
     public_toilets = newest_snapshot(PublicToiletsSnapshot::DIRECTORY, "公廁", "bin/rails external:public_toilets")
@@ -109,7 +112,7 @@ class RouteDayLoader
                   mrt_exits_path: mrt_exits.path, mrt_exits_day: mrt_exits.day,
                   public_toilets_path: public_toilets.path, public_toilets_day: public_toilets.day,
                   end_nature_0: natures.fetch(0), end_nature_1: natures.fetch(1), bus_shape_path: bus_shapes, provider_path: providers }
-    AnalysisRun.run(@duckdb, variables, extra_files: %w[mrt_overlap.sql turnaround_facilities.sql route_shape.sql depots.sql derived_export.sql])
+    AnalysisRun.run(@duckdb, variables, extra_files: %w[mrt_overlap.sql gps_reports.sql turnaround_facilities.sql route_shape.sql depots.sql stop_speeds.sql derived_export.sql])
   rescue AnalysisRun::Error => e
     raise Error, e.message
   end
@@ -183,7 +186,8 @@ class RouteDayLoader
     insert_stops(route_day_id)
     # The ends go in before their toilets and cells, which find their end by direction.
     { trips: insert_trips(route_day_id), layovers: insert_layovers(route_day_id),
-      trip_stop_counts: insert_trip_stop_counts(route_day_id), ends: insert_ends(route_day_id),
+      trip_stop_counts: insert_trip_stop_counts(route_day_id), trip_stop_speeds: insert_trip_stop_speeds(route_day_id),
+      ends: insert_ends(route_day_id),
       end_toilets: insert_end_toilets(route_day_id), end_cells: insert_end_cells(route_day_id),
       shapes: insert_shapes(route_day_id), depots: insert_depots(route_day_id) }
   end
@@ -213,9 +217,9 @@ class RouteDayLoader
   def insert_stops(route_day_id)
     insert("route_day_stops", "stops", route_day_id, <<~SQL)
       INSERT INTO route_day_stops (route_day_id, go_back, seq, stop_name, latitude, longitude, nearest_exit_name,
-                                   nearest_exit_meters, route_id, stop_location_id)
+                                   nearest_exit_meters, route_id, stop_location_id, shape_meters)
       SELECT :route_day_id, go_back, seq, stop_name, latitude, longitude, nearest_exit_name, nearest_exit_meters,
-             route_id, stop_location_id
+             route_id, stop_location_id, shape_meters
       FROM staging_stops
     SQL
   end
@@ -243,6 +247,16 @@ class RouteDayLoader
       INSERT INTO trip_stop_counts (trip_id, seq, on_board)
       SELECT t.id, s.seq, s.on_board
       FROM staging_trip_stop_counts s
+      JOIN trips t ON t.route_day_id = :route_day_id AND t.bus_id = s.bus_id AND t.start_time = s.start_time
+    SQL
+  end
+
+  # A stop speed finds its trip by vehicle and start time, as a count does.
+  def insert_trip_stop_speeds(route_day_id)
+    insert("trip_stop_speeds", "stop_speeds", route_day_id, <<~SQL)
+      INSERT INTO trip_stop_speeds (trip_id, seq, band, meters, seconds)
+      SELECT t.id, s.seq, s.band, s.meters, s.seconds
+      FROM staging_stop_speeds s
       JOIN trips t ON t.route_day_id = :route_day_id AND t.bus_id = s.bus_id AND t.start_time = s.start_time
     SQL
   end

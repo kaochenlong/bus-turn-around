@@ -88,6 +88,27 @@ RSpec.describe "路線頁的手機版", :duckdb, :js, type: :system do
     end
   end
 
+  # On a phone, which stop speed leg rows of each direction are displayed
+  # before and after switching the stop speed block to inbound, with the
+  # number of grids displayed and the page address.
+  def switch_stop_speeds_to_inbound
+    on_phone do
+      inbound = find("[data-section=stop-speeds] [data-direction-switch] button[value='1']")
+      before = [ leg_rows_shown, page.current_url ]
+      inbound.click
+      find("[data-section=stop-speeds] [data-direction='1'] [data-leg-row][data-seq='5']")
+      [ *before, leg_rows_shown, displayed_count("[data-section=stop-speeds] figure svg"), page.current_url ]
+    end
+  end
+
+  # The number of displayed stop speed leg rows per direction.
+  def leg_rows_shown = page.evaluate_script(<<~JS)
+    Object.fromEntries([...document.querySelectorAll("[data-section=stop-speeds] [data-direction]")]
+      .map((node) => [node.dataset.direction, [...node.querySelectorAll("[data-leg-row]")].filter((row) => row.getClientRects().length > 0).length]))
+  JS
+
+  def displayed_count(selector) = page.evaluate_script("[...document.querySelectorAll(#{selector.to_json})].filter((node) => node.getClientRects().length > 0).length")
+
   # On a phone, which tables of the round trip and cycle block are shown
   # before and after switching to cycles, each with the page address.
   def switch_to_cycles
@@ -120,6 +141,19 @@ RSpec.describe "路線頁的手機版", :duckdb, :js, type: :system do
       [ directions_shown("run-times"), displays("[data-section=run-times] [data-direction-switch]") ]
     end
     expect(shown).to eq([ { "0" => true, "1" => true }, [ "none" ] ])
+  end
+
+  it "手機上站間車速預設只顯示去程的每段一列，按返程之後只顯示返程的，看不到格子圖，網址不變" do
+    outbound_first, url_before, after_switch, grids, url_after = switch_stop_speeds_to_inbound
+    expect([ outbound_first, after_switch, grids, url_after ]).to eq([ { "0" => 4, "1" => 0 }, { "0" => 0, "1" => 4 }, 0, url_before ])
+  end
+
+  it "1400 寬時站間車速兩個方向的格子圖都顯示，沒有每段一列，也沒有方向切換" do
+    shown = on_wide_screen do
+      wait_for_alpine
+      [ "figure svg", "[data-leg-row]", "[data-direction-switch]" ].map { displayed_count("[data-section=stop-speeds] #{it}") }
+    end
+    expect(shown).to eq([ 2, 0, 0 ])
   end
 
   it "手機上來回與週期預設只顯示來回一趟，按週期之後只顯示週期，網址不變" do

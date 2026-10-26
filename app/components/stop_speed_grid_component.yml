@@ -1,0 +1,71 @@
+---
+tw: &tw
+  eyebrow: 站間車速
+  title: 哪一段開最慢？
+  note: 一格是相鄰兩站之間、一個時段，格子越深，車在這兩站之間開得越慢。車速是同一台車相鄰兩筆 GPS 沿臺北市公共運輸處登記的路線軌跡量的，站的前後 40 公尺不算，所以不含進出站與上下客；起點只有到站時刻的趟次不算。時段看車開到這一段的時刻，不是整趟發車的時刻。深淺只比同一個方向，數字在下面的表。
+  fast: 快
+  slow: 慢
+  outline: 樣本少於 5 趟或量不到
+  directions:
+    "0": 去程
+    "1": 返程
+  bands:
+    morning_peak: 早尖峰
+    daytime: 日間
+    evening_peak: 晚尖峰
+    other: 其餘
+  band_short:
+    morning_peak: 早
+    daytime: 日
+    evening_peak: 晚
+    other: 其
+  direction_picker: 方向
+  level_ranges: 時速（公里）：最淺 %{lightest} 以上，再來 %{light} 到 %{lightest}，再來 %{dark} 到 %{light}，最深 %{dark} 以下。
+  aria: "%{direction}從%{first}到%{last}，每兩站之間在四個時段的車速，數字在下面的表"
+  no_legs: 這個方向沒有站間車速。
+  no_speeds: 涵蓋的日子沒有站間車速。可能是這幾天在加上站間車速之前載入，要重新載入；也可能是那幾天的快照沒有路線軌跡。
+  summary: 每兩站之間的時速與趟數
+  table_note: 時速是同一格所有趟次的公尺加總除以秒數加總，括號裡是趟數；橘色數字表示樣本少於 5 趟，— 表示沒有量到。
+  leg: 兩站之間
+  leg_name: "%{from} → %{to}"
+  meters: 沿線公尺
+  trips:
+    one: "%{count} 趟"
+    other: "%{count} 趟"
+  small_sample: 樣本少
+zh-TW:
+  <<: *tw
+en:
+  eyebrow: Stop-to-stop speed
+  title: Which stretch is slowest?
+  note: Each cell is the stretch between two adjacent stops in one time band; the darker the cell, the slower buses ran between those stops. The speed is measured from consecutive GPS reports of a bus along the route shape registered by 臺北市公共運輸處, leaving out the 40 metres around each stop, so braking, stopping and boarding are not in it; trips whose start is only an arrival are left out. The band is the time the bus reached that stretch, not the time its trip started. Shades compare one direction only; the numbers are in the table below.
+  fast: Fast
+  slow: Slow
+  outline: Fewer than 5 trips or not measured
+  directions:
+    "0": Outbound
+    "1": Inbound
+  bands:
+    morning_peak: Morning peak
+    daytime: Daytime
+    evening_peak: Evening peak
+    other: Other
+  band_short:
+    morning_peak: AM
+    daytime: Day
+    evening_peak: PM
+    other: Oth
+  direction_picker: Direction
+  level_ranges: "Speed (km/h): lightest %{lightest} and above, then %{light} to %{lightest}, then %{dark} to %{light}, darkest below %{dark}."
+  aria: "%{direction} from %{first} to %{last}: the speed between each two stops in four time bands; the numbers are in the table below"
+  no_legs: This direction has no stop-to-stop speeds.
+  no_speeds: The covered days have no stop-to-stop speeds. They may have been loaded before stop-to-stop speeds existed and need to be loaded again, or their snapshot had no route shape.
+  summary: Speed and trips between each two stops
+  table_note: The speed is a cell's total metres over its total seconds, with the number of trips in brackets; orange numbers mean fewer than 5 trips, — means not measured.
+  leg: Between stops
+  leg_name: "%{from} → %{to}"
+  meters: Metres along the route
+  trips:
+    one: "%{count} trip"
+    other: "%{count} trips"
+  small_sample: small sample

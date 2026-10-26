@@ -16,8 +16,9 @@ tw: &tw
     - 公廁來自環境部每月更新的全國公廁建檔資料，男廁、女廁、無障礙廁所各算一間，頁面把同一個地址的廁所併成一處。距離是直線距離，不是走路的距離。資料沒有開放時段，也看不出駕駛能不能借用。
     - 地圖上的方塊是約 20 公尺見方的格子，一天內有 3 台以上的車停過才畫，少於 3 台的不畫。顏色深淺是車子停住時 GPS 回報的筆數（每 10 秒一筆），不是停了多久，也不代表在休息。底圖是外部的資料，照原樣顯示。
     - 站序那一塊的路線圖，畫的是臺北市公共運輸處登記的路線軌跡，不是 GPS 量到的，所以臨時改道、繞路不會出現在圖上。登記的軌跡也可能比站序舊。
+    - 站間車速是同一台車相鄰兩筆 GPS 沿臺北市公共運輸處登記的路線軌跡量的：站的前後 40 公尺不算，所以不含進出站與上下客；兩站相距 80 公尺以內量不到；起點只有到站時刻的趟次不算。格子的深淺只比同一個方向，不同方向、不同路線不能比。
     - 調度站查核分數是公運處評鑑時到業者營業站檢查的結果，不是折返點的設施；車在折返停留期間有沒有回調度站，資料量不到。分數照報告書附錄抄錄，兩欄是報告書印的兩欄，不平均、不解讀；名單只有這一期受檢的營業站，不在名單不代表沒有休息設施。
-  member_item: "這一頁把路線 Id %{page_id} 與 %{members} 算成一條路線：趟次、行駛時間、折返停留、來回一趟、週期、換休息試算把這幾個 Id 的車合在一起算；沿線載客圖、捷運重疊與站序只用 %{page_id} 的站序，%{members} 在兩條都停的站的車上人數併進去，只有 %{members} 才停的站不畫。涵蓋的日子裡 %{trip_counts}。"
+  member_item: "這一頁把路線 Id %{page_id} 與 %{members} 算成一條路線：趟次、行駛時間、折返停留、來回一趟、週期、換休息試算把這幾個 Id 的車合在一起算；站間車速只算 %{page_id} 的車；沿線載客圖、捷運重疊與站序只用 %{page_id} 的站序，%{members} 在兩條都停的站的車上人數併進去，只有 %{members} 才停的站不畫。涵蓋的日子裡 %{trip_counts}。"
   member_trips: "%{id} %{count} 趟"
   home_title: 資料限制
   home_items:
@@ -44,8 +45,9 @@ en:
     - "Toilets come from the national registry of the Ministry of Environment, updated monthly, with one row per toilet; the page groups toilets at one address into one place. Distances are straight-line, not walking distances. The data has no opening hours and says nothing about whether a driver may use a toilet."
     - The squares on the maps are cells of about 20 metres that at least three vehicles stood in on a day; cells with fewer vehicles are not drawn. Their shade sums GPS standstill reports taken every 10 seconds and is neither minutes stood nor rest. The basemap is third-party data shown as it is.
     - The route map in the stop sequence block draws the route shape the Taipei City Public Transportation Office registers, not measured GPS, so temporary detours and diversions do not appear on it. The registered shape can be older than the stop list.
+    - Stop-to-stop speeds come from consecutive GPS reports of a bus along the route shape the Taipei City Public Transportation Office registers: the 40 metres around each stop are left out, so braking, stopping and boarding are not in them; two stops 80 metres apart or closer have no speed; trips whose start is only an arrival are left out. The shades compare the stretches of one direction only, not directions or routes.
     - "The depot inspection scores are what the Taipei City Public Transportation Office recorded when it inspected the operators' stations for its evaluation, not the facilities of the turnaround point; whether a vehicle returns to its depot during a layover is not measured. The scores are copied from the report's appendix with the two columns it prints kept apart, neither averaged nor interpreted; the list covers only the stations inspected that term, so a station not on it is not known to lack rest facilities."
-  member_item: "This page counts route Ids %{page_id} and %{members} as one route: trips, run times, layovers, round trips, cycles and the rest trade-off pool the vehicles of these Ids; the load chart, the MRT overlap and the stop sequence use the stops of %{page_id}, with the on-board counts of %{members} pooled at the stops both serve and the stops only %{members} serves left out. Over the covered days: %{trip_counts}."
+  member_item: "This page counts route Ids %{page_id} and %{members} as one route: trips, run times, layovers, round trips, cycles and the rest trade-off pool the vehicles of these Ids; the stop-to-stop speeds count only the vehicles of %{page_id}; the load chart, the MRT overlap and the stop sequence use the stops of %{page_id}, with the on-board counts of %{members} pooled at the stops both serve and the stops only %{members} serves left out. Over the covered days: %{trip_counts}."
   member_trips: "%{id}: %{count} trips"
   home_title: Data limitations
   home_items:
