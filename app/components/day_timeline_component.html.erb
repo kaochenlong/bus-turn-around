@@ -1,0 +1,112 @@
+<%# 時間軸：一台車一條，共用一條時間刻度。捲動框上下捲時刻度與「現在」留在框的上緣；手機上框裡最窄 900px，左右捲時車號那一欄留在左邊。
+    這裡只有骨架、文案與兩端的站名；條、趟次、停留、晚回、換車、現在的位置都由 app/frontend/timetable/day_view.js 照下面的 template 與 data-labels 的字畫 %>
+<section data-day-timeline aria-label="<%= t(".heading") %>" data-labels="<%= labels_json %>"
+         class="flex min-w-0 flex-col gap-2.5 rounded-lg border border-slate-200 bg-white p-4">
+  <p class="text-label-sm text-slate-600"><%= t(".note") %></p>
+  <div data-timeline-frame class="max-h-150 overflow-auto rounded-md border border-slate-200 max-sm:max-h-110">
+    <div class="relative max-sm:min-w-225">
+      <div data-axis class="sticky top-0 z-4 grid h-9 border-b border-slate-300 bg-white <%= COLUMNS %>">
+        <div class="sticky left-0 z-1 flex items-end bg-white pb-1 text-tick text-slate-500 <%= VEHICLE_PADDING %>"><%= t(".vehicle_column") %></div>
+        <div data-slot="ticks" class="relative">
+          <%# 刻度上的「現在」：點它側欄回到預設端的下一班 %>
+          <button type="button" data-now hidden
+                  class="absolute top-px z-1 -translate-x-1/2 rounded-[9px] bg-teal-700 px-1.5 text-[11px] leading-[17px] font-semibold whitespace-nowrap text-white select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"></button>
+        </div>
+        <div class="flex items-end justify-end pr-2 pb-1 text-right text-tick text-slate-500"><%= t(".credit_column", hours: WINDOW_HOURS) %></div>
+      </div>
+      <div class="relative">
+        <div data-slot="hour-lines" aria-hidden="true" class="pointer-events-none absolute inset-y-0 <%= AXIS_INSETS %>"></div>
+        <div data-slot="lanes"></div>
+        <%# 條裡現在的線畫在趟次上面、車號那一欄下面 %>
+        <div aria-hidden="true" class="pointer-events-none absolute inset-y-0 z-1 <%= AXIS_INSETS %>">
+          <div data-now-line hidden class="absolute inset-y-0 -ml-px w-0.5 bg-teal-700"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="flex flex-wrap gap-x-4 gap-y-1.5 text-tick text-slate-600">
+    <% directions.each_with_index do |name, go_back| %>
+      <li data-legend-direction="<%= go_back %>" class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="<%= SWATCH_CLASSES %> <%= DIRECTION_SWATCHES.fetch(go_back) %>"></span><%= name %></li>
+    <% end %>
+    <li class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="<%= SWATCH_CLASSES %> rounded-[3px] border-2 border-teal-700"></span><%= t(".legend.swapped") %></li>
+    <li class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="<%= SWATCH_CLASSES %> <%= LATE_CLASSES %>"></span><%= t(".legend.late") %></li>
+    <li class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="inline-block h-3.5 w-0.5 shrink-0 bg-teal-700"></span><span data-slot="legend-now"></span></li>
+    <li><%= t(".legend.typed") %></li>
+    <li data-slot="legend-stops"></li>
+    <li><%= t(".legend.credit", hours: WINDOW_HOURS) %></li>
+  </ul>
+
+  <%# 一台車一條：車號與換車的註記、趟次、四小時休息與計畫值；拖到這一條上方時標成目標 %>
+  <template data-timeline-lane>
+    <div data-lane class="grid h-12 border-b border-slate-200 in-data-compact:h-7 data-drop-target:bg-teal-50 <%= COLUMNS %>">
+      <div class="sticky left-0 z-2 flex min-w-0 flex-col justify-center gap-px bg-white pr-1.5 in-data-drop-target:bg-teal-50 <%= VEHICLE_PADDING %>">
+        <span data-slot="vehicle" class="text-label leading-tight font-semibold whitespace-nowrap text-slate-900 in-data-compact:text-label-sm"></span>
+        <span data-slot="notes" class="text-[11px] leading-tight whitespace-pre-line text-teal-700 in-data-compact:text-[10px]"></span>
+      </div>
+      <div data-slot="trips" class="relative"></div>
+      <div class="flex flex-col items-end justify-center gap-px pr-2 leading-tight">
+        <span data-slot="credit" class="font-route-figure text-note font-bold whitespace-nowrap text-slate-900 in-data-compact:text-label-sm"></span>
+        <span data-slot="planned" class="text-[11px] whitespace-nowrap text-slate-500 in-data-compact:text-[10px]"></span>
+      </div>
+    </div>
+  </template>
+  <%# 一趟：兩個方向用深淺分；改過發車時刻的時刻加底線；拖著的那一段浮起來，原位的那一段變淡 %>
+  <template data-timeline-trip>
+    <button type="button" data-timeline-trip
+            class="absolute top-2.5 h-6 cursor-grab overflow-hidden rounded-[3px] pl-0.75 text-left font-route-figure text-[11px] leading-6 font-medium whitespace-nowrap select-none in-data-compact:top-1 in-data-compact:h-5 in-data-compact:leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 data-[go-back=0]:bg-slate-700 data-[go-back=0]:text-white data-[go-back=1]:bg-slate-300 data-[go-back=1]:text-slate-900 data-typed:underline data-typed:decoration-2 data-typed:underline-offset-2 data-dragging:opacity-35 data-ghost:pointer-events-none data-ghost:z-3 data-ghost:opacity-90 data-ghost:shadow-[0_4px_10px_rgba(15,23,42,0.35)]"></button>
+  </template>
+  <template data-timeline-hour-tick>
+    <span class="absolute bottom-0.75 -translate-x-1/2 font-route-figure text-tick leading-3.5 text-slate-500"></span>
+  </template>
+  <template data-timeline-hour-line>
+    <div class="absolute inset-y-0 w-px bg-slate-200"></div>
+  </template>
+  <%# 停車端的停留：15 分以上寫在兩段之間；不到 15 分的寫在段下方 %>
+  <template data-timeline-stop>
+    <span data-stop aria-hidden="true" class="absolute top-2.5 flex h-6 items-center justify-center font-route-figure text-[11px] leading-none font-semibold text-slate-600 in-data-compact:top-1 in-data-compact:h-5"></span>
+  </template>
+  <template data-timeline-short-stop>
+    <span data-short-stop class="absolute top-8.75 -translate-x-1/2 text-[11px] leading-3.25 font-bold whitespace-nowrap text-teal-700 in-data-compact:top-1.5 in-data-compact:rounded-[3px] in-data-compact:border in-data-compact:border-teal-700 in-data-compact:bg-teal-50 in-data-compact:px-0.75 in-data-compact:text-[10px] in-data-compact:leading-3.5"></span>
+  </template>
+  <%# 記下的晚回：從原定到達延伸到記下的到達，上方寫晚幾分 %>
+  <template data-timeline-late>
+    <span data-late aria-hidden="true" class="absolute top-2.5 h-6 in-data-compact:top-1 in-data-compact:h-5 <%= LATE_CLASSES %>"></span>
+  </template>
+  <template data-timeline-late-label>
+    <span data-late-label class="absolute -top-0.75 text-[11px] leading-3.25 font-semibold whitespace-nowrap text-slate-900 in-data-compact:top-1.5 in-data-compact:-translate-x-1/2 in-data-compact:rounded-[3px] in-data-compact:border in-data-compact:border-slate-600 in-data-compact:bg-white in-data-compact:px-1 in-data-compact:text-[10px] in-data-compact:leading-3.5 in-data-compact:font-bold"></span>
+  </template>
+  <%# 段外面的框：換過車、選取的那一趟、拖到別台車時會換走的班 %>
+  <template data-timeline-swapped>
+    <span aria-hidden="true" class="pointer-events-none absolute top-1.75 h-7.5 rounded-[5px] border-2 border-teal-700 in-data-compact:top-px in-data-compact:h-6.5"></span>
+  </template>
+  <template data-timeline-selected>
+    <span aria-hidden="true" class="pointer-events-none absolute top-1 h-9 rounded-[7px] border-2 border-slate-900 in-data-compact:-top-0.5 in-data-compact:h-8"></span>
+  </template>
+  <template data-timeline-exchange>
+    <span data-exchange aria-hidden="true" class="pointer-events-none absolute top-1.75 h-7.5 rounded-[5px] border-2 border-dashed border-teal-700 in-data-compact:top-px in-data-compact:h-6.5"></span>
+  </template>
+  <%# 拖拉時的小標籤：拖到別台車寫從幾點起互換，沿著自己那一條拖寫指到的整分鐘 %>
+  <template data-timeline-drag-hint>
+    <span data-drag-hint class="pointer-events-none absolute z-3 rounded bg-slate-900 px-1.5 text-tick leading-4.5 font-semibold whitespace-nowrap text-white"></span>
+  </template>
+  <template data-timeline-drag-time>
+    <span data-drag-time class="pointer-events-none absolute z-3 -translate-x-1/2 rounded bg-slate-900 px-1.5 font-route-figure text-label-sm leading-5 font-bold whitespace-nowrap text-white"></span>
+  </template>
+  <%# 換車不成立：那一條下面多一行 01 的說明，讀螢幕軟體會唸 %>
+  <template data-timeline-drop-message>
+    <div data-drop-message role="alert" class="border-b border-slate-200 pt-1.5 pb-2 pl-16 text-label text-red-700 sm:pl-26"></div>
+  </template>
+  <%# 選取的那一趟：放在頁首數字下面、時間軸上面；三個動作的字是側欄的字，記下回到哪一端由瀏覽器填 %>
+  <template data-timeline-actions>
+    <section aria-label="<%= t(".actions_label") %>" class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-teal-700 bg-white px-3.5 py-2.5">
+      <p class="flex-[1_1_300px] text-label text-slate-900"><%= t(".selected_prefix") %> <b data-slot="trip"></b> <span data-slot="detail"></span></p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" data-action="vehicle" class="<%= DayDispatchComponent::BUTTON_CLASSES %>"><%= action(:vehicle) %></button>
+        <button type="button" data-action="departure" class="<%= DayDispatchComponent::BUTTON_CLASSES %>"><%= action(:departure) %></button>
+        <button type="button" data-action="record" class="<%= DayDispatchComponent::BUTTON_CLASSES %>"></button>
+        <button type="button" data-action="deselect" class="<%= DayDispatchComponent::BUTTON_CLASSES %>"><%= action(:deselect) %></button>
+      </div>
+    </section>
+  </template>
+</section>

@@ -36,6 +36,13 @@ export function parseClock(text) {
   return hour * 60 + minute
 }
 
+// A label with its %{name} placeholders filled. The values go in as text, so
+// a typed reason is never read as a pattern; a placeholder without a value
+// stays as it is.
+export function fill(text, values) {
+  return text.replace(/%\{(\w+)\}/g, (placeholder, name) => (Object.hasOwn(values, name) ? String(values[name]) : placeholder))
+}
+
 // A stop's minutes as shown: nothing without a value, and a typographic minus
 // when the trips do not connect.
 export function stopText(minutes) {

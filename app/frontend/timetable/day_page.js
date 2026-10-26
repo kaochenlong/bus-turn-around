@@ -11,8 +11,9 @@ import { Turbo } from "@hotwired/turbo-rails"
 import { previousDate, startDay, taipeiDate } from "./day.js"
 import { handOver, release, takeOver } from "./day_handoff.js"
 import { discardDay, loadDay, saveDay } from "./day_storage.js"
-import { dayView, fill, formatDay } from "./day_view.js"
+import { dayView, formatDay } from "./day_view.js"
 import { wholeInRange } from "./fields.js"
+import { fill } from "./format.js"
 import { holdsFor, layOut } from "./layout.js"
 
 export function dayDispatch() {

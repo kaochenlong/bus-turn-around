@@ -117,6 +117,11 @@ describe("currentDay：快照套上還有效的修改", () => {
     ])
   })
 
+  it("沒有修改時每一趟的原定到達就是它的到達", () => {
+    const { vehicles } = currentDay(startDay(planningSheets(), meta()))
+    expect(vehicles.flatMap((vehicle) => vehicle.trips.map((t) => t.plannedArrival))).toEqual([at("07:35"), at("08:35"), at("07:45")])
+  })
+
   it("沒有修改時頁首的換車、改過發車、等車都是 0", () => {
     const { figures } = currentDay(startDay(planningSheets(), meta()))
     expect([figures.swaps, figures.typed, figures.waiting]).toEqual([0, 0, 0])
@@ -160,6 +165,15 @@ describe("recordArrival：記下一台車回到某一端的時刻", () => {
       [[at("16:20"), at("17:34")], [at("18:00"), at("18:57")]],
       1,
     ])
+  })
+
+  it("記下回到時刻之後原定到達照舊：16:00 那一趟 17:52 到、原定 17:14", () => {
+    const { arrival, plannedArrival } = currentDay(record(scenarioDay(), 1, "17:52")).vehicles[0].trips[1]
+    expect([arrival, plannedArrival]).toEqual([at("17:52"), at("17:14")])
+  })
+
+  it("同一趟記兩次，原定到達還是 17:14，不是前一次記下的 17:52", () => {
+    expect(currentDay(record(record(scenarioDay(), 1, "17:52"), 1, "17:50")).vehicles[0].trips[1].plannedArrival).toBe(at("17:14"))
   })
 
   it("同一趟記兩次：17:52 之後再記 17:50，到達取後面那筆 17:50，兩筆都留在修改裡", () => {
@@ -277,6 +291,21 @@ describe("changeDeparture：改一班的發車時刻，只改那一趟", () => {
   it("已經記下回到時刻的那一趟改發車：到達維持記下的 17:52", () => {
     const { arrival, recorded, typed } = currentDay(retype(recordOne(retimeDay(), "17:52"), "1-1", "16:10")).vehicles[0].trips[0]
     expect([arrival, recorded, typed]).toEqual([at("17:52"), true, true])
+  })
+
+  it("改發車時刻之後原定到達跟著重算：18:00 打成 18:10，原定到達 19:07", () => {
+    expect(currentDay(retype(retimeDay(), "1-2", "18:10")).vehicles[0].trips[1].plannedArrival).toBe(at("19:07"))
+  })
+
+  it("記下回到時刻之後改發車：到達維持記下的 17:52，原定到達照方向 1 的 45 分重算成 16:55", () => {
+    const { arrival, plannedArrival } = currentDay(retype(recordOne(retimeDay(), "17:52"), "1-1", "16:10")).vehicles[0].trips[0]
+    expect([arrival, plannedArrival]).toEqual([at("17:52"), at("16:55")])
+  })
+
+  it("記下回到時刻之後改到沒有行駛時間的小時：到達維持記下的 17:52，原定到達不知道", () => {
+    const day = retimeDay({ runTimes: runTimesTable({ 0: 50 }, { "0:18": 57, "1:16": 45, "1:19": 45 }) })
+    const { arrival, plannedArrival } = currentDay(retype(recordOne(day, "17:52"), "1-1", "15:10")).vehicles[0].trips[0]
+    expect([arrival, plannedArrival]).toEqual([at("17:52"), null])
   })
 
   it("先改發車再記下回到時刻：到達是記下的 17:52", () => {

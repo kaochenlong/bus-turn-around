@@ -1,0 +1,51 @@
+---
+tw: &tw
+  heading: 每台車的時間軸
+  note: 拖一趟到別台車那一條，就是那一班起兩台車後面的班互換；沿著自己那一條左右拖，是改發車時刻。鍵盤：Tab 照發車順序選到一趟，按 Enter 叫出上面的動作。
+  vehicle_column: 車
+  credit_column: "%{hours} 小時最少休"
+  legend:
+    direction: "%{direction} %{from}→%{to}"
+    swapped: 換過車
+    late: 記下的晚回
+    typed: 時刻加底線：改過發車時刻
+    credit: "%{hours} 小時最少休：若一人開完這張單"
+  actions_label: 選取的一趟
+  selected_prefix: 選了
+  labels:
+    note: "%{time} 起換自 %{vehicle}"
+    late: "晚 %{minutes} 分"
+    short_stop: "停 %{minutes} 分"
+    stops_at: "空檔裡的數字：在%{stop}停了幾分鐘"
+    both_ends: 兩端
+    trip: "%{vehicle} %{time} %{stop}發車（%{direction}），%{arrival} 到"
+    selected_trip: "%{vehicle} %{time}"
+    selected_detail: "%{stop}發車那一班（%{direction}%{swapped}），%{arrival} 到%{to}。"
+    swapped: "，換車，原排 %{vehicle}"
+    drag_hint: "給 %{vehicle}：%{time} 起兩台車後面的班互換"
+zh-TW:
+  <<: *tw
+en:
+  heading: Every vehicle's day
+  note: "Drag a trip onto another vehicle's lane to have the two vehicles exchange the rest of their day from that departure; drag it along its own lane to retime its departure. Keyboard: Tab through the trips in order of departure and press Enter for the actions above."
+  vehicle_column: Vehicle
+  credit_column: "Rest in %{hours} h"
+  legend:
+    direction: "%{direction} %{from} → %{to}"
+    swapped: Vehicle changed
+    late: Recorded late return
+    typed: "Underlined time: retimed departure"
+    credit: "Rest in %{hours} h: if one person drove the whole sheet"
+  actions_label: Selected trip
+  selected_prefix: Selected
+  labels:
+    note: "%{vehicle}'s trips from %{time}"
+    late: "%{minutes} min late"
+    short_stop: "stop %{minutes} min"
+    stops_at: "Numbers between trips: minutes stood at %{stop}"
+    both_ends: both ends
+    trip: "%{vehicle} %{time} from %{stop} (%{direction}), arrives %{arrival}"
+    selected_trip: "%{vehicle} %{time}"
+    selected_detail: "from %{stop} (%{direction}%{swapped}), arriving at %{to} at %{arrival}."
+    swapped: ", changed, planned on %{vehicle}"
+    drag_hint: "To %{vehicle}: the two vehicles exchange the rest of their day from %{time}"

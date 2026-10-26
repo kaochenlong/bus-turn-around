@@ -54,12 +54,14 @@ RSpec.describe "路線頁的手機版", :duckdb, :js, type: :system do
 
   # On a phone, the per-stop load rows displayed once Alpine has started and
   # again after pressing the load chart's `button` (a band switch or a
-  # direction switch button).
-  def load_rows_around(button)
+  # direction switch button), once the rows it `shows` are displayed: Alpine
+  # shows and hides the rows on the next frame after the press.
+  def load_rows_around(button, shows:)
     on_phone do
       target = find("[data-section=load-chart] #{button}")
       before = shown_load_rows
       target.click
+      find("[data-section=load-chart] #{shows}", match: :first)
       [ before, shown_load_rows ]
     end
   end
@@ -185,12 +187,12 @@ RSpec.describe "路線頁的手機版", :duckdb, :js, type: :system do
   end
 
   it "手機上切到日間，顯示的每站一列換成日間的，有站的數字跟著換" do
-    morning, daytime = load_rows_around("[data-band-switch] button[value=daytime]")
+    morning, daytime = load_rows_around("[data-band-switch] button[value=daytime]", shows: "[data-direction='0'] [data-row-band=daytime] [data-row-seq]")
     expect([ daytime.map { it.first(2) }.uniq, morning.map { it.values_at(2, 3) } == daytime.map { it.values_at(2, 3) } ]).to eq([ [ %w[0 daytime] ], false ])
   end
 
   it "手機上切到返程，只顯示返程的每站一列" do
-    expect(load_rows_around("[data-direction-switch] button[value='1']").last.map { it.first(2) }.uniq).to eq([ %w[1 morning_peak] ])
+    expect(load_rows_around("[data-direction-switch] button[value='1']", shows: "[data-direction='1'] [data-row-seq]").last.map { it.first(2) }.uniq).to eq([ %w[1 morning_peak] ])
   end
 
   it "手機的第一個畫面放得下四張重點數字卡的每一個數字（兩端都停車，第 2、3 張卡各兩行）" do
