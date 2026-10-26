@@ -7,10 +7,15 @@ import "../stylesheets/application.css"
 
 import { installRestCommand } from "../rest_command.js"
 import { timetable } from "../timetable/component.js"
+import { dayDispatch } from "../timetable/day_page.js"
 
 // The timetable page: the server embeds the measured data, the browser lays
 // the timetable out and recomputes the dispatcher's edits.
 Alpine.data("timetable", timetable)
+
+// The day dispatch page: the day lives in this browser, which shows it and
+// works out every change.
+Alpine.data("dayDispatch", dayDispatch)
 
 // The home page's hero animation. The page is complete without it: the
 // static picture stays when motion is reduced, WebGL is missing or the

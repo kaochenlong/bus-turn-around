@@ -1,0 +1,33 @@
+---
+tw: &tw
+  eyebrow: 當天調度
+  note: 今天還沒開始。開始之後記下晚回、換車、改發車時刻；只存在這台電腦的瀏覽器。
+  title: 今天的計畫
+  basis_range: "用 %{first} 到 %{last} %{day_type} %{count} 天量到的每小時發車數與行駛時間鋪排。"
+  basis_one: "用 %{day} %{day_type}量到的每小時發車數與行駛時間鋪排。"
+  no_plan: "這條路線還沒有%{day_type}的資料，鋪不出今天的計畫。"
+  type: 今天是
+  type_hint: 照星期幾預設；國定假日、補班日請自己換
+  summary_html: "會鋪成 %{vehicles} 台車：%{end_0}發 %{departures_0} 班、%{end_1}發 %{departures_1} 班。"
+  start: 開始當天
+  continue: 繼續那一天
+  labels:
+    yesterday: "這台電腦還存著 %{date} 的當天調度。"
+    unreadable: "這台電腦存著的 %{date} 當天調度讀不出來，當成沒有。"
+zh-TW:
+  <<: *tw
+en:
+  eyebrow: Day dispatch
+  note: Not started today. Once started, record late arrivals, vehicle changes and retimed departures; kept in this browser only.
+  title: Today's plan
+  basis_range: "Laid out from the departures per hour and run times measured on %{count} %{day_type} days from %{first} to %{last}."
+  basis_one: "Laid out from the departures per hour and run times measured on %{day}, a %{day_type}."
+  no_plan: "This route has no %{day_type} data yet, so today's plan cannot be laid out."
+  type: Today is a
+  type_hint: Set by the day of the week; change it on public holidays and make-up workdays
+  summary_html: "Lays out %{vehicles} vehicles: %{departures_0} departures from %{end_0} and %{departures_1} from %{end_1}."
+  start: Start the day
+  continue: Continue that day
+  labels:
+    yesterday: "This computer still keeps the day dispatch of %{date}."
+    unreadable: "The day dispatch kept for %{date} cannot be read and is treated as absent."

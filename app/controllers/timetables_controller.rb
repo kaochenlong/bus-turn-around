@@ -9,7 +9,7 @@ class TimetablesController < ApplicationController
 
     # The site name bar links to this timetable page as the current page.
     @timetable_route_id = route_id
-    @timetable_page = true
+    @site_bar_current = :timetable
     @coverage = RoutePage::Coverage.new(route_id:, day: params[:day], range: params[:range])
     @buffer = RoutePage::BufferTrade.minutes(params[:buffer])
     @percentile = RoutePage::Timetable.percentile(params[:p])

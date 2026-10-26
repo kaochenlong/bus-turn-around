@@ -1,0 +1,151 @@
+---
+tw: &tw
+  eyebrow: 當天調度
+  plan_timetable: 計畫的班表
+  restart: 重新開始
+  not_kept: 這一天沒有存在這台電腦：重新整理或關掉頁面，記下的都會不見。
+  figures:
+    swaps: 換車
+    swaps_unit: 次
+    typed: 改過發車
+    typed_unit: 班
+    waiting: 車還沒回來
+    waiting_unit: 班
+    shortest: 最短停留
+    shortest_unit: 分
+  ends_label: 看哪一端發車
+  end: "%{stop}發車（%{direction}）"
+  end_without_stop: "%{direction}發車"
+  departures_note: 派車那一格選另一台車，就是這一班起兩台車後面的班互換；發車那一格可以打時刻。停留是那台車回到這一端之後停了幾分鐘才出發。
+  change_reason: 換車或改發車時刻的原因（選填，跟著下一個修改記下）
+  columns:
+    departure: 發車
+    planned: 原排
+    vehicle: 派車
+    stop: 停留
+    status: 狀態
+  arriving_heading: 照計畫接下來會回到
+  standing_none: 現在沒有車停在這一端。
+  arriving_none: 接下來沒有車會回到這一端。
+  record:
+    vehicle: 車
+    time: 回到的時刻
+    reason: 原因（選填）
+    reason_placeholder: 例如：塞車
+    submit: 記下
+  credits_heading: "每台車連續 %{hours} 小時裡最少休幾分鐘（若一人開完這張單）"
+  undo: 復原上一步
+  changes_none: 還沒有修改。
+  undone: 已復原
+  recorded: 記下的
+  labels:
+    basis_one: "計畫依據：%{day}（%{dayType}）的實測鋪排，行駛時間 p%{percentile}，停車端每次休息 %{buffer} 分。"
+    basis_range: "計畫依據：%{first} 到 %{last}（%{dayType} %{count} 天）的實測鋪排，行駛時間 p%{percentile}，停車端每次休息 %{buffer} 分。"
+    vehicle: "%{number} 號車"
+    statuses:
+      departed: 已發車
+      next: 下一班
+      planned: 照計畫
+      waiting: 車還沒回來
+    swapped: "換車，原排 %{vehicle}"
+    now_line: "現在 %{time}"
+    arrival_column: "回到%{stop}"
+    departure_field: "%{time} 那一班的發車時刻"
+    vehicle_field: "%{time} 那一班派車"
+    shortest_detail: "（%{vehicle}，%{departure} 發車前）"
+    standing_heading: "現在在%{stop}（%{time}）"
+    standing_next: "%{arrival} 回到・已停 %{minutes} 分・排 %{next}"
+    standing_ended: "%{arrival} 回到・已停 %{minutes} 分・今天收班"
+    arriving_next: "排 %{next}"
+    arriving_ended: 今天收班
+    credit_planned: "計畫 %{minutes} 分"
+    credit_minutes: "%{minutes} 分"
+    credit_shorter: "不到 %{hours} 小時"
+    credit_planned_shorter: "計畫不到 %{hours} 小時"
+    record_heading: "記下一台車回到%{stop}"
+    no_trip: "%{vehicle}在 %{time} 之前沒有開往%{stop}的班，沒有記下。"
+    elsewhere: "%{vehicle}接下來從%{stop}發車，沒有換。"
+    day_ended: "%{vehicle}今天在%{stop}收班，沒有換。"
+    no_trips: "%{vehicle}今天的班都給出去了，不知道它在哪一端，沒有換。"
+    changes_heading: "修改清單（%{count} 筆）"
+    change_arrival: "%{vehicle} %{time} 回到%{stop}"
+    change_vehicle: "%{departure} %{stop}發車那一班改派 %{vehicle}，原本是 %{from}"
+    change_departure: "%{vehicle} %{from} 那一班改成 %{departure} 發車"
+    change_reason: "：%{reason}"
+    restart_confirm: 重新開始會丟掉這台電腦存著的這一天：記下的回到時刻、換車與改過的發車時刻都會不見。確定嗎？
+zh-TW:
+  <<: *tw
+en:
+  eyebrow: Day dispatch
+  plan_timetable: Plan's timetable
+  restart: Start again
+  not_kept: This day is not kept on this computer; reloading or closing the page loses what was recorded.
+  figures:
+    swaps: Vehicle changes
+    swaps_unit: ""
+    typed: Retimed departures
+    typed_unit: ""
+    waiting: Waiting for their vehicle
+    waiting_unit: ""
+    shortest: Shortest stop
+    shortest_unit: min
+  ends_label: Departures from
+  end: "%{stop} (%{direction})"
+  end_without_stop: "%{direction} departures"
+  departures_note: Picking another vehicle for a departure makes the two vehicles exchange the rest of their day from that departure; a departure can be typed anew. The stop is how long the vehicle stood at this end before leaving.
+  change_reason: Reason for the next vehicle change or retimed departure (optional)
+  columns:
+    departure: Departs
+    planned: Planned
+    vehicle: Vehicle
+    stop: Stop
+    status: Status
+  arriving_heading: Due next, as planned
+  standing_none: No vehicle stands at this end now.
+  arriving_none: No vehicle is due at this end.
+  record:
+    vehicle: Vehicle
+    time: Back at
+    reason: Reason (optional)
+    reason_placeholder: e.g. traffic
+    submit: Record
+  credits_heading: "Rest in each vehicle's tightest %{hours} hours (if one person drove the whole sheet)"
+  undo: Undo last change
+  changes_none: No changes yet.
+  undone: undone
+  recorded: recorded
+  labels:
+    basis_one: "Planned from the measured %{day} (%{dayType}) at p%{percentile}, %{buffer} min rest at the stopping end."
+    basis_range: "Planned from the measured %{first} to %{last} (%{count} %{dayType} days) at p%{percentile}, %{buffer} min rest at the stopping end."
+    vehicle: "Vehicle %{number}"
+    statuses:
+      departed: Departed
+      next: Next
+      planned: Planned
+      waiting: Not back
+    swapped: "Changed, planned on %{vehicle}"
+    now_line: "Now %{time}"
+    arrival_column: "Back at %{stop}"
+    departure_field: "Departure of the %{time} trip"
+    vehicle_field: "Vehicle for the %{time} departure"
+    shortest_detail: " (%{vehicle}, before the %{departure} departure)"
+    standing_heading: "At %{stop} now (%{time})"
+    standing_next: "back %{arrival}, stood %{minutes} min, next %{next}"
+    standing_ended: "back %{arrival}, stood %{minutes} min, done for the day"
+    arriving_next: "next %{next}"
+    arriving_ended: done for the day
+    credit_planned: "planned %{minutes} min"
+    credit_minutes: "%{minutes} min"
+    credit_shorter: "under %{hours} hours"
+    credit_planned_shorter: "planned under %{hours} hours"
+    record_heading: "Record a vehicle back at %{stop}"
+    no_trip: "%{vehicle} has no trip toward %{stop} departing by %{time}; nothing recorded."
+    elsewhere: "%{vehicle} next leaves from %{stop}; no change."
+    day_ended: "%{vehicle} ends its day at %{stop}; no change."
+    no_trips: "%{vehicle} has given away all its trips, so where it stands is unknown; no change."
+    changes_heading: "Changes (%{count})"
+    change_arrival: "%{vehicle} back at %{stop} at %{time}"
+    change_vehicle: "The %{departure} departure from %{stop} given to %{vehicle}, planned on %{from}"
+    change_departure: "%{vehicle}'s %{from} departure retimed to %{departure}"
+    change_reason: ": %{reason}"
+    restart_confirm: Starting again discards the day kept on this computer, with every recorded arrival, vehicle change and retimed departure. Start again?

@@ -39,6 +39,13 @@ export function plan(runTimes, percentile, goBack, departure, edited = false) {
   return { goBack, departure, arrival: departure + minutes, fallback, edited }
 }
 
+// The minutes a vehicle waits after arriving from a trip of each direction:
+// the rest at a stopping end, the data's hold at a pass-through end. data is
+// the page JSON (stoppingEnds, holds); buffer the rest minutes in use.
+export function holdsFor(data, buffer) {
+  return Object.fromEntries([0, 1].map((goBack) => [goBack, data.stoppingEnds.includes(goBack) ? buffer : data.holds[goBack]]))
+}
+
 // The vehicles in order of creation, each with its trips in time order. A
 // laid-out trip was not typed by the dispatcher, and its laid-out departure
 // is its original one, the earliest the manual edits let it leave.

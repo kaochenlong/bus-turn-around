@@ -28,12 +28,9 @@ tw: &tw
   edited: 手動改過
   pushed: "跟著往後推 %{minutes} 分，原本 %{time}"
   title_separator: "；"
-  rejected_typed: "「%{typed}」不是時刻。%{writings}"
-  accepted_writings: "時刻可以打 0530、530、5:30 或 05:30；過了午夜從 24 接著算，凌晨 00:45 打 2445，最晚 29:59。"
   delete: 刪這一列
   add_label: "加一列（%{direction}的發車時間）"
   add: 加一列
-  next_day: "隔日 %{time}"
   fallback_mark: ＊
   fallback_legend: "%{mark} 那一小時量到的趟次不到 %{sample} 趟，這一趟的計畫行駛時間用的是該方向全天的百分位數。"
   rest_credit: "若一人開完這張單，連續 %{hours} 小時裡最少休 %{minutes} 分鐘。"
@@ -69,12 +66,9 @@ en:
   edited: Edited by hand
   pushed: "Pushed %{minutes} min later, originally %{time}"
   title_separator: "; "
-  rejected_typed: "“%{typed}” is not a time. %{writings}"
-  accepted_writings: "Type a time as 0530, 530, 5:30 or 05:30; past midnight keep counting from 24, so 00:45 is 2445, up to 29:59."
   delete: Delete this row
   add_label: "Add a row (%{direction} departure)"
   add: Add a row
-  next_day: "next day %{time}"
   fallback_mark: "*"
   fallback_legend: "%{mark} Fewer than %{sample} measured trips in that hour; this trip's planned run time is the direction's all-day percentile."
   rest_credit: "If one person drove this whole sheet, the tightest %{hours} hours hold %{minutes} minutes of rest."

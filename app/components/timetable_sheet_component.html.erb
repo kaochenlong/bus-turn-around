@@ -1,7 +1,7 @@
 <%# 單子與列的骨架，瀏覽器複製後填值。文案裡 %{…} 的位子留給瀏覽器填；印出來時控制項藏起來、時刻印同格的文字 %>
 <template data-sheet-template
           data-title="<%= t(".title", number: "%{number}") %>"
-          data-next-day="<%= t(".next_day", time: "%{time}") %>"
+          data-next-day="<%= t("times.next_day", time: "%{time}") %>"
           data-add-label="<%= t(".add_label", direction: "%{direction}") %>"
           data-direction-0="<%= t("directions.0") %>"
           data-direction-1="<%= t("directions.1") %>"
@@ -9,8 +9,8 @@
           data-edited-title="<%= t(".edited") %>"
           data-pushed-title="<%= t(".pushed", minutes: "%{minutes}", time: "%{time}") %>"
           data-title-separator="<%= t(".title_separator") %>"
-          data-rejected-typed="<%= t(".rejected_typed", typed: "%{typed}", writings: t(".accepted_writings")) %>"
-          data-accepted-writings="<%= t(".accepted_writings") %>"
+          data-rejected-typed="<%= t("times.rejected_typed", typed: "%{typed}", writings: t("times.accepted_writings")) %>"
+          data-accepted-writings="<%= t("times.accepted_writings") %>"
           data-rest-credit-text="<%= t(".rest_credit", hours: WINDOW_HOURS, minutes: "%{minutes}") %>"
           data-shorter-text="<%= t(".shorter", hours: WINDOW_HOURS) %>"
           data-print-header="<%= print_header %>"

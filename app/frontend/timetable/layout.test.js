@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { layOut, minutesInHour, plan } from "./layout.js"
+import { holdsFor, layOut, minutesInHour, plan } from "./layout.js"
 import { at, departuresTable, runTimesTable } from "./support.js"
 
 const bothStop = { 0: 15, 1: 15 }
@@ -86,6 +86,16 @@ describe("layOut：發車交給在那一端等最久的車，沒有車就多開�
 
   it("某方向有發車卻沒有行駛時間時失敗，說出是哪個方向", () => {
     expect(() => layout({ "1:7": 1 }, runTimesTable({ 0: 50 }))).toThrow(/1/)
+  })
+})
+
+describe("holdsFor：每個方向的趟次到了之後停多久，停車端照休息分鐘數", () => {
+  it("返程結束在停車端、去程結束在直接折返那一端（停 3 分）：休息 10 分時去程 3、返程 10", () => {
+    expect(holdsFor({ stoppingEnds: [1], holds: { 0: 3, 1: 15 } }, 10)).toEqual({ 0: 3, 1: 10 })
+  })
+
+  it("兩端都停車時兩個方向都是休息分鐘數：休息 0 分時都是 0", () => {
+    expect(holdsFor({ stoppingEnds: [0, 1], holds: { 0: 15, 1: 15 } }, 0)).toEqual({ 0: 0, 1: 0 })
   })
 })
 
