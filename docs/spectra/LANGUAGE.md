@@ -6,7 +6,7 @@
 
 `/spectra-discuss` 會先讀這份檔案。文件或對話用了「不要用」那行裡的說法，或出現這裡沒有的常用概念，就是詞彙漂移，回來改這裡。
 
-整理日期：2026-10-24。核對用的是 2026-10-19 的靜態快照與同一個台北日的事件。2026-10-25 加「班本」與「班表」，改「首頁」，加「分享預覽」。2026-10-26 加「站間車速」、「當天調度」與「換車」。
+整理日期：2026-10-24。核對用的是 2026-10-19 的靜態快照與同一個台北日的事件。2026-10-25 加「班本」與「班表」，改「首頁」，加「分享預覽」。2026-10-26 加「站間車速」、「當天調度」與「換車」。2026-10-27「當天調度」補上時間軸是主畫面、發車表是側欄。
 
 ## 資料來源與檔案
 
@@ -277,9 +277,9 @@
 
 ### 當天調度
 
-- 定義：調度員用量到的資料鋪出今天的計畫，拿到當天用。在當天調度頁按「開始當天」時，把今天的計畫存成這一天的計畫；之後記下哪台車幾點回到哪一端、把一班改派給另一台車（換車）、改一班的發車時刻，網站照「計畫依序套上每一筆還有效的修改」算出每一班誰開、停了幾分、哪一班車還沒回來、每台車連續四小時裡最緊休了幾分。只存在調度員那台電腦的瀏覽器裡。
-- 在資料或程式碼裡：當天調度頁 `GET /routes/<Id>/dispatch`（`DayDispatchesController`，畫面是 `DayDispatchComponent` 的 template，Alpine 元件 `dayDispatch` 在 `app/frontend/timetable/day_page.js`），跟班表頁一樣要 JavaScript。入口是路線頁、班表頁、當天調度頁名稱列的「當天調度」。沒有可以顯示的那一天時，當天調度頁顯示今天的計畫（`DayStartComponent`；日型別、百分位數與休息，涵蓋哪幾天由 `RoutePage::DispatchPlan` 決定，鋪法跟班表頁沒改過的單子一樣），從那裡開始當天；班表頁只排班。存不進這台電腦的那一天，同一個分頁裡由 `app/frontend/timetable/day_handoff.js` 交過去，重新整理就沒了。計算在 `app/frontend/timetable/day.js`（`startDay`、`recordArrival`、`changeVehicle`、`changeDeparture`、`undoLast`、`currentDay`），存法在 `app/frontend/timetable/day_storage.js`（`localStorage` 的鍵 `turnaround.day-dispatch.v1.<路線 Id>.<YYYY-MM-DD>`），畫面在 `app/frontend/timetable/day_view.js`。存下的計畫帶著開始時那個百分位數的計畫行駛時間，之後改發車時刻都用它，換個入口繼續也不變。
-- 邊界：資料仍然晚一天，網站不知道車現在在哪，只知道調度員打進來的。今天的計畫用量到的每小時發車數，班表頁手動改過的單子不會帶過來；平日或假日照星期幾猜，國定假日、補班日要調度員自己換。不自動移動任何一趟：記下晚回只改那一趟的到達，下一班接不上就標「車還沒回來」、停留印負數；排班時的往後推只用在排班。只有復原上一步，已復原的照樣列在修改清單。不存到伺服器、沒有帳號、不跨電腦，清掉瀏覽器的網站資料就沒了。時間軸畫面、列印與匯出由之後的 change 做。換車的規則與記下回到時刻改的是哪一趟都是假設，沒有調度員驗證過。
+- 定義：調度員用量到的資料鋪出今天的計畫，拿到當天用。在當天調度頁按「開始當天」時，把今天的計畫存成這一天的計畫；之後記下哪台車幾點回到哪一端、把一班改派給另一台車（換車）、改一班的發車時刻，網站照「計畫依序套上每一筆還有效的修改」算出每一班誰開、停了幾分、哪一班車還沒回來、每台車連續四小時裡最緊休了幾分。只存在調度員那台電腦的瀏覽器裡。開始當天之後的主畫面是時間軸：一台車一條，一眼看完每台車一整天、換過車的地方、記下的晚回與四小時休息；末站發車表是它下面的側欄，打時刻、從選單挑車這類細部的修改在側欄做。在時間軸上把一趟拖到別台車那一條，跟在側欄把那一班改派給那台車是同一個換車。
+- 在資料或程式碼裡：當天調度頁 `GET /routes/<Id>/dispatch`（`DayDispatchesController`，畫面是 `DayDispatchComponent` 的 template，Alpine 元件 `dayDispatch` 在 `app/frontend/timetable/day_page.js`），跟班表頁一樣要 JavaScript。入口是路線頁、班表頁、當天調度頁名稱列的「當天調度」。沒有可以顯示的那一天時，當天調度頁顯示今天的計畫（`DayStartComponent`；日型別、百分位數與休息，涵蓋哪幾天由 `RoutePage::DispatchPlan` 決定，鋪法跟班表頁沒改過的單子一樣），從那裡開始當天；班表頁只排班。存不進這台電腦的那一天，同一個分頁裡由 `app/frontend/timetable/day_handoff.js` 交過去，重新整理就沒了。計算在 `app/frontend/timetable/day.js`（`startDay`、`recordArrival`、`changeVehicle`、`changeDeparture`、`undoLast`、`currentDay`），存法在 `app/frontend/timetable/day_storage.js`（`localStorage` 的鍵 `turnaround.day-dispatch.v1.<路線 Id>.<YYYY-MM-DD>`），畫面在 `app/frontend/timetable/day_view.js`；時間軸的範圍與時刻、位置的換算在 `app/frontend/timetable/day_timeline.js`，時間軸的 template 是 `DayTimelineComponent`。存下的計畫帶著開始時那個百分位數的計畫行駛時間，之後改發車時刻都用它，換個入口繼續也不變。
+- 邊界：資料仍然晚一天，網站不知道車現在在哪，只知道調度員打進來的。今天的計畫用量到的每小時發車數，班表頁手動改過的單子不會帶過來；平日或假日照星期幾猜，國定假日、補班日要調度員自己換。不自動移動任何一趟：記下晚回只改那一趟的到達，下一班接不上就標「車還沒回來」、停留印負數；排班時的往後推只用在排班。只有復原上一步，已復原的照樣列在修改清單。不存到伺服器、沒有帳號、不跨電腦，清掉瀏覽器的網站資料就沒了。列印與匯出由之後的 change 做。換車的規則與記下回到時刻改的是哪一趟都是假設，沒有調度員驗證過。
 - 不要用：即時調度、自動調度、派車系統、排班。
 
 ### 換車

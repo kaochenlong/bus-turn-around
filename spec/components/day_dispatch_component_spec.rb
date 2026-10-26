@@ -40,7 +40,7 @@ RSpec.describe DayDispatchComponent, type: :component do
   it "瀏覽器要填的文案留著要填的位子，包括跟班表單子共用的隔日與打不出來的時刻" do
     placeholders = { "vehicle" => %w[%{number}], "basisOne" => %w[%{day} %{dayType} %{percentile} %{buffer}], "basisRange" => %w[%{first} %{last} %{dayType} %{count} %{percentile} %{buffer}],
                      "standingNext" => %w[%{arrival} %{minutes} %{next}], "changeVehicle" => %w[%{departure} %{stop} %{vehicle} %{from}], "noTrip" => %w[%{vehicle} %{time} %{stop}],
-                     "nextDay" => %w[%{time}], "rejectedTyped" => %w[%{typed}] }
+                     "nextDay" => %w[%{time}], "rejectedTyped" => %w[%{typed}], "recordAction" => %w[%{vehicle} %{stop}] }
     expect(placeholders.map { |key, names| names.all? { labels[key]&.include?(it) } }).to eq([ true ] * placeholders.size)
   end
 

@@ -133,6 +133,12 @@ RSpec.describe "當天調度", :js, type: :system do
 
   def figures = %w[swaps typed waiting shortest].map { find("[data-day-dispatch] [data-figure=#{it}]").text } + [ find("[data-day-dispatch] [data-slot=shortest-detail]").text ]
 
+  # Every vehicle's rest in the tightest four hours at the end of its lane of
+  # the timeline, as the vehicle, the rest and the planned value beside it.
+  def lane_credits = page.evaluate_script(<<~JS)
+    [...document.querySelectorAll("[data-day-timeline] [data-lane]")].map((lane) => ["vehicle", "credit", "planned"].map((name) => lane.querySelector(`[data-slot=${name}]`).textContent))
+  JS
+
   def basis = find("[data-day-dispatch] [data-slot=basis]").text
 
   # HH:MM as minutes of the day.
@@ -262,6 +268,11 @@ RSpec.describe "當天調度", :js, type: :system do
       expect([ shown, [ pressed_end, column(:departure) ] ]).to eq([ [ end_label("甲站", "去程"), %w[06:00 06:20 06:40] ], [ end_label("乙站", "返程"), %w[07:00 07:20 07:40] ] ])
     end
 
+    it "回到的那一欄的表頭寫出列著的那一端：切到乙站寫回到乙站" do
+      start_day.then { show_end("乙站", "返程") }
+      expect(find("[data-day-dispatch] th[data-column=arrival]").text).to eq(day_text(:labels, :arrival_column, stop: "乙站"))
+    end
+
     it "每一班帶原排、派車、那台車回到這一端的時刻與停留：乙站 07:00 是 4 號車第一趟，沒有回到的時刻" do
       start_day
       click_button end_label("乙站", "返程")
@@ -286,15 +297,15 @@ RSpec.describe "當天調度", :js, type: :system do
       expect(figures).to eq([ "0", "0", "0", "30", day_text(:labels, :shortest_detail, vehicle: "1 號車", departure: "07:20") ])
     end
 
-    it "每台車的四小時休息：這一天的單都不到四小時" do
+    it "每台車的四小時休息在時間軸那一條的尾端：這一天的單都不到四小時" do
       start_day
-      expect(list(:credits)).to eq((1..4).map { [ "#{it} 號車", day_text(:labels, :credit_shorter, hours: 4), "" ] })
+      expect(lane_credits).to eq((1..4).map { [ "#{it} 號車", day_text(:labels, :credit_shorter, hours: 4), "" ] })
     end
 
-    it "每台車的四小時休息：08 到 11 時多了趟次、單子拉長之後 1 號車 60 分、2 號車 105 分、3 號車 105 分、4 號車 60 分，沒有修改所以不附計畫的數字" do
+    it "每台車的四小時休息在時間軸那一條的尾端：08 到 11 時多了趟次、單子拉長之後 1 號車 60 分、2 號車 105 分、3 號車 105 分、4 號車 60 分，沒有修改所以不附計畫的數字" do
       store_longer_day
       start_day
-      expect(list(:credits)).to eq([ [ 1, 60 ], [ 2, 105 ], [ 3, 105 ], [ 4, 60 ] ].map { |number, minutes| [ "#{number} 號車", day_text(:labels, :credit_minutes, minutes:), "" ] })
+      expect(lane_credits).to eq([ [ 1, 60 ], [ 2, 105 ], [ 3, 105 ], [ 4, 60 ] ].map { |number, minutes| [ "#{number} 號車", day_text(:labels, :credit_minutes, minutes:), "" ] })
     end
 
     it "頁面上沒有任何車輛識別碼" do
@@ -341,8 +352,8 @@ RSpec.describe "當天調度", :js, type: :system do
     it "規格的換車之後的四小時休息：08 到 11 時多了趟次、單子拉長之後乙站 07:20 給 2 號車，1 號車 105 分附計畫 60 分、2 號車 45 分附計畫 105 分" do
       store_longer_day
       start_day.then { show_end("乙站", "返程") }.then { give("07:20", 2) }
-      expect(list(:credits).first(2)).to eq([ [ "1 號車", day_text(:labels, :credit_minutes, minutes: 105), day_text(:labels, :credit_planned, minutes: 60) ],
-                                             [ "2 號車", day_text(:labels, :credit_minutes, minutes: 45), day_text(:labels, :credit_planned, minutes: 105) ] ])
+      expect(lane_credits.first(2)).to eq([ [ "1 號車", day_text(:labels, :credit_minutes, minutes: 105), day_text(:labels, :credit_planned, minutes: 60) ],
+                                          [ "2 號車", day_text(:labels, :credit_minutes, minutes: 45), day_text(:labels, :credit_planned, minutes: 105) ] ])
     end
 
     it "規格的那台車不在那一端：甲站 06:40 那班派給 1 號車被拒絕，說它接下來從乙站發車，派車那一格回到 3 號車" do

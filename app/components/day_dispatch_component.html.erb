@@ -32,6 +32,13 @@
     <% end %>
   </dl>
 
+  <%# 選取的那一趟：瀏覽器照時間軸的 template 放在這裡，在時間軸上面 %>
+  <div data-slot="trip-actions" class="empty:hidden"></div>
+
+  <%# 主畫面是時間軸，用滿寬度 %>
+  <%= render DayTimelineComponent.new(stop_names: @stop_names, actions:) %>
+
+  <%# 側欄照 01 的排法在時間軸下面：左邊發車表，右邊現在在這一端的車、記下回到時刻與修改清單；放不下兩欄時疊成一欄 %>
   <div class="flex flex-wrap items-start gap-4">
     <section class="flex min-w-0 flex-[999_1_640px] flex-col gap-2.5 rounded-lg border border-slate-200 bg-white p-4">
       <div role="group" aria-label="<%= t(".ends_label") %>" class="flex flex-wrap gap-2">
@@ -45,20 +52,21 @@
         <%= t(".change_reason") %>
         <input type="text" data-change-reason placeholder="<%= t(".record.reason_placeholder") %>" class="<%= FIELD_CLASSES %> w-full max-w-sm">
       </label>
-      <%# 手機上放不下，表放在可橫向捲動的框裡 %>
-      <div class="overflow-x-auto">
+      <%# 發車表放在自己的捲動框裡，表頭留在框的上緣：捲到某一班時頁面不跟著動。手機上放不下，框裡也能左右捲。
+          表頭的線用陰影畫，捲動時才跟著表頭 %>
+      <div data-departures-frame class="max-h-105 overflow-auto border-t border-slate-200">
         <table class="w-full min-w-150 table-fixed border-collapse text-label text-slate-900">
           <colgroup>
             <col class="w-19"><col class="w-22"><col class="w-45"><col><col class="w-19"><col class="w-23">
           </colgroup>
           <thead>
-            <tr class="h-8 border-b border-slate-300 text-left text-tick font-semibold text-slate-600">
-              <th class="px-1.5"><%= t(".columns.departure") %></th>
-              <th class="px-1.5"><%= t(".columns.planned") %></th>
-              <th class="px-1.5"><%= t(".columns.vehicle") %></th>
-              <th data-slot="arrival-column" class="px-1.5"></th>
-              <th class="px-1.5 text-right"><%= t(".columns.stop") %></th>
-              <th class="px-1.5"><%= t(".columns.status") %></th>
+            <tr class="text-left text-tick font-semibold text-slate-600">
+              <th data-column="departure" class="<%= HEADER_CLASSES %> px-1.5"><%= t(".columns.departure") %></th>
+              <th data-column="planned" class="<%= HEADER_CLASSES %> px-1.5"><%= t(".columns.planned") %></th>
+              <th data-column="vehicle" class="<%= HEADER_CLASSES %> px-1.5"><%= t(".columns.vehicle") %></th>
+              <th data-column="arrival" data-slot="arrival-column" class="<%= HEADER_CLASSES %> px-1.5"></th>
+              <th data-column="stop" class="<%= HEADER_CLASSES %> px-1.5 text-right"><%= t(".columns.stop") %></th>
+              <th data-column="status" class="<%= HEADER_CLASSES %> px-1.5"><%= t(".columns.status") %></th>
             </tr>
           </thead>
           <tbody data-slot="departures"></tbody>
@@ -100,11 +108,6 @@
       </section>
 
       <section class="<%= CARD_CLASSES %>">
-        <h2 class="text-note font-bold text-slate-900"><%= t(".credits_heading", hours: WINDOW_HOURS) %></h2>
-        <ul data-slot="credits" class="grid grid-cols-[72px_minmax(0,1fr)] gap-y-1 text-label-sm"></ul>
-      </section>
-
-      <section class="<%= CARD_CLASSES %>">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 data-slot="changes-heading" class="text-note font-bold text-slate-900"></h2>
           <button type="button" data-undo class="<%= BUTTON_CLASSES %>"><%= t(".undo") %></button>
@@ -115,9 +118,10 @@
     </aside>
   </div>
 
-  <%# 發車表的一列：發車可以打時刻、派車是選單；換過車時派車底下寫原排；時刻被退回或換車不成立時，下一列寫原因 %>
+  <%# 發車表的一列：發車可以打時刻、派車是選單；換過車時派車底下寫原排；在時間軸上選了的那一班畫框。
+      時刻被退回或換車不成立時，下一列寫原因 %>
   <template data-departure-row>
-    <tr data-trip class="border-b border-slate-100 data-[status=departed]:text-slate-500 data-[status=next]:bg-teal-50">
+    <tr data-trip class="border-b border-slate-100 data-[status=departed]:text-slate-500 data-[status=next]:bg-teal-50 data-selected:outline-2 data-selected:-outline-offset-2 data-selected:outline-slate-900">
       <td class="h-12 px-1.5 in-data-[status=departed]:h-10">
         <input type="text" data-control="departure" inputmode="numeric"
                class="w-16 rounded border border-transparent bg-transparent px-1 py-0.5 font-route-figure text-note hover:border-slate-300 aria-[invalid=true]:border-red-600 in-data-[status=next]:text-[17px] in-data-[status=next]:font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
@@ -147,9 +151,6 @@
   </template>
   <template data-arriving-item>
     <li class="contents"><span data-slot="vehicle" class="font-semibold whitespace-nowrap text-slate-900"></span><span data-slot="arrival" class="font-route-figure text-label"></span><span data-slot="next" class="text-slate-600"></span></li>
-  </template>
-  <template data-credit-item>
-    <li class="contents"><span data-slot="vehicle" class="font-semibold whitespace-nowrap text-slate-900"></span><span><span data-slot="now" class="font-route-figure text-label"></span> <span data-slot="planned" class="text-slate-500"></span></span></li>
   </template>
   <template data-change-item>
     <li class="contents"><span data-slot="at" class="font-route-figure text-label font-semibold"></span><span class="in-data-undone:text-slate-500"><span data-slot="text" class="in-data-undone:line-through"></span><span data-slot="reason" class="in-data-undone:line-through"></span><span data-slot="undone" hidden class="ml-1.5 rounded bg-slate-100 px-1.5 text-tick text-slate-600"><%= t(".undone") %></span></span></li>

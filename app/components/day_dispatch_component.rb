@@ -2,12 +2,15 @@
 
 # The day dispatch view, as in the day-dispatch spec: hidden until the
 # browser shows a day in it. It holds the header with the plan's basis and
-# the day's figures, one control per end, the departures from the selected
-# end, the vehicles standing at that end and due at it, the form that
-# records a vehicle back there, every vehicle's rest in the tightest four
-# hours, and the change log. The server writes the markup, the wording and
-# the route's name and ends; the day itself lives in the browser, which
-# fills in the rest from the templates here and the words in data-labels.
+# the day's figures, the place of the selected trip's actions, and the
+# timeline of the day-dispatch-timeline spec as its main view, which ends
+# every vehicle's lane with its rest in the tightest four hours, with a panel
+# below it: one control per end and the departures from the selected end,
+# beside them the vehicles standing at that end and due at it, the form that
+# records a vehicle back there, and the change log. The server writes the
+# markup, the wording and the route's name and ends; the day itself lives in
+# the browser, which fills in the rest from the templates here and the words
+# in data-labels.
 class DayDispatchComponent < ApplicationComponent
   # The rest window of the vehicles' figures, the sheets' own.
   WINDOW_HOURS = TimetableSheetComponent::WINDOW_HOURS
@@ -20,6 +23,9 @@ class DayDispatchComponent < ApplicationComponent
   END_BUTTON_CLASSES = "#{BUTTON_CLASSES} aria-pressed:border-slate-900 aria-pressed:bg-slate-900 aria-pressed:font-semibold aria-pressed:text-white".freeze
   FIELD_CLASSES = "min-h-10 rounded-md border border-slate-300 bg-white px-2 text-label text-slate-900 aria-[invalid=true]:border-red-600 " \
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+  # A header cell of the departures, held at the top of their frame with its
+  # line drawn as a shadow, which a collapsed border would leave behind.
+  HEADER_CLASSES = "sticky top-0 z-1 h-8 bg-white shadow-[inset_0_-1px_0_var(--color-slate-300)]"
 
   # An end of the route, named by the direction that departs from it: what
   # its control says, and its name in the view's sentences.
@@ -48,6 +54,10 @@ class DayDispatchComponent < ApplicationComponent
       End.new(go_back:, label: stop ? t(".end", stop:, direction:) : t(".end_without_stop", direction:), name: stop || direction)
     end
   end
+
+  # The words of the selected trip's actions on the timeline, the panel's own:
+  # giving the departure to another vehicle is the vehicle column's word.
+  def actions = { vehicle: t(".columns.vehicle"), departure: t(".actions.departure"), deselect: t(".actions.deselect") }
 
   # The words the browser writes with the day's values, %{…} left for it to
   # fill; how the site writes a day with its weekday and names a day type;

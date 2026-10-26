@@ -33,7 +33,9 @@ tw: &tw
     reason: 原因（選填）
     reason_placeholder: 例如：塞車
     submit: 記下
-  credits_heading: "每台車連續 %{hours} 小時裡最少休幾分鐘（若一人開完這張單）"
+  actions:
+    departure: 改發車時刻
+    deselect: 取消選取
   undo: 復原上一步
   changes_none: 還沒有修改。
   undone: 已復原
@@ -63,6 +65,7 @@ tw: &tw
     credit_shorter: "不到 %{hours} 小時"
     credit_planned_shorter: "計畫不到 %{hours} 小時"
     record_heading: "記下一台車回到%{stop}"
+    record_action: "記下 %{vehicle}回到%{stop}"
     no_trip: "%{vehicle}在 %{time} 之前沒有開往%{stop}的班，沒有記下。"
     elsewhere: "%{vehicle}接下來從%{stop}發車，沒有換。"
     day_ended: "%{vehicle}今天在%{stop}收班，沒有換。"
@@ -109,7 +112,9 @@ en:
     reason: Reason (optional)
     reason_placeholder: e.g. traffic
     submit: Record
-  credits_heading: "Rest in each vehicle's tightest %{hours} hours (if one person drove the whole sheet)"
+  actions:
+    departure: Retime departure
+    deselect: Deselect
   undo: Undo last change
   changes_none: No changes yet.
   undone: undone
@@ -139,6 +144,7 @@ en:
     credit_shorter: "under %{hours} hours"
     credit_planned_shorter: "planned under %{hours} hours"
     record_heading: "Record a vehicle back at %{stop}"
+    record_action: "Record %{vehicle} back at %{stop}"
     no_trip: "%{vehicle} has no trip toward %{stop} departing by %{time}; nothing recorded."
     elsewhere: "%{vehicle} next leaves from %{stop}; no change."
     day_ended: "%{vehicle} ends its day at %{stop}; no change."

@@ -1,16 +1,23 @@
-// The day dispatch view of the timetable page, as in the day-dispatch spec:
-// draws a day, worked out by day.js, into the markup and the templates that
-// DayDispatchComponent writes, with the words of its data-labels; times read
-// like the sheets', with the words for times the sheets share.
+// The day dispatch view of the day dispatch page, as in the day-dispatch
+// spec: draws a day, worked out by day.js, into the markup and the templates
+// that DayDispatchComponent writes, with the words of its data-labels, and
+// its timeline through day_timeline_view.js; times read like the sheets',
+// with the words for times the sheets share.
 // Vehicles are named by the sheets' numbers only. Every change the
 // dispatcher makes goes through day.js, is kept in this browser and draws the
 // whole view anew; a change that cannot be made is explained beside the
 // field it came from and changes nothing.
 import { arrivingAt, changeDeparture, changeVehicle, currentDay, defaultEnd, departuresAt, minutesOfDay, recordArrival, undoLast, vehiclesAt } from "./day.js"
-import { clock, fieldClock, parseClock, stopText } from "./format.js"
+import { timelineView } from "./day_timeline_view.js"
+import { clock, fieldClock, fill, parseClock, stopText } from "./format.js"
+import { OTHER_END } from "./layout.js"
 
 // The words for each refusal of a vehicle change.
 const REFUSALS = { elsewhere: "elsewhere", "day-ended": "dayEnded", "no-trips": "noTrips" }
+
+// How many departures show above the one the panel scrolls to, as on the
+// canvas.
+const PANEL_CONTEXT = 3
 
 // The view inside the component's root. now is the page's clock, read
 // whenever it is needed; keep(day) keeps a changed day and says whether this
@@ -24,6 +31,20 @@ export function dayView(root, { now, keep }) {
   const endName = (end) => root.querySelector(`[data-end="${end}"]`).dataset.name
   const changeReason = root.querySelector("[data-change-reason]")
   const form = root.querySelector("form[data-record]")
+  const timelineSection = root.querySelector("[data-day-timeline]")
+  // The timeline's words, which name the selected trip.
+  const timelineWords = JSON.parse(timelineSection.dataset.labels)
+  const timeline = timelineView(timelineSection, {
+    labels, time, vehicleName, endName,
+    onSelect: (tripId, how) => view.select(tripId, how), onNow: () => view.toNow(),
+    previewDrop: (tripId, vehicle) => view.previewDrop(tripId, vehicle), onDropOnLane: (tripId, vehicle) => view.dropOnLane(tripId, vehicle),
+    onDropAlongLane: (tripId, departure) => view.dropAlongLane(tripId, departure),
+  })
+
+  // Why a vehicle change was refused, in the panel's words: the vehicle and
+  // the end it next leaves from or ends its day at. A vehicle with no trip
+  // left has no end to name.
+  const refusalText = ({ kind, vehicle, end }) => fill(labels[REFUSALS[kind]], { vehicle: vehicleName(vehicle), stop: end === undefined ? "" : endName(end) })
 
   // What is said about a typed time that cannot be read, in the sheets'
   // words: it quotes what was typed, when anything was, as text.
@@ -34,23 +55,105 @@ export function dayView(root, { now, keep }) {
     day: null,
     // The end whose departures are listed.
     end: null,
+    // The identifier of the trip selected on the timeline, if any.
+    selected: null,
     // The departure field typed into since it was last submitted, if any.
     typedField: null,
     // The field whose change was refused and the row that says why, if any.
     rejection: null,
 
-    // A day shown from the end listed first, saying when it is not kept in
-    // this browser.
+    // A day shown from the end listed first, its departures scrolled to the
+    // next one and its timeline to now, saying when it is not kept in this
+    // browser.
     show(day, { kept }) {
       this.day = day
       this.end = defaultEnd(day)
+      this.selected = null
       root.querySelector("[data-not-kept]").hidden = kept
       this.render()
+      this.scrollPanelToNow()
+      timeline.scrollToNow()
     },
 
     selectEnd(end) {
       this.end = end
       this.render()
+    },
+
+    // A trip selected on the timeline: the panel lists the end it departs
+    // from, scrolled to its departure, marked as selected there and on the
+    // timeline, and its actions show above both. Selected by the keyboard,
+    // the focus goes to the first action, as the trip's button is drawn anew.
+    select(tripId, { keyboard = false } = {}) {
+      this.selected = tripId
+      this.showInPanel(tripId)
+      if (keyboard) slot("trip-actions").querySelector("[data-action]").focus()
+    },
+
+    // The panel at the end a trip departs from, scrolled to its departure.
+    showInPanel(tripId) {
+      this.end = runningTrip(currentDay(this.day), tripId).trip.goBack
+      this.render()
+      this.scrollPanelTo(slot("departures").querySelector(`tr[data-trip="${tripId}"]`))
+    },
+
+    // One of the selected trip's actions. Each hands the focus to the
+    // panel's own control for it, so the change it makes, its refusals and
+    // its words are the panel's: the trip's vehicle menu or departure field,
+    // or the form recording its vehicle back at the end it heads to.
+    // Deselecting closes the actions; from the keyboard, the focus goes back
+    // to the trip.
+    act(action, { keyboard }) {
+      const tripId = this.selected
+      if (action === "deselect") {
+        this.selected = null
+        this.render()
+        if (keyboard) timeline.focusTrip(tripId)
+        return
+      }
+      if (action === "record") {
+        const { vehicle, trip } = runningTrip(currentDay(this.day), tripId)
+        this.selectEnd(OTHER_END[trip.goBack])
+        form.querySelector("[data-record-vehicle]").value = String(vehicle)
+        form.querySelector("[data-record-time]").focus()
+        return
+      }
+      if (!slot("departures").querySelector(`tr[data-trip="${tripId}"]`)) this.showInPanel(tripId)
+      const control = slot("departures").querySelector(`tr[data-trip="${tripId}"] [data-control=${action}]`)
+      control.focus()
+      if (action === "departure") control.select()
+    },
+
+    // The mark of now selected: the panel back at the end listed first,
+    // scrolled to its next departure, the timeline to now, and no trip
+    // selected.
+    toNow() {
+      this.end = defaultEnd(this.day)
+      this.selected = null
+      this.render()
+      this.scrollPanelToNow()
+      timeline.scrollToNow()
+    },
+
+    // The departures scrolled to the first one at or after now, the line of
+    // now right before it.
+    scrollPanelToNow() {
+      const line = slot("departures").querySelector("tr[data-now-line]")
+      this.scrollPanelTo(line.nextElementSibling ?? line)
+    },
+
+    // The departures' frame scrolled so a row shows right below the header
+    // with up to PANEL_CONTEXT departures before it. Only the frame scrolls,
+    // so the page stays where it is.
+    scrollPanelTo(row) {
+      let anchor = row
+      let before = 0
+      while (before < PANEL_CONTEXT && anchor.previousElementSibling) {
+        anchor = anchor.previousElementSibling
+        if (anchor.matches("tr[data-trip]")) before += 1
+      }
+      const frame = root.querySelector("[data-departures-frame]")
+      frame.scrollTop += anchor.getBoundingClientRect().top - frame.querySelector("thead").getBoundingClientRect().bottom
     },
 
     // A change made: the day kept, drawn anew, and the focus back on the
@@ -99,13 +202,41 @@ export function dayView(root, { now, keep }) {
       const tr = menu.closest("tr[data-trip]")
       const result = changeVehicle(this.day, { tripId: tr.dataset.trip, vehicle: Number(menu.value), reason: changeReason.value.trim(), at: now().toISOString() })
       if (result.refused) {
-        const { kind, vehicle, end } = result.refused
         menu.value = tr.dataset.vehicle
-        // A vehicle with no trip left has no end to name.
-        this.reject(tr, menu, fill(labels[REFUSALS[kind]], { vehicle: vehicleName(vehicle), stop: end === undefined ? "" : endName(end) }), false)
+        this.reject(tr, menu, refusalText(result.refused), false)
         return
       }
       this.commitFromTable(result, { trip: tr.dataset.trip, control: "vehicle" })
+    },
+
+    // What dropping a trip on a vehicle's lane would do, by the same change
+    // as giving its departure to that vehicle in the panel: the trips of
+    // that vehicle it would exchange, or the refusal.
+    previewDrop(tripId, vehicle) {
+      const result = changeVehicle(this.day, { tripId, vehicle, at: "" })
+      if (result.refused) return { refused: result.refused }
+      const tripsOf = (day) => currentDay(day).vehicles.find((candidate) => candidate.number === vehicle).trips.map((trip) => trip.id)
+      const kept = new Set(tripsOf(result))
+      return { exchanged: tripsOf(this.day).filter((id) => !kept.has(id)) }
+    },
+
+    // A trip dropped on another vehicle's lane: its departure given to that
+    // vehicle as from the panel's menu, with the reason typed above the
+    // departures; refused, the timeline says why under that lane.
+    dropOnLane(tripId, vehicle) {
+      const result = changeVehicle(this.day, { tripId, vehicle, reason: changeReason.value.trim(), at: now().toISOString() })
+      if (result.refused) {
+        timeline.refuse(vehicle, refusalText(result.refused))
+        return
+      }
+      this.commitFromTable(result)
+    },
+
+    // A trip dropped along its own lane: the minute it was dropped at typed
+    // as its departure, as in the panel's field, with the reason typed above
+    // the departures.
+    dropAlongLane(tripId, departure) {
+      this.commitFromTable(changeDeparture(this.day, { tripId, departure, reason: changeReason.value.trim(), at: now().toISOString() }))
     },
 
     // A vehicle recorded back at the selected end from the form; the time
@@ -176,12 +307,13 @@ export function dayView(root, { now, keep }) {
       slot("date").textContent = formatDay(labels, this.day.date)
       slot("basis").textContent = basisText(labels, this.day.basis)
       this.renderFigures(current.figures)
+      timeline.draw(this.day, current, minutes, this.selected)
       for (const button of root.querySelectorAll("[data-end]")) button.setAttribute("aria-pressed", String(Number(button.dataset.end) === this.end))
       slot("arrival-column").textContent = fill(labels.arrivalColumn, { stop: endName(this.end) })
       slot("departures").replaceChildren(...this.departureRows(current, minutes))
       this.renderStanding(current, minutes)
-      this.renderCredits(current.credits)
       this.renderRecordForm(current)
+      this.renderActions(current)
       this.renderChanges()
     },
 
@@ -208,7 +340,7 @@ export function dayView(root, { now, keep }) {
     // One departure: its typed time in its field, its planned vehicle, its
     // vehicle in a menu of every vehicle with the planned one under it when
     // they differ, the arrival before it (marked when recorded), the stop and
-    // the status.
+    // the status; marked when it is the trip selected on the timeline.
     departureRow(row, vehicles) {
       const tr = template("departure-row").content.firstElementChild.cloneNode(true)
       const departure = time(row.departure)
@@ -217,6 +349,7 @@ export function dayView(root, { now, keep }) {
       tr.dataset.vehicle = row.vehicle
       tr.dataset.status = row.status
       tr.toggleAttribute("data-swapped", row.vehicle !== row.plannedVehicle)
+      tr.toggleAttribute("data-selected", row.id === this.selected)
       const field = tr.querySelector("[data-control=departure]")
       field.value = fieldClock(row.departure)
       field.setAttribute("aria-label", fill(labels.departureField, { time: departure }))
@@ -258,15 +391,28 @@ export function dayView(root, { now, keep }) {
       root.querySelector("[data-arriving-none]").hidden = arriving.length > 0
     },
 
-    // Every vehicle's rest in the tightest four hours now, with the planned
-    // value beside it when the two differ.
-    renderCredits(credits) {
-      const minutesText = (minutes, shorter, text) => (minutes === null ? shorter : fill(text, { minutes }))
-      slot("credits").replaceChildren(...credits.map((credit) => this.item("credit-item", {
-        vehicle: vehicleName(credit.vehicle),
-        now: minutesText(credit.now, labels.creditShorter, labels.creditMinutes),
-        planned: credit.now === credit.planned ? "" : minutesText(credit.planned, labels.creditPlannedShorter, labels.creditPlanned),
-      })))
+    // The selected trip's actions above the timeline and the panel: which
+    // trip it is, with the panel's words for its actions; nothing when no
+    // trip is selected.
+    renderActions(current) {
+      const place = slot("trip-actions")
+      if (this.selected === null) {
+        place.replaceChildren()
+        return
+      }
+      const { vehicle, trip } = runningTrip(current, this.selected)
+      const to = OTHER_END[trip.goBack]
+      const bar = template("timeline-actions").content.firstElementChild.cloneNode(true)
+      bar.querySelector("[data-slot=trip]").textContent = fill(timelineWords.selectedTrip, { vehicle: vehicleName(vehicle), time: time(trip.departure) })
+      bar.querySelector("[data-slot=detail]").textContent = fill(timelineWords.selectedDetail, {
+        stop: endName(trip.goBack),
+        direction: timelineWords.directions[trip.goBack],
+        swapped: trip.plannedVehicle === vehicle ? "" : fill(timelineWords.swapped, { vehicle: vehicleName(trip.plannedVehicle) }),
+        arrival: time(trip.arrival),
+        to: endName(to),
+      })
+      bar.querySelector("[data-action=record]").textContent = fill(labels.recordAction, { vehicle: vehicleName(vehicle), stop: endName(to) })
+      place.replaceChildren(bar)
     },
 
     // The record form for the selected end, offering every vehicle and
@@ -335,6 +481,10 @@ export function dayView(root, { now, keep }) {
     if (menu) view.giveDeparture(menu)
   })
   form.addEventListener("submit", (event) => view.record(event))
+  slot("trip-actions").addEventListener("click", (event) => {
+    const action = event.target.closest("[data-action]")?.dataset.action
+    if (action) view.act(action, { keyboard: event.detail === 0 })
+  })
   root.querySelector("[data-undo]").addEventListener("click", () => view.commit(undoLast(view.day)))
   return view
 }
@@ -347,16 +497,19 @@ function focusOf(element) {
   return tr && element.dataset.control ? { trip: tr.dataset.trip, control: element.dataset.control } : null
 }
 
+// The trip with the identifier and the number of the vehicle running it as
+// the day stands.
+function runningTrip(current, tripId) {
+  for (const vehicle of current.vehicles) {
+    const trip = vehicle.trips.find((candidate) => candidate.id === tripId)
+    if (trip) return { vehicle: vehicle.number, trip }
+  }
+  throw new Error(`no trip ${tripId} in the day`)
+}
+
 // A YYYY-MM-DD date with its weekday, as the site writes days.
 export function formatDay(labels, date) {
   return fill(labels.dayLabel, { date, weekday: labels.weekdays[new Date(Date.parse(date)).getUTCDay()] })
-}
-
-// A label with its %{name} placeholders filled. The values go in as text, so
-// a typed reason is never read as a pattern; a placeholder without a value
-// stays as it is.
-export function fill(text, values) {
-  return text.replace(/%\{(\w+)\}/g, (placeholder, name) => (Object.hasOwn(values, name) ? String(values[name]) : placeholder))
 }
 
 // What the day was planned from: the covered day or days with their day

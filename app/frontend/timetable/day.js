@@ -5,7 +5,7 @@
 // may pass 1440 after midnight. An end is named by the direction that departs
 // from it, 0 or 1.
 
-import { OTHER_END, plan } from "./layout.js"
+import { OTHER_END, plan, plannedMinutes } from "./layout.js"
 import { minimumCredit } from "./rest_windows.js"
 
 // The format of a kept day; a day of another version is not read.
@@ -49,7 +49,9 @@ export function startDay(vehicles, { routeId, date, startedAt, basis, stoppingEn
 }
 
 // The day as it stands: every vehicle's trips, each with the vehicle it was
-// planned on, whether its arrival was recorded and its departure typed, and
+// planned on, whether its arrival was recorded and its departure typed, the
+// arrival planned for it whatever was recorded (null when its departure was
+// typed into an hour without a run time after its arrival was recorded), and
 // the stop before it; the header's figures; and every vehicle's rest in the
 // tightest four hours, now and as planned.
 export function currentDay(day) {
@@ -203,11 +205,21 @@ function exchange(vehicles, { tripId, vehicle }) {
   }
 }
 
+// A recorded arrival stays; without one the trip arrives as planned for the
+// typed departure, which needs a run time for its hour.
 function retime(vehicles, { tripId, departure }, day) {
   const vehicle = vehicleRunning(vehicles, tripId)
   const trip = vehicle.trips.find((candidate) => candidate.id === tripId)
-  const arrival = trip.recorded ? trip.arrival : plan(day.runTimes, day.basis.percentile, trip.goBack, departure).arrival
-  return { vehicles: withTrip(vehicles, tripId, { departure, arrival, typed: true }), noted: { vehicle: vehicle.number, from: trip.departure } }
+  const plannedArrival = trip.recorded ? arrivalAfter(day, trip.goBack, departure) : plan(day.runTimes, day.basis.percentile, trip.goBack, departure).arrival
+  const arrival = trip.recorded ? trip.arrival : plannedArrival
+  return { vehicles: withTrip(vehicles, tripId, { departure, arrival, plannedArrival, typed: true }), noted: { vehicle: vehicle.number, from: trip.departure } }
+}
+
+// The arrival after the run time the day kept for the departure's hour, null
+// when the day kept none for it.
+function arrivalAfter(day, goBack, departure) {
+  const planned = plannedMinutes(day.runTimes, day.basis.percentile, goBack, departure)
+  return planned ? departure + planned[0] : null
 }
 
 // Why vehicle B cannot take a departure from the end, its trip at index next
@@ -280,11 +292,12 @@ function atPercentile(runTimes, percentile) {
   return Object.fromEntries(Object.entries(runTimes).map(([goBack, hours]) => [goBack, hours.map((entry) => (entry?.[key] ? { [key]: entry[key] } : null))]))
 }
 
-// The vehicles as the snapshot has them, every trip on its planned vehicle.
+// The vehicles as the snapshot has them, every trip on its planned vehicle
+// and arriving as planned.
 function plannedVehicles(day) {
   return day.plan.map(({ vehicle, trips }) => ({
     number: vehicle,
-    trips: trips.map((trip) => ({ ...trip, plannedVehicle: vehicle, recorded: false, typed: false })),
+    trips: trips.map((trip) => ({ ...trip, plannedVehicle: vehicle, plannedArrival: trip.arrival, recorded: false, typed: false })),
   }))
 }
 
