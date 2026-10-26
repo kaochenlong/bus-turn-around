@@ -10,6 +10,7 @@
 #  nearest_exit_meters :float
 #  nearest_exit_name   :string
 #  seq                 :integer          not null
+#  shape_meters        :float
 #  stop_name           :string           not null
 #  route_day_id        :bigint           not null
 #  route_id            :integer          not null

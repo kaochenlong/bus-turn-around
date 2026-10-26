@@ -32,6 +32,7 @@
 class Trip < ApplicationRecord
   belongs_to :route_day
   has_many :trip_stop_counts, dependent: nil
+  has_many :stop_speeds, class_name: "TripStopSpeed", dependent: nil
 
   # A trip belongs to its route day's route unless its events carried a
   # member route's Id; the loader writes the route Id itself.

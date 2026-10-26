@@ -10,14 +10,14 @@ RSpec.describe "analysis/end_nature_evidence.sql" do
   def sql_file(name) = File.read(File.join(DuckdbHelpers::ANALYSIS_DIR, name))
 
   # Runs every stage, mrt_overlap.sql (which defines haversine_meters),
-  # turnaround_facilities.sql with both ends unknown (which builds
-  # gps_reports), as the survey runs them, and end_nature_evidence.sql on the
+  # gps_reports.sql (which builds gps_reports), turnaround_facilities.sql with
+  # both ends unknown, as the survey runs them, and end_nature_evidence.sql on the
   # fixture day with 9050 counted with 9001, then `setup`, SQL that replaces
   # inputs, and `query`. Keywords override variables.
   def evidence(query, setup: "", **variables)
     defaults = { member_route_ids: [ 9001, 9050 ], mrt_exits_path: fixture_path("external/taipei-mrt-exits/2026-10-19.csv"),
                  public_toilets_path: fixture_path("external/public-toilets/2026-10-19.csv"), end_nature_0: "unknown", end_nature_1: "unknown" }
-    files = %w[mrt_overlap.sql turnaround_facilities.sql end_nature_evidence.sql].map { sql_file(it) }
+    files = %w[mrt_overlap.sql gps_reports.sql turnaround_facilities.sql end_nature_evidence.sql].map { sql_file(it) }
     run_sql_stages(through: "50_quality", **defaults.merge(variables), query: [ *files, setup, query ].join("\n"))
   end
 

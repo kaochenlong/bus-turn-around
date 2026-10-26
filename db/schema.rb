@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_24_062215) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_26_054634) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -90,6 +90,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_24_062215) do
     t.float "nearest_exit_meters"
     t.integer "route_id", null: false
     t.integer "stop_location_id"
+    t.float "shape_meters"
     t.index ["route_day_id", "route_id", "go_back", "seq"], name: "index_route_day_stops_on_route_day_route_direction_seq", unique: true
   end
 
@@ -115,6 +116,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_24_062215) do
     t.integer "seq", null: false
     t.integer "on_board", null: false
     t.index ["trip_id", "seq"], name: "index_trip_stop_counts_on_trip_id_and_seq", unique: true
+  end
+
+  create_table "trip_stop_speeds", force: :cascade do |t|
+    t.bigint "trip_id", null: false
+    t.integer "seq", null: false
+    t.string "band", null: false
+    t.float "meters", null: false
+    t.integer "seconds", null: false
+    t.index ["trip_id", "seq"], name: "index_trip_stop_speeds_on_trip_id_and_seq", unique: true
   end
 
   create_table "trips", force: :cascade do |t|
@@ -144,5 +154,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_24_062215) do
   add_foreign_key "route_day_shapes", "route_days", on_delete: :cascade
   add_foreign_key "route_day_stops", "route_days", on_delete: :cascade
   add_foreign_key "trip_stop_counts", "trips", on_delete: :cascade
+  add_foreign_key "trip_stop_speeds", "trips", on_delete: :cascade
   add_foreign_key "trips", "route_days", on_delete: :cascade
 end

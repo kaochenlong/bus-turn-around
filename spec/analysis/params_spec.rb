@@ -36,6 +36,12 @@ RSpec.describe "analysis/params.sql" do
                                 evening_peak_end_hour jump_threshold])).to eq([ 7, 9, 17, 19, 30 ])
   end
 
+  it "time_band 照 7、9、17、19 時分四個時段，每段含起點的小時、不含終點的小時" do
+    times = %w[06:59 07:00 08:59 09:00 16:59 17:00 18:59 19:00].each_with_index.map { |at, i| "time_band(TIMESTAMP '2026-10-19 #{at}:00') AS b#{i}" }
+    bands = run_sql_stages(through: "params", query: "SELECT #{times.join(', ')}").first.values
+    expect(bands).to eq(%w[other morning_peak morning_peak daytime daytime evening_peak evening_peak other])
+  end
+
   it "其他 SQL 檔不出現這些常數的字面數字" do
     constants = %w[2 3 7 9 15 17 19 30 60 240]
     found = Dir[File.join(DuckdbHelpers::ANALYSIS_DIR, "[0-9]*.sql")].to_h { [ File.basename(it), literals_in(it) & constants ] }
@@ -80,6 +86,19 @@ RSpec.describe "analysis/params.sql" do
 
     it "route_shape.sql 不出現這三個門檻的字面數字" do
       expect(literals_in(File.join(DuckdbHelpers::ANALYSIS_DIR, "route_shape.sql")) & %w[2 20 27 118 123]).to eq([])
+    end
+  end
+
+  describe "站間車速" do
+    let(:names) { %w[shape_snap_meters stop_tie_meters stop_zone_meters pair_max_seconds pair_max_meters_per_second] }
+
+    it "離路線軌跡 50 公尺內才對得上、對位差 15 公尺內算平手、站的前後 40 公尺不算、一組相隔 40 秒以內、每秒 25 公尺以下" do
+      row = run_sql_stages(through: "params", query: "SELECT #{names.map { "getvariable('#{it}') AS #{it}" }.join(', ')}").first
+      expect(row.values_at(*names)).to eq([ 50, 15, 40, 40, 25 ])
+    end
+
+    it "stop_speeds.sql 不出現這五個門檻的字面數字" do
+      expect(literals_in(File.join(DuckdbHelpers::ANALYSIS_DIR, "stop_speeds.sql")) & %w[50 15 40 25]).to eq([])
     end
   end
 end

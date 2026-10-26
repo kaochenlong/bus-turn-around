@@ -11,14 +11,15 @@ RSpec.describe "analysis/turnaround_facilities.sql" do
 
   def sql_file(name) = File.read(File.join(DuckdbHelpers::ANALYSIS_DIR, name))
 
-  # Runs every stage, mrt_overlap.sql (which defines haversine_meters) and
-  # turnaround_facilities.sql on the fixture day with both ends stopping, then
-  # `setup`, SQL that replaces inputs, and `query`. Keywords override variables.
+  # Runs every stage, mrt_overlap.sql (which defines haversine_meters),
+  # gps_reports.sql and turnaround_facilities.sql on the fixture day with both
+  # ends stopping, then `setup`, SQL that replaces inputs, and `query`.
+  # Keywords override variables.
   def facilities(query, setup: "", **variables)
     defaults = { mrt_exits_path: fixture_path("external/taipei-mrt-exits/2026-10-19.csv"),
                  public_toilets_path: fixture_path("external/public-toilets/2026-10-19.csv"), end_nature_0: "stop", end_nature_1: "stop" }
     run_sql_stages(through: "50_quality", **defaults.merge(variables),
-                   query: [ sql_file("mrt_overlap.sql"), sql_file("turnaround_facilities.sql"), setup, query ].join("\n"))
+                   query: [ sql_file("mrt_overlap.sql"), sql_file("gps_reports.sql"), sql_file("turnaround_facilities.sql"), setup, query ].join("\n"))
   end
 
   def ends(**options) = facilities("SELECT * FROM turnaround_ends ORDER BY go_back", **options)
@@ -132,7 +133,7 @@ RSpec.describe "analysis/turnaround_facilities.sql" do
     end
 
     it "沒有設定 end_nature_1 時也失敗" do
-      query = [ sql_file("mrt_overlap.sql"), sql_file("turnaround_facilities.sql"), "SELECT 1" ].join("\n")
+      query = [ sql_file("mrt_overlap.sql"), sql_file("gps_reports.sql"), sql_file("turnaround_facilities.sql"), "SELECT 1" ].join("\n")
       run = -> { run_sql_stages(through: "50_quality", mrt_exits_path: fixture_path("external/taipei-mrt-exits/2026-10-19.csv"), end_nature_0: "stop", query:) }
       expect(&run).to raise_error(RuntimeError, /end_nature/)
     end

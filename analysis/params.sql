@@ -44,6 +44,15 @@ SET VARIABLE morning_peak_start_hour = 7;
 SET VARIABLE daytime_start_hour = 9;
 SET VARIABLE evening_peak_start_hour = 17;
 SET VARIABLE evening_peak_end_hour = 19;
+-- The band of a Taipei time by its hour, for a trip's start (stage 40) and
+-- for the time a vehicle reached a leg (stop_speeds.sql).
+CREATE OR REPLACE MACRO time_band(ts) AS
+    CASE
+        WHEN hour(ts) >= getvariable('morning_peak_start_hour') AND hour(ts) < getvariable('daytime_start_hour') THEN 'morning_peak'
+        WHEN hour(ts) >= getvariable('daytime_start_hour') AND hour(ts) < getvariable('evening_peak_start_hour') THEN 'daytime'
+        WHEN hour(ts) >= getvariable('evening_peak_start_hour') AND hour(ts) < getvariable('evening_peak_end_hour') THEN 'evening_peak'
+        ELSE 'other'
+    END;
 
 -- On-board counts: at most this many at a terminal counts as near zero, and a
 -- change larger than the jump threshold between counted stops is an anomaly.
@@ -90,6 +99,28 @@ SET VARIABLE route_shape_min_latitude = 20;
 SET VARIABLE route_shape_max_latitude = 27;
 SET VARIABLE route_shape_min_longitude = 118;
 SET VARIABLE route_shape_max_longitude = 123;
+
+-- Stop speeds (analysis/stop_speeds.sql). A stop or a GPS report is placed on
+-- the route shape only within shape_snap_meters of it: on 2026-10-22 the stops
+-- of 15373 lay at most 26 metres from it, and 96 % or more of three routes'
+-- reports within 50 metres (03-route-shape-map). A stop is placed on the
+-- earliest pass of the shape among those no more than stop_tie_meters farther
+-- than the nearest one, so where the shape runs along the same road twice the
+-- stop takes the pass the bus reaches first.
+SET VARIABLE shape_snap_meters = 50;
+SET VARIABLE stop_tie_meters = 15;
+-- Two consecutive placed reports of a trip form a pair, which counts when
+-- they are at most pair_max_seconds apart, the later one is not behind the
+-- earlier one, and it covers at most pair_max_meters_per_second: a vehicle
+-- reports about every 20 seconds (p99 28 to 30 on 2026-10-22), so 40 leaves
+-- room for one missed report, and 25 metres a second is 90 km/h, faster than
+-- any bus here, so a faster pair was placed on the wrong pass of the shape. A
+-- pair whose midpoint is within stop_zone_meters of either stop of its leg is
+-- left out, so braking, stopping and pulling away are not in the speed: the
+-- departure event of a stop comes a median 36 metres after it.
+SET VARIABLE stop_zone_meters = 40;
+SET VARIABLE pair_max_seconds = 40;
+SET VARIABLE pair_max_meters_per_second = 25;
 
 -- End nature survey (analysis/end_nature_survey.sql). The rule was fixed
 -- before the whole network was surveyed, from the eight ends verified by hand

@@ -113,7 +113,7 @@ tests:
 ---
 ### Requirement: Routes surveyed
 
-For each requested day the task SHALL survey the route `Id`s of that day's `GetRoute.gz`, or only the `Id`s given in `ROUTES`, except `Id`s listed under a configured route's `member_routes`, which SHALL be surveyed together with their page route as `derived:load` runs them. Each route day SHALL run `analysis/params.sql`, every numbered stage file in file name order, `analysis/mrt_overlap.sql`, `analysis/turnaround_facilities.sql` with both end natures `unknown`, `analysis/end_nature_evidence.sql` and `analysis/end_nature_export.sql`, and SHALL place its two files in `<OUT>/evidence/<day>/<route Id>/` only when the whole run succeeded, together with a fingerprint of the analysis: the text of the SQL files run and the route `Id`s of the run. When that folder already holds the same fingerprint, the route day SHALL be reused without running DuckDB; when it holds a different one, the route day SHALL run again and its folder SHALL be replaced. A route day whose run fails SHALL be reported with its route `Id`, its day and the first line of the DuckDB message, SHALL leave no folder behind, and SHALL NOT stop the survey. The task SHALL print one line per day with the numbers of routes run, reused and failed.
+For each requested day the task SHALL survey the route `Id`s of that day's `GetRoute.gz`, or only the `Id`s given in `ROUTES`, except `Id`s listed under a configured route's `member_routes`, which SHALL be surveyed together with their page route as `derived:load` runs them. Each route day SHALL run `analysis/params.sql`, every numbered stage file in file name order, `analysis/mrt_overlap.sql`, `analysis/gps_reports.sql` as defined by `derived-tables`, `analysis/turnaround_facilities.sql` with both end natures `unknown`, `analysis/end_nature_evidence.sql` and `analysis/end_nature_export.sql`, and SHALL place its two files in `<OUT>/evidence/<day>/<route Id>/` only when the whole run succeeded, together with a fingerprint of the analysis: the text of the SQL files run and the route `Id`s of the run. When that folder already holds the same fingerprint, the route day SHALL be reused without running DuckDB; when it holds a different one, the route day SHALL run again and its folder SHALL be replaced. A route day whose run fails SHALL be reported with its route `Id`, its day and the first line of the DuckDB message, SHALL leave no folder behind, and SHALL NOT stop the survey. The task SHALL print one line per day with the numbers of routes run, reused and failed.
 
 #### Scenario: Fixture day
 
@@ -137,77 +137,50 @@ For each requested day the task SHALL survey the route `Id`s of that day's `GetR
 
 
 <!-- @trace
-source: 02-end-nature-survey
-updated: 2026-10-24
+source: stop-to-stop-speed
+updated: 2026-10-26
 code:
-  - app/frontend/entrypoints/application.js
-  - app/components/run_time_table_component.html.erb
-  - app/components/site_bar_component.yml
-  - app/components/site_bar_component.rb
-  - app/components/site_bar_component.html.erb
-  - config/route_page.yml
-  - app/components/cycle_table_component.html.erb
-  - app/components/mrt_overlap_component.html.erb
-  - app/models/route_day_loader.rb
-  - app/components/origin_story_component.html.erb
-  - app/components/stop_sequence_component.yml
-  - app/components/buffer_trade_component.html.erb
-  - lib/tasks/survey.rake
-  - app/components/turnaround_facilities_component.html.erb
-  - analysis/end_nature_survey.sql
-  - app/components/home_hero_component.html.erb
-  - app/components/turnaround_facilities_component.yml
-  - app/components/layover_table_component.html.erb
-  - docs/background.md
-  - analysis/end_nature_export.sql
-  - app/components/load_chart_component.html.erb
-  - app/models/derived_load_command.rb
-  - app/models/raw_day_check.rb
-  - app/controllers/routes_controller.rb
-  - app/components/layover_chart_component.yml
-  - app/components/section_nav_component.html.erb
-  - analysis/params.sql
-  - app/views/routes/show.html.erb
-  - app/components/route_coverage_component.html.erb
-  - app/components/layover_table_component.yml
-  - app/models/end_nature_survey_command.rb
+  - app/components/stop_speed_grid_component.rb
   - app/components/data_limitations_component.yml
-  - app/components/route_summary_component.yml
-  - README.md
-  - analysis/end_nature_evidence.sql
-  - app/components/layover_chart_component.html.erb
-  - app/models/route_page/buffer_trade.rb
-  - app/components/buffer_trade_component.yml
-  - docs/decisions.md
-  - lib/analysis_run.rb
-  - app/models/newest_snapshot.rb
-  - app/components/buffer_trade_component.rb
-  - app/components/layover_chart_component.rb
   - analysis/README.md
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - spec/fixtures/analysis/README.md
+  - app/models/trip_stop_speed.rb
+  - analysis/gps_reports.sql
+  - analysis/stop_speeds.sql
+  - app/components/stop_speed_grid_component.yml
+  - docs/data-sources.md
+  - analysis/turnaround_facilities.sql
+  - app/models/raw_day_check.rb
+  - analysis/derived_export.sql
+  - app/models/end_nature_survey_command.rb
+  - analysis/params.sql
+  - db/schema.rb
+  - app/models/route_day_loader.rb
+  - analysis/40_load_profile.sql
+  - app/models/route_day_stop.rb
+  - app/models/trip.rb
+  - docs/decisions.md
+  - app/views/routes/show.html.erb
+  - db/migrate/20261026054634_create_trip_stop_speeds.rb
+  - app/components/stop_speed_grid_component.html.erb
+  - app/models/route_page/stop_speeds.rb
 tests:
-  - spec/components/route_summary_component_spec.rb
-  - spec/components/turnaround_facilities_component_spec.rb
-  - spec/analysis/end_nature_evidence_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/models/end_nature_survey_command_spec.rb
-  - spec/models/raw_day_check_spec.rb
-  - spec/analysis/turnaround_facilities_spec.rb
-  - spec/system/end_map_spec.rb
-  - spec/analysis/analysis_run_spec.rb
-  - spec/analysis/end_nature_export_spec.rb
-  - spec/components/layover_chart_component_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/system/rest_command_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/components/cycle_table_component_spec.rb
-  - spec/components/stop_sequence_component_spec.rb
-  - spec/models/newest_snapshot_spec.rb
-  - spec/models/route_page/cycles_spec.rb
-  - spec/system/buffer_trade_spec.rb
-  - spec/analysis/end_nature_survey_spec.rb
-  - spec/components/layover_table_component_spec.rb
-  - spec/models/route_page/ends_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/system/route_page_mobile_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/derived_push_command_spec.rb
+  - spec/analysis/end_nature_export_spec.rb
+  - spec/components/stop_speed_grid_component_spec.rb
+  - spec/analysis/end_nature_evidence_spec.rb
+  - spec/analysis/gps_reports_spec.rb
+  - spec/analysis/stop_speeds_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/models/route_page/stop_speeds_spec.rb
 -->
 
 ---

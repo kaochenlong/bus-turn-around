@@ -190,7 +190,7 @@ tests:
 ---
 ### Requirement: Page content
 
-The page SHALL show, in this order: a summary with the route name, departure and destination, the covered days, the number of trips and of complete trips, and the key numbers of the requirement "Key numbers in the summary"; the section links of the requirement "Section links"; the stop sequence block of the requirement "Stop sequence block"; the layover distribution chart, followed by the layovers per direction of the ending trip, each row naming that direction's last stop and the nature of that end as defined by `turnaround-ends` (stopping or pass-through), with the number of layovers, p10, p50, p90 and the share under 15 minutes as defined by `layover-metrics`; the round trip and cycle block of the requirement "Round trip and cycle block"; the turnaround facilities as defined by `turnaround-facilities`, one part per end in direction order, each with the direction, the last stop, the nature of the end, the location source with its check numbers, the number of toilet places within 300 and 500 metres, the nearest place with its number of toilets, the places within 500 metres inside a disclosure that is closed by default, the day of the location used and the day of the toilet snapshot that day was loaded with, each part followed by that end's map container and map data as defined by `turnaround-map` and by the line stating the share of the covered days' standstill reports that the drawn cells cover; the buffer estimate as defined by `buffer-trade` for the selected buffer, lateness, hours and end, with the number of covered days, trips and measured layovers at stopping ends over all hours, the number of layovers in the base when hours or an end are selected, measured layovers at pass-through ends when the route has such an end, the minutes to hold with the buffer and the lateness it adds up from, the rest achievement now and, with a lateness above zero, the rest achievement with the same vehicles, the lower and upper added vehicle-hours per day, the cost of one more minute, the lower and upper added vehicles with their busiest hour, the curve of the requirement "Buffer estimate curve", the added vehicles of every hour inside a disclosure that is closed by default, and the vehicles per day; the run time summary of `run-time` per direction, with the number of excluded trips; the load chart along the route, followed by the MRT overlap as defined by `mrt-overlap`, with each direction's number of stops and overlap share at 300, 500 and 800 metres, the overlap stretches at 500 metres with their first and last sequence numbers and stop names, the on-board counts of each stretch per time band, and the day of the entrance snapshot used; and the load profile as defined by `load-profile`, per direction, time band and stop, each cell giving the median, the p90 and the number of trips with a count, inside a disclosure that is closed by default and whose rows are all present in the server response. Percentiles SHALL be computed over all trips of the covered days, not combined from daily values. The MRT overlap SHALL NOT mark any share as above or below a review threshold, and the turnaround facilities SHALL NOT judge whether the toilets are enough. When the stops of the covered days carry no nearest-entrance distance, the MRT overlap block SHALL say that the days need to be loaded again instead of showing shares; when the covered days carry no end rows, the turnaround facilities block SHALL say the same and SHALL contain no map container. When the base of the buffer estimate is empty, the block SHALL say that no layover could be measured, naming the selected hours and end when either is selected, SHALL show none of its figures and no curve, and SHALL keep its controls. The buffer estimate SHALL offer the controls of the requirement "Buffer estimate controls".
+The page SHALL show, in this order: a summary with the route name, departure and destination, the covered days, the number of trips and of complete trips, and the key numbers of the requirement "Key numbers in the summary"; the section links of the requirement "Section links"; the stop sequence block of the requirement "Stop sequence block"; the layover distribution chart, followed by the layovers per direction of the ending trip, each row naming that direction's last stop and the nature of that end as defined by `turnaround-ends` (stopping or pass-through), with the number of layovers, p10, p50, p90 and the share under 15 minutes as defined by `layover-metrics`; the round trip and cycle block of the requirement "Round trip and cycle block"; the turnaround facilities as defined by `turnaround-facilities`, one part per end in direction order, each with the direction, the last stop, the nature of the end, the location source with its check numbers, the number of toilet places within 300 and 500 metres, the nearest place with its number of toilets, the places within 500 metres inside a disclosure that is closed by default, the day of the location used and the day of the toilet snapshot that day was loaded with, each part followed by that end's map container and map data as defined by `turnaround-map` and by the line stating the share of the covered days' standstill reports that the drawn cells cover; the buffer estimate as defined by `buffer-trade` for the selected buffer, lateness, hours and end, with the number of covered days, trips and measured layovers at stopping ends over all hours, the number of layovers in the base when hours or an end are selected, measured layovers at pass-through ends when the route has such an end, the minutes to hold with the buffer and the lateness it adds up from, the rest achievement now and, with a lateness above zero, the rest achievement with the same vehicles, the lower and upper added vehicle-hours per day, the cost of one more minute, the lower and upper added vehicles with their busiest hour, the curve of the requirement "Buffer estimate curve", the added vehicles of every hour inside a disclosure that is closed by default, and the vehicles per day; the run time summary of `run-time` per direction, with the number of excluded trips, followed in the same card by the stop speed block of `stop-to-stop-speed`; the load chart along the route, followed by the MRT overlap as defined by `mrt-overlap`, with each direction's number of stops and overlap share at 300, 500 and 800 metres, the overlap stretches at 500 metres with their first and last sequence numbers and stop names, the on-board counts of each stretch per time band, and the day of the entrance snapshot used; and the load profile as defined by `load-profile`, per direction, time band and stop, each cell giving the median, the p90 and the number of trips with a count, inside a disclosure that is closed by default and whose rows are all present in the server response. Percentiles SHALL be computed over all trips of the covered days, not combined from daily values. The MRT overlap SHALL NOT mark any share as above or below a review threshold, and the turnaround facilities SHALL NOT judge whether the toilets are enough. When the stops of the covered days carry no nearest-entrance distance, the MRT overlap block SHALL say that the days need to be loaded again instead of showing shares; when the covered days carry no end rows, the turnaround facilities block SHALL say the same and SHALL contain no map container. When the base of the buffer estimate is empty, the block SHALL say that no layover could be measured, naming the selected hours and end when either is selected, SHALL show none of its figures and no curve, and SHALL keep its controls. The buffer estimate SHALL offer the controls of the requirement "Buffer estimate controls".
 
 #### Scenario: Seven-day percentile pools trips
 
@@ -200,7 +200,7 @@ The page SHALL show, in this order: a summary with the route name, departure and
 #### Scenario: Overlap block in place
 
 - **WHEN** a stored day whose stops carry nearest-entrance distances is rendered
-- **THEN** the blocks appear in the order summary, stop sequence, layover chart, layovers, round trips and cycles, turnaround facilities, buffer estimate, run times, load chart, MRT overlap, load profile, limitations, and the MRT overlap block names the entrance snapshot day
+- **THEN** the blocks appear in the order summary, stop sequence, layover chart, layovers, round trips and cycles, turnaround facilities, buffer estimate, run times, stop speeds, load chart, MRT overlap, load profile, limitations, and the MRT overlap block names the entrance snapshot day
 
 #### Scenario: Distances missing
 
@@ -254,77 +254,50 @@ The page SHALL show, in this order: a summary with the route name, departure and
 
 
 <!-- @trace
-source: buffer-trade-cost-curve
-updated: 2026-10-24
+source: stop-to-stop-speed
+updated: 2026-10-26
 code:
-  - app/components/mrt_overlap_component.html.erb
-  - analysis/end_nature_survey.sql
-  - app/components/buffer_trade_component.yml
-  - app/components/buffer_trade_component.html.erb
-  - app/components/layover_chart_component.rb
-  - lib/analysis_run.rb
-  - lib/tasks/survey.rake
-  - app/components/route_coverage_component.html.erb
-  - app/components/layover_table_component.html.erb
-  - app/components/run_time_table_component.html.erb
-  - app/components/stop_sequence_component.yml
-  - app/models/route_day_loader.rb
-  - app/components/layover_table_component.yml
-  - analysis/end_nature_evidence.sql
-  - app/controllers/routes_controller.rb
-  - app/components/cycle_table_component.html.erb
-  - app/components/home_hero_component.html.erb
-  - app/components/load_chart_component.html.erb
-  - config/route_page.yml
-  - app/models/route_page/buffer_trade.rb
+  - app/components/stop_speed_grid_component.rb
   - app/components/data_limitations_component.yml
-  - docs/decisions.md
-  - app/components/turnaround_facilities_component.html.erb
-  - analysis/params.sql
-  - app/components/layover_chart_component.yml
-  - app/models/raw_day_check.rb
-  - docs/background.md
-  - app/components/origin_story_component.html.erb
-  - app/components/site_bar_component.rb
   - analysis/README.md
-  - app/components/turnaround_facilities_component.yml
-  - README.md
-  - app/models/newest_snapshot.rb
-  - app/components/buffer_trade_component.rb
-  - app/components/site_bar_component.yml
-  - app/components/site_bar_component.html.erb
-  - app/frontend/entrypoints/application.js
-  - analysis/end_nature_export.sql
-  - app/components/section_nav_component.html.erb
-  - app/components/layover_chart_component.html.erb
-  - app/models/derived_load_command.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - spec/fixtures/analysis/README.md
+  - app/models/trip_stop_speed.rb
+  - analysis/gps_reports.sql
+  - analysis/stop_speeds.sql
+  - app/components/stop_speed_grid_component.yml
+  - docs/data-sources.md
+  - analysis/turnaround_facilities.sql
+  - app/models/raw_day_check.rb
+  - analysis/derived_export.sql
   - app/models/end_nature_survey_command.rb
+  - analysis/params.sql
+  - db/schema.rb
+  - app/models/route_day_loader.rb
+  - analysis/40_load_profile.sql
+  - app/models/route_day_stop.rb
+  - app/models/trip.rb
+  - docs/decisions.md
   - app/views/routes/show.html.erb
-  - app/components/route_summary_component.yml
+  - db/migrate/20261026054634_create_trip_stop_speeds.rb
+  - app/components/stop_speed_grid_component.html.erb
+  - app/models/route_page/stop_speeds.rb
 tests:
-  - spec/analysis/end_nature_export_spec.rb
-  - spec/components/route_summary_component_spec.rb
-  - spec/components/turnaround_facilities_component_spec.rb
-  - spec/system/rest_command_spec.rb
-  - spec/components/layover_table_component_spec.rb
-  - spec/models/raw_day_check_spec.rb
-  - spec/analysis/turnaround_facilities_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/components/cycle_table_component_spec.rb
-  - spec/models/route_page/ends_spec.rb
-  - spec/models/end_nature_survey_command_spec.rb
-  - spec/system/end_map_spec.rb
-  - spec/components/layover_chart_component_spec.rb
-  - spec/models/newest_snapshot_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/models/route_page/cycles_spec.rb
-  - spec/analysis/end_nature_evidence_spec.rb
-  - spec/components/stop_sequence_component_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/analysis/analysis_run_spec.rb
-  - spec/analysis/end_nature_survey_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/system/buffer_trade_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/system/route_page_mobile_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/derived_push_command_spec.rb
+  - spec/analysis/end_nature_export_spec.rb
+  - spec/components/stop_speed_grid_component_spec.rb
+  - spec/analysis/end_nature_evidence_spec.rb
+  - spec/analysis/gps_reports_spec.rb
+  - spec/analysis/stop_speeds_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/models/route_page/stop_speeds_spec.rb
 -->
 
 ---
@@ -406,7 +379,7 @@ tests:
 ---
 ### Requirement: Data limitations on the page
 
-The page SHALL state the data limitations that apply to its numbers: a vehicle is not a driver and a layover is an upper bound on rest; on-board counts come from fare-card taps and do not return to zero between trips; 10-second polling misses stops and trips missing a terminal are left out of run times; weekdays and holidays follow the office calendar of 行政院人事行政總處, and days off for typhoons are not in that calendar and count as the calendar says; a stop near an MRT entrance does not mean the bus segment can be replaced by the MRT, distances are straight-line, and the entrance data is updated irregularly; the buffer estimate counts vehicle-hours, not driver hours, uses only measured layovers at stopping ends, and its added vehicles are an hourly average, not a schedule; the lateness of the buffer estimate is an assumption that every arrival at a stopping end is that many minutes later than measured, the lateness of the measured days is already in the measured layovers, and lateness longer than a layover would delay the next departure, which the estimate does not follow; the selected hours of the buffer estimate are the hours buses arrive at the stopping end; which end buses stop at is a fact verified route by route and written into the configuration, not computed from the data, and it goes stale when the operator changes how the route turns around; layovers at a pass-through end are not rest opportunities and the buffer estimate does not count them; round trips and cycles use only trips whose terminals were observed and that pair up as stored layovers, so their counts are lower than the trip counts, a vehicle's first loop of a day has no cycle, and a cycle is the rhythm of a vehicle, not the roster of one driver; the turnaround point location of a stopping end is where the vehicles stood still during that day's measured layovers, as reported by GPS every 10 seconds, which can be missing for a day, and it is where the vehicle stood, not where the driver went; a pass-through end is anchored on its last stop because buses do not stop there; the toilet data is the national registry of 環境部, updated monthly, with one row per toilet that the page groups into places by address, the toilet distances are straight-line, and the data has no opening hours and says nothing about whether a driver is allowed to use a toilet; the squares on the maps are cells of about 20 metres that at least three vehicles stood in on a day, their shade sums GPS reports taken every 10 seconds and is not minutes stood and not rest, cells with fewer vehicles are left out, and the basemap is third-party data shown as it is; the route map draws the route shape registered by 臺北市公共運輸處, not measured GPS, so temporary detours and diversions do not appear on it, and the registered shape can be older than the stop list.
+The page SHALL state the data limitations that apply to its numbers: a vehicle is not a driver and a layover is an upper bound on rest; on-board counts come from fare-card taps and do not return to zero between trips; 10-second polling misses stops and trips missing a terminal are left out of run times; weekdays and holidays follow the office calendar of 行政院人事行政總處, and days off for typhoons are not in that calendar and count as the calendar says; a stop near an MRT entrance does not mean the bus segment can be replaced by the MRT, distances are straight-line, and the entrance data is updated irregularly; the buffer estimate counts vehicle-hours, not driver hours, uses only measured layovers at stopping ends, and its added vehicles are an hourly average, not a schedule; the lateness of the buffer estimate is an assumption that every arrival at a stopping end is that many minutes later than measured, the lateness of the measured days is already in the measured layovers, and lateness longer than a layover would delay the next departure, which the estimate does not follow; the selected hours of the buffer estimate are the hours buses arrive at the stopping end; which end buses stop at is a fact verified route by route and written into the configuration, not computed from the data, and it goes stale when the operator changes how the route turns around; layovers at a pass-through end are not rest opportunities and the buffer estimate does not count them; round trips and cycles use only trips whose terminals were observed and that pair up as stored layovers, so their counts are lower than the trip counts, a vehicle's first loop of a day has no cycle, and a cycle is the rhythm of a vehicle, not the roster of one driver; the turnaround point location of a stopping end is where the vehicles stood still during that day's measured layovers, as reported by GPS every 10 seconds, which can be missing for a day, and it is where the vehicle stood, not where the driver went; a pass-through end is anchored on its last stop because buses do not stop there; the toilet data is the national registry of 環境部, updated monthly, with one row per toilet that the page groups into places by address, the toilet distances are straight-line, and the data has no opening hours and says nothing about whether a driver is allowed to use a toilet; the squares on the maps are cells of about 20 metres that at least three vehicles stood in on a day, their shade sums GPS reports taken every 10 seconds and is not minutes stood and not rest, cells with fewer vehicles are left out, and the basemap is third-party data shown as it is; the route map draws the route shape registered by 臺北市公共運輸處, not measured GPS, so temporary detours and diversions do not appear on it, and the registered shape can be older than the stop list; the stop speeds come from consecutive GPS reports of a vehicle placed on that registered route shape, the 40 metres around each stop are left out so braking, stopping and boarding are not in them, two stops 80 metres apart or closer have no speed, trips whose start is only an arrival are left out, and the shades compare the legs of one direction only.
 
 #### Scenario: Limitations present
 
@@ -426,77 +399,50 @@ The page SHALL state the data limitations that apply to its numbers: a vehicle i
 
 
 <!-- @trace
-source: buffer-trade-cost-curve
-updated: 2026-10-24
+source: stop-to-stop-speed
+updated: 2026-10-26
 code:
-  - app/components/mrt_overlap_component.html.erb
-  - analysis/end_nature_survey.sql
-  - app/components/buffer_trade_component.yml
-  - app/components/buffer_trade_component.html.erb
-  - app/components/layover_chart_component.rb
-  - lib/analysis_run.rb
-  - lib/tasks/survey.rake
-  - app/components/route_coverage_component.html.erb
-  - app/components/layover_table_component.html.erb
-  - app/components/run_time_table_component.html.erb
-  - app/components/stop_sequence_component.yml
-  - app/models/route_day_loader.rb
-  - app/components/layover_table_component.yml
-  - analysis/end_nature_evidence.sql
-  - app/controllers/routes_controller.rb
-  - app/components/cycle_table_component.html.erb
-  - app/components/home_hero_component.html.erb
-  - app/components/load_chart_component.html.erb
-  - config/route_page.yml
-  - app/models/route_page/buffer_trade.rb
+  - app/components/stop_speed_grid_component.rb
   - app/components/data_limitations_component.yml
-  - docs/decisions.md
-  - app/components/turnaround_facilities_component.html.erb
-  - analysis/params.sql
-  - app/components/layover_chart_component.yml
-  - app/models/raw_day_check.rb
-  - docs/background.md
-  - app/components/origin_story_component.html.erb
-  - app/components/site_bar_component.rb
   - analysis/README.md
-  - app/components/turnaround_facilities_component.yml
-  - README.md
-  - app/models/newest_snapshot.rb
-  - app/components/buffer_trade_component.rb
-  - app/components/site_bar_component.yml
-  - app/components/site_bar_component.html.erb
-  - app/frontend/entrypoints/application.js
-  - analysis/end_nature_export.sql
-  - app/components/section_nav_component.html.erb
-  - app/components/layover_chart_component.html.erb
-  - app/models/derived_load_command.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - spec/fixtures/analysis/README.md
+  - app/models/trip_stop_speed.rb
+  - analysis/gps_reports.sql
+  - analysis/stop_speeds.sql
+  - app/components/stop_speed_grid_component.yml
+  - docs/data-sources.md
+  - analysis/turnaround_facilities.sql
+  - app/models/raw_day_check.rb
+  - analysis/derived_export.sql
   - app/models/end_nature_survey_command.rb
+  - analysis/params.sql
+  - db/schema.rb
+  - app/models/route_day_loader.rb
+  - analysis/40_load_profile.sql
+  - app/models/route_day_stop.rb
+  - app/models/trip.rb
+  - docs/decisions.md
   - app/views/routes/show.html.erb
-  - app/components/route_summary_component.yml
+  - db/migrate/20261026054634_create_trip_stop_speeds.rb
+  - app/components/stop_speed_grid_component.html.erb
+  - app/models/route_page/stop_speeds.rb
 tests:
-  - spec/analysis/end_nature_export_spec.rb
-  - spec/components/route_summary_component_spec.rb
-  - spec/components/turnaround_facilities_component_spec.rb
-  - spec/system/rest_command_spec.rb
-  - spec/components/layover_table_component_spec.rb
-  - spec/models/raw_day_check_spec.rb
-  - spec/analysis/turnaround_facilities_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/components/cycle_table_component_spec.rb
-  - spec/models/route_page/ends_spec.rb
-  - spec/models/end_nature_survey_command_spec.rb
-  - spec/system/end_map_spec.rb
-  - spec/components/layover_chart_component_spec.rb
-  - spec/models/newest_snapshot_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/models/route_page/cycles_spec.rb
-  - spec/analysis/end_nature_evidence_spec.rb
-  - spec/components/stop_sequence_component_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/analysis/analysis_run_spec.rb
-  - spec/analysis/end_nature_survey_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/system/buffer_trade_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/system/route_page_mobile_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/derived_push_command_spec.rb
+  - spec/analysis/end_nature_export_spec.rb
+  - spec/components/stop_speed_grid_component_spec.rb
+  - spec/analysis/end_nature_evidence_spec.rb
+  - spec/analysis/gps_reports_spec.rb
+  - spec/analysis/stop_speeds_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/models/route_page/stop_speeds_spec.rb
 -->
 
 ---
@@ -2027,7 +1973,7 @@ tests:
 ---
 ### Requirement: Data limitation of a page with member routes
 
-When the page route lists member routes, the data limitations block SHALL add one item stating which route `Id`s the page counts as one route; that trips, run times, layovers, round trips, cycles and the rest estimate pool their vehicles; that the load chart, the MRT overlap and the stop sequence use the page route's stops, with the member routes' on-board counts pooled at the stops both serve and the stops only a member serves left out; and the number of trips of each route `Id` over the covered days. A page without member routes SHALL NOT show this item.
+When the page route lists member routes, the data limitations block SHALL add one item stating which route `Id`s the page counts as one route; that trips, run times, layovers, round trips, cycles and the rest estimate pool their vehicles; that the stop speeds count only the page route's trips; that the load chart, the MRT overlap and the stop sequence use the page route's stops, with the member routes' on-board counts pooled at the stops both serve and the stops only a member serves left out; and the number of trips of each route `Id` over the covered days. A page without member routes SHALL NOT show this item.
 
 #### Scenario: Trip counts per Id
 
@@ -2039,156 +1985,58 @@ When the page route lists member routes, the data limitations block SHALL add on
 - **WHEN** the page of route 10712 is shown
 - **THEN** the data limitations block has no item about counting route `Id`s as one route
 
+
+#### Scenario: Stop speeds of the page route only
+
+- **WHEN** the page of route 9001 with member route 9050 covers 2026-10-23
+- **THEN** the item about counting route `Id`s as one route says that the stop speeds count only the trips of 9001
+
+
 <!-- @trace
-source: 02-route-307-page
-updated: 2026-10-24
+source: stop-to-stop-speed
+updated: 2026-10-26
 code:
-  - db/migrate/20261024050300_require_route_id_on_derived_rows.rb
-  - app/components/turnaround_facilities_component.rb
-  - analysis/10_load.sql
-  - bin/health-card
-  - spec/fixtures/analysis/README.md
-  - analysis/params.sql
-  - spec/fixtures/analysis/bus_event/2026-10-23/07.jsonl
-  - app/components/turnaround_facilities_component.yml
-  - analysis/60_export.sql
-  - docs/background.md
-  - app/models/route_day.rb
-  - analysis/50_quality.sql
+  - app/components/stop_speed_grid_component.rb
   - app/components/data_limitations_component.yml
-  - spec/factories/route_day_ends.rb
-  - spec/fixtures/analysis/static/2026-10-19/GetPathDetail.gz
-  - README.md
-  - app/components/data_limitations_component.rb
-  - db/migrate/20261024035750_create_route_day_shapes.rb
-  - spec/fixtures/analysis/static/2026-10-23/GetProvider.gz
-  - analysis/depots.sql
-  - spec/fixtures/analysis/static/2026-10-19/GetBusShape.gz
-  - app/components/stop_sequence_component.yml
-  - spec/fixtures/analysis/bus_data/2026-10-23/07.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-23/07.jsonl
-  - app/components/attribution_component.html.erb
-  - app/models/trip.rb
-  - app/frontend/maps/base_map.js
-  - app/models/route_page/route_shape.rb
-  - app/models/route_page/stop_sequence.rb
-  - config/depot_inspections.yml
-  - analysis/40_load_profile.sql
-  - analysis/route_shape.sql
-  - spec/factories/route_day_shapes.rb
-  - db/schema.rb
-  - app/models/route_page/depots.rb
-  - spec/fixtures/analysis/static/2026-10-23/GetBusShape.gz
-  - app/models/route_page/depot_inspections.rb
-  - db/migrate/20261024062215_create_route_day_depots.rb
-  - app/models/route_day_depot.rb
-  - spec/fixtures/analysis/static/2026-10-19/GetRoute.gz
-  - app/components/end_map_component.html.erb
-  - app/models/route_day_loader.rb
-  - config/locales/en.yml
   - analysis/README.md
-  - spec/fixtures/analysis/bus_event/2026-10-23/08.jsonl
-  - spec/fixtures/analysis/bus_seat_event/2026-10-23/09.jsonl
-  - app/components/route_map_component.html.erb
-  - spec/factories/route_day_depots.rb
-  - spec/factories/route_day_end_cells.rb
-  - app/components/attribution_component.yml
-  - spec/fixtures/analysis/static/2026-10-23/GetRoute.gz
-  - app/models/route_page/load_profile.rb
-  - app/frontend/route_map/runtime.js
-  - spec/fixtures/analysis/static/2026-10-19/GetStop.gz
-  - app/components/route_map_component.rb
-  - app/models/route_page/layover_stats.rb
-  - app/models/derived_load_command.rb
-  - spec/fixtures/analysis/bus_seat_event/2026-10-23/08.jsonl
-  - db/migrate/20261024050200_backfill_route_id_on_derived_rows.rb
-  - app/frontend/entrypoints/application.js
-  - app/models/route_day_shape.rb
-  - analysis/turnaround_facilities.sql
-  - app/models/pto_assessment_snapshot.rb
+  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
+  - spec/fixtures/analysis/README.md
+  - app/models/trip_stop_speed.rb
+  - analysis/gps_reports.sql
+  - analysis/stop_speeds.sql
+  - app/components/stop_speed_grid_component.yml
   - docs/data-sources.md
-  - app/frontend/stylesheets/application.css
-  - app/components/application_component.rb
+  - analysis/turnaround_facilities.sql
+  - app/models/raw_day_check.rb
   - analysis/derived_export.sql
-  - spec/fixtures/analysis/static/2026-10-19/GetProvider.gz
-  - app/components/route_list_component.rb
-  - analysis/mrt_overlap.sql
-  - app/models/route_page/mrt_overlap.rb
-  - app/models/route_page/summary.rb
-  - config/route_page.yml
-  - lib/tasks/external.rake
-  - spec/factories/route_day_end_toilets.rb
-  - spec/factories/route_days.rb
-  - spec/fixtures/analysis/static/2026-10-23/GetStop.gz
-  - app/components/route_map_component.yml
-  - spec/fixtures/analysis/bus_event/2026-10-23/09.jsonl
-  - app/models/tdx_s2s_travel_time_snapshot.rb
-  - app/components/turnaround_facilities_component.html.erb
-  - app/components/buffer_trade_component.yml
-  - app/views/routes/show.html.erb
-  - spec/fixtures/analysis/static/2026-10-23/GetPathDetail.gz
-  - db/migrate/20261024050100_add_member_route_columns_to_derived_tables.rb
-  - app/frontend/end_map/runtime.js
+  - app/models/end_nature_survey_command.rb
+  - analysis/params.sql
+  - db/schema.rb
+  - app/models/route_day_loader.rb
+  - analysis/40_load_profile.sql
   - app/models/route_day_stop.rb
-  - app/components/route_coverage_component.html.erb
-  - app/models/route_page.rb
-  - spec/fixtures/analysis/bus_event/2026-10-24/01.jsonl
-  - app/components/route_list_component.html.erb
-  - spec/support/duckdb.rb
-  - app/components/data_limitations_component.html.erb
-  - app/components/route_coverage_component.rb
-  - app/components/stop_sequence_component.html.erb
-  - config/locales/tw.yml
-  - lib/analysis_run.rb
-  - app/components/buffer_trade_component.html.erb
-  - app/components/stop_sequence_component.rb
+  - app/models/trip.rb
   - docs/decisions.md
+  - app/views/routes/show.html.erb
+  - db/migrate/20261026054634_create_trip_stop_speeds.rb
+  - app/components/stop_speed_grid_component.html.erb
+  - app/models/route_page/stop_speeds.rb
 tests:
-  - spec/models/route_day_spec.rb
-  - spec/migrations/member_route_columns_spec.rb
-  - spec/analysis/depots_spec.rb
-  - spec/models/route_page/route_shape_spec.rb
-  - spec/analysis/turnaround_facilities_spec.rb
-  - spec/components/data_limitations_component_spec.rb
-  - spec/components/turnaround_facilities_component_spec.rb
-  - spec/models/derived_load_command_spec.rb
-  - spec/analysis/fixtures_spec.rb
-  - spec/analysis/load_spec.rb
-  - spec/models/route_page/depots_spec.rb
-  - spec/models/route_page/summary_spec.rb
-  - spec/analysis/card_spec.rb
-  - spec/components/end_map_component_spec.rb
-  - spec/requests/site_layout_spec.rb
-  - spec/models/route_page/card_consistency_spec.rb
-  - spec/models/route_day_loader_spec.rb
-  - spec/analysis/derived_export_spec.rb
-  - spec/analysis/trips_spec.rb
-  - spec/models/pto_assessment_snapshot_spec.rb
-  - spec/models/route_page/layover_stats_spec.rb
-  - spec/models/tdx_s2s_travel_time_snapshot_spec.rb
   - spec/requests/routes_spec.rb
-  - spec/requests/pages_spec.rb
-  - spec/models/route_page/stop_sequence_spec.rb
-  - spec/components/attribution_component_spec.rb
-  - spec/system/route_map_spec.rb
-  - spec/components/route_coverage_component_spec.rb
-  - spec/analysis/profile_spec.rb
-  - spec/analysis/mrt_overlap_spec.rb
-  - spec/analysis/quality_spec.rb
-  - spec/components/route_list_component_spec.rb
-  - spec/analysis/route_shape_spec.rb
-  - spec/models/route_page/depot_inspections_spec.rb
-  - spec/analysis/layovers_spec.rb
-  - spec/models/route_page/load_profile_spec.rb
-  - spec/analysis/analysis_run_spec.rb
-  - spec/models/route_page/mrt_overlap_spec.rb
-  - spec/components/route_map_component_spec.rb
-  - spec/models/route_page/ends_spec.rb
-  - spec/system/end_map_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/system/route_page_mobile_spec.rb
+  - spec/requests/route_page_fixture_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/analysis/fixtures_spec.rb
   - spec/analysis/params_spec.rb
-  - spec/components/stop_sequence_component_spec.rb
-  - spec/analysis/attribution_spec.rb
-  - spec/analysis/cli_spec.rb
+  - spec/models/derived_push_command_spec.rb
+  - spec/analysis/end_nature_export_spec.rb
+  - spec/components/stop_speed_grid_component_spec.rb
+  - spec/analysis/end_nature_evidence_spec.rb
+  - spec/analysis/gps_reports_spec.rb
+  - spec/analysis/stop_speeds_spec.rb
+  - spec/analysis/turnaround_facilities_spec.rb
+  - spec/models/route_page/stop_speeds_spec.rb
 -->
 
 ---

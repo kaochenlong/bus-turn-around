@@ -1,21 +1,23 @@
 -- Derived export: the per-trip results of one route and one Taipei day, for
 -- the PostgreSQL derived tables. It runs after params.sql, every numbered
--- stage, mrt_overlap.sql, turnaround_facilities.sql, route_shape.sql and
--- depots.sql; its name does not start with a digit, so bin/health-card never
--- runs it.
+-- stage, mrt_overlap.sql, gps_reports.sql, turnaround_facilities.sql,
+-- route_shape.sql, depots.sql and stop_speeds.sql; its name does not start
+-- with a digit, so bin/health-card never runs it.
 --
 -- Reads routes and stops from stage 10, trips from stage 20, layovers from
 -- stage 30, trip_bands and trip_stop_counts from stage 40, stop_mrt_distances
 -- from mrt_overlap.sql, turnaround_ends, end_toilets and standstill_cells from
 -- turnaround_facilities.sql, route_shapes from route_shape.sql,
--- route_day_depots from depots.sql, and the variables route_id, day,
+-- route_day_depots from depots.sql, stop_positions and trip_stop_speeds from
+-- stop_speeds.sql, and the variables route_id, day,
 -- static_day, mrt_exits_day, public_toilets_day and derived_dir. Writes to
 -- derived_dir:
 --   route_day.csv         the page route's name and terminals and its member
 --                         routes' names, one row
 --   stops.csv             the stops of both directions of every route Id of
---                         the run, with the nearest MRT entrance, the route Id
---                         and the stop location
+--                         the run, with the nearest MRT entrance, the route Id,
+--                         the stop location and the metres along the route
+--                         shape
 --   trips.csv             the day's trips with their time band and route Id
 --   layovers.csv          the end of each trip and the start of the next
 --   trip_stop_counts.csv  the on-board count per counted stop of each trip
@@ -24,6 +26,7 @@
 --   end_cells.csv         the standstill cells of each end
 --   shapes.csv            the route shape of each direction, or why it has none
 --   depots.csv            the depots of the day's trips, with their vehicles and trips
+--   stop_speeds.csv       the metres and seconds of each trip between two placed stops
 -- Timestamps carry the Taipei offset, and every file has a fixed column order
 -- and row order, so two runs over the same input give the same bytes.
 
@@ -51,9 +54,11 @@ COPY (
 
 -- The page route's stops first, then each member route's, by route Id.
 COPY (
-    SELECT s.go_back, s.seq, s.stop_name, d.latitude, d.longitude, d.nearest_exit_name, d.nearest_exit_meters, s.route_id, s.stop_location_id
+    SELECT s.go_back, s.seq, s.stop_name, d.latitude, d.longitude, d.nearest_exit_name, d.nearest_exit_meters, s.route_id, s.stop_location_id,
+           round(p.shape_meters, 1) AS shape_meters
     FROM stops s
     LEFT JOIN stop_mrt_distances d USING (route_id, go_back, seq)
+    LEFT JOIN stop_positions p USING (route_id, go_back, seq)
     ORDER BY s.route_id <> getvariable('route_id'), s.route_id, s.go_back, s.seq
 ) TO (getvariable('derived_dir') || '/stops.csv') (HEADER);
 
@@ -121,3 +126,11 @@ COPY (
     FROM route_day_depots
     ORDER BY n_buses DESC, station_id
 ) TO (getvariable('derived_dir') || '/depots.csv') (HEADER);
+
+-- One row per trip and leg with a counted pair, its trip named by vehicle and
+-- start time as in trip_stop_counts.csv; seq is the leg's first stop.
+COPY (
+    SELECT s.bus_id, taipei_text(s.start_time) AS start_time, s.seq, s.band, s.meters, s.seconds
+    FROM trip_stop_speeds s
+    ORDER BY s.bus_id, s.start_time, s.seq
+) TO (getvariable('derived_dir') || '/stop_speeds.csv') (HEADER);

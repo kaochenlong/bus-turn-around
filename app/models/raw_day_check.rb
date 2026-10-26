@@ -21,7 +21,7 @@ module RawDayCheck
       raise Failure, "讀檔視窗還沒結束：沒有 #{bus_event}/#{next_day}/01.jsonl 或 01.jsonl.gz"
     end
 
-    # Only analysis/turnaround_facilities.sql reads the vehicle positions, and
+    # Only analysis/gps_reports.sql reads the vehicle positions, and
     # DuckDB fails on an empty file list without naming the feed.
     bus_data = File.join(data_root, "bus_data")
     raise Failure, "#{bus_data}/#{day.iso8601} 沒有任何小時檔" if hour_files(bus_data, day.iso8601, "[0-9][0-9]").empty?

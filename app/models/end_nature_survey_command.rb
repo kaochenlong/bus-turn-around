@@ -31,7 +31,7 @@ class EndNatureSurveyCommand
   DEFAULT_OUT = "tmp/end-natures".freeze
   # The files a route day runs after the stages; the fingerprint is taken
   # over them, the stages and params.sql.
-  EXTRA_FILES = %w[mrt_overlap.sql turnaround_facilities.sql end_nature_evidence.sql end_nature_export.sql].freeze
+  EXTRA_FILES = %w[mrt_overlap.sql gps_reports.sql turnaround_facilities.sql end_nature_evidence.sql end_nature_export.sql].freeze
   EVIDENCE_FILES = %w[layovers.csv ends.csv].freeze
   # A route day's staging folder: hidden, and never a route Id.
   STAGING_PREFIX = ".partial-".freeze

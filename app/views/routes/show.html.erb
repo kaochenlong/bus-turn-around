@@ -49,6 +49,8 @@
     <% end %>
     <%= render CardComponent.new(id: "runtimes") do %>
       <%= render RunTimeTableComponent.new(run_times: RoutePage::RunTimes.new(route_days)) %>
+      <%= divider %>
+      <%= render StopSpeedGridComponent.new(stop_speeds: RoutePage::StopSpeeds.new(route_days)) %>
     <% end %>
     <%= render CardComponent.new(id: "load") do %>
       <%= render LoadChartComponent.new(load_profile:, mrt_overlap:) %>

@@ -5,7 +5,7 @@ require_relative "../../lib/analysis_run"
 
 RSpec.describe "analysis/end_nature_export.sql" do
   # The files the survey runs after the stages for a route day.
-  def survey_files = %w[mrt_overlap.sql turnaround_facilities.sql end_nature_evidence.sql end_nature_export.sql]
+  def survey_files = %w[mrt_overlap.sql gps_reports.sql turnaround_facilities.sql end_nature_evidence.sql end_nature_export.sql]
 
   def fixture_path(path) = File.join(DuckdbHelpers::FIXTURE_DATA, path)
 

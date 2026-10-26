@@ -1,0 +1,139 @@
+<section data-section="stop-speeds" x-data="{ direction: 0 }">
+  <%= eyebrow(t(".eyebrow")) %>
+  <h2 class="mb-2 text-section-sm leading-snug font-bold text-slate-900 sm:text-section"><%= t(".title") %></h2>
+  <% if available? %>
+    <p class="mb-4 text-slate-600"><%= t(".note") %></p>
+    <div data-stop-speed-legend class="mb-5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-note text-slate-600">
+      <span class="flex items-center gap-1.5">
+        <span><%= t(".fast") %></span>
+        <% 1.upto(RoutePage::StopSpeeds::LEVELS) do |level| %>
+          <span data-legend-level="<%= level %>" class="size-3.5 rounded-[3px] <%= LEVEL_SWATCHES.fetch(level) %>"></span>
+        <% end %>
+        <span><%= t(".slow") %></span>
+      </span>
+      <span class="flex items-center gap-1.5">
+        <span data-legend-outline class="size-3.5 rounded-[3px] border border-slate-300 bg-white"></span>
+        <span><%= t(".outline") %></span>
+      </span>
+    </div>
+    <%# 640px 以下一次只看一個方向，預設去程；方向只是頁面上的狀態，不改網址，也不跟行駛時間表的切換連動。
+        沒有 JS 時切換按鈕藏著（x-cloak），兩個方向都在，伺服器輸出的 class 裡沒有藏起來的樣式 %>
+    <div x-cloak data-direction-switch role="group" aria-label="<%= t(".direction_picker") %>"
+         class="mb-3.5 flex gap-0.5 rounded-[10px] border border-slate-200 bg-slate-100 p-0.75 sm:hidden">
+      <% directions.each do |direction| %>
+        <button type="button" value="<%= direction.go_back %>" x-on:click="direction = <%= direction.go_back %>" x-bind:aria-pressed="direction === <%= direction.go_back %>"
+                x-bind:class="direction === <%= direction.go_back %> ? 'bg-white font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.14)]' : 'font-medium text-slate-600 hover:text-slate-900'"
+                class="flex min-h-11 flex-1 items-center justify-center rounded-lg text-base select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+          <%= t(".directions.#{direction.go_back}") %>
+        </button>
+      <% end %>
+    </div>
+    <% directions.each do |direction| %>
+      <div data-direction="<%= direction.go_back %>" x-bind:class="direction === <%= direction.go_back %> ? '' : 'max-sm:hidden'" class="mb-6 min-w-0 last:mb-0">
+        <%# 手機上有切換按鈕時，方向的標題只留給螢幕報讀；沒有 JS 時照常顯示 %>
+        <h3 x-bind:class="'max-sm:sr-only'" class="mb-1 text-subsection font-semibold text-teal-800"><%= t(".directions.#{direction.go_back}") %></h3>
+        <% if direction.legs.empty? %>
+          <p data-no-stop-speeds-for="<%= direction.go_back %>" class="text-note text-slate-500"><%= t(".no_legs") %></p>
+        <% else %>
+          <% if direction.level_ranges.any? %>
+            <% lightest, light, dark = level_bounds(direction).map { decimal(it) } %>
+            <p data-level-ranges data-level-bounds="<%= [ lightest, light, dark ].join(",") %>" class="mb-2 text-note text-slate-500">
+              <%= t(".level_ranges", lightest:, light:, dark:) %>
+            </p>
+          <% end %>
+          <figure class="max-sm:hidden">
+            <div class="overflow-x-auto">
+              <svg width="<%= width(direction) %>" height="<%= height(direction) %>" viewBox="0 0 <%= width(direction) %> <%= height(direction) %>" role="img"
+                   aria-label="<%= t(".aria", direction: t(".directions.#{direction.go_back}"), first: direction.legs.first.from_name, last: direction.legs.last.to_name) %>">
+                <% bands.each_with_index do |band, band_index| %>
+                  <text x="<%= band_name_x %>" y="<%= band_name_y(band_index) %>" text-anchor="end" dominant-baseline="central" class="fill-slate-600 text-label-sm"><%= t(".bands.#{band}") %></text>
+                  <% direction.legs.each_with_index do |leg, index| %>
+                    <% cell = leg.cells.fetch(band) %>
+                    <%= tag.rect(x: cell_x(index), y: cell_y(band_index), width: CELL, height: CELL, rx: RADIUS, class: cell_class(cell),
+                                 data: { seq: leg.seq, band: }.merge(cell_data(cell))) %>
+                  <% end %>
+                <% end %>
+                <%# 格子下面一條線、每一站一個點，站名直書在點的下面，像公車站牌上的路線 %>
+                <line x1="<%= boundary_x(0) %>" y1="<%= mark_y %>" x2="<%= boundary_x(direction.legs.size) %>" y2="<%= mark_y %>" class="stroke-slate-300 stroke-2" />
+                <% stop_names(direction).each_with_index do |stop_name, index| %>
+                  <%= tag.circle(cx: boundary_x(index), cy: mark_y, r: MARK_RADIUS, class: "stroke-2 #{mark_class(direction, index)}",
+                                 data: { stop_mark: true, terminal: terminal?(direction, index) || nil }) %>
+                  <text data-stop-label x="<%= boundary_x(index) %>" y="<%= label_y %>" class="fill-slate-700 text-label [writing-mode:vertical-rl]"><%= stop_name %></text>
+                <% end %>
+              </svg>
+            </div>
+          </figure>
+          <%# 640px 以下不畫 SVG，改成每段一列：站名在前，後面四個方塊依序是四個時段，顏色與外框跟格子圖相同 %>
+          <div data-leg-rows class="sm:hidden">
+            <div aria-hidden="true" class="flex justify-end gap-1 pb-1 text-label-sm text-slate-500">
+              <% bands.each do |band| %>
+                <span class="w-5 text-center"><%= t(".band_short.#{band}") %></span>
+              <% end %>
+            </div>
+            <% direction.legs.each do |leg| %>
+              <div data-leg-row data-seq="<%= leg.seq %>" class="flex items-center justify-between gap-3 border-t border-slate-100 py-1.5">
+                <span class="min-w-0 text-note text-slate-700"><%= t(".leg_name", from: leg.from_name, to: leg.to_name) %></span>
+                <span class="flex shrink-0 gap-1">
+                  <% bands.each do |band| %>
+                    <% cell = leg.cells.fetch(band) %>
+                    <%= tag.span(class: "size-5 rounded-[3px] #{square_class(cell)}", data: { band: }.merge(cell_data(cell))) %>
+                  <% end %>
+                </span>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+    <details data-stop-speed-table class="group mt-6 rounded-xl border border-slate-200 bg-slate-50">
+      <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">
+        <span class="text-body font-semibold text-slate-900 sm:text-lead"><%= t(".summary") %></span>
+        <svg aria-hidden="true" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"
+             class="size-5.5 shrink-0 fill-none stroke-slate-600 stroke-2 group-open:rotate-180"><path d="M6 9l6 6 6-6" /></svg>
+      </summary>
+      <div class="px-4 pb-4 sm:px-5 sm:pb-5">
+        <p class="mb-3 text-note text-slate-500"><%= t(".table_note") %></p>
+        <div class="overflow-x-auto">
+          <table class="data-table min-w-[620px]">
+            <thead>
+              <tr>
+                <th class="text-left"><%= t(".leg") %></th>
+                <th><%= t(".meters") %></th>
+                <% bands.each do |band| %>
+                  <th><%= t(".bands.#{band}") %></th>
+                <% end %>
+              </tr>
+            </thead>
+            <% directions.each do |direction| %>
+              <tbody data-table-direction="<%= direction.go_back %>">
+                <tr>
+                  <th scope="rowgroup" colspan="<%= bands.size + 2 %>" class="border-slate-100 pt-3.5 text-left text-note font-semibold text-teal-800 sm:pt-4 sm:text-table">
+                    <%= t(".directions.#{direction.go_back}") %>
+                  </th>
+                </tr>
+                <% direction.legs.each do |leg| %>
+                  <tr data-seq="<%= leg.seq %>" data-meters="<%= decimal(leg.meters) %>">
+                    <td class="text-left"><%= t(".leg_name", from: leg.from_name, to: leg.to_name) %></td>
+                    <td><%= whole(leg.meters) %></td>
+                    <% bands.each do |band| %>
+                      <% cell = leg.cells.fetch(band) %>
+                      <% if cell.kmh %>
+                        <%= tag.td(data: { band:, kmh: decimal(cell.kmh), trips: cell.n_trips, small_sample: cell.small_sample || nil }) do %>
+                          <span class="<%= cell.small_sample ? "text-orange-700" : "font-semibold text-slate-900" %>"><%= decimal(cell.kmh) %></span><span class="text-label text-slate-500">（<%= t(".trips", count: cell.n_trips) %>）</span><% if cell.small_sample %><span class="sr-only"> <%= t(".small_sample") %></span><% end %>
+                        <% end %>
+                      <% else %>
+                        <td data-band="<%= band %>" data-trips="0"><%= NONE %></td>
+                      <% end %>
+                    <% end %>
+                  </tr>
+                <% end %>
+              </tbody>
+            <% end %>
+          </table>
+        </div>
+      </div>
+    </details>
+  <% else %>
+    <p data-no-stop-speeds class="text-slate-600"><%= t(".no_speeds") %></p>
+  <% end %>
+</section>
