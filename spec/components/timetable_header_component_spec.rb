@@ -53,9 +53,14 @@ RSpec.describe TimetableHeaderComponent, type: :component do
     end
   end
 
-  it "伺服器填 p、休息、量到的平均每天車數；車數、每個方向的班數、手動改過的格數留給瀏覽器，先寫 —" do
+  it "伺服器填 p、休息、量到的平均每天車數；車數、每個方向的班數、手動改過與跟著往後推的格數留給瀏覽器，先寫 —" do
     rendered = render_header
-    expect(%w[percentile buffer vehicles-per-day vehicles departures-0 departures-1 edited].map { figure(rendered, it) }).to eq(%w[85 15 1.0 — — — —])
+    expect(%w[percentile buffer vehicles-per-day vehicles departures-0 departures-1 edited pushed].map { figure(rendered, it) }).to eq(%w[85 15 1.0 — — — — —])
+  end
+
+  it "手動改過與跟著往後推是格數，數字後面帶單位；車數不帶" do
+    rendered = render_header
+    expect(%w[edited pushed vehicles].map { rendered.at_css("[data-value=#{it}]").parent.css("span").size }).to eq([ 2, 2, 1 ])
   end
 
   it "控制項不是表單：選單選著目前的 p、休息是目前的值" do

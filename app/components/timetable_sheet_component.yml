@@ -26,6 +26,8 @@ tw: &tw
   departure_field: 發車時間
   return_field: 返回的發車時間
   edited: 手動改過
+  pushed: "跟著往後推 %{minutes} 分，原本 %{time}"
+  title_separator: "；"
   rejected_typed: "「%{typed}」不是時刻。%{writings}"
   accepted_writings: "時刻可以打 0530、530、5:30 或 05:30；過了午夜從 24 接著算，凌晨 00:45 打 2445，最晚 29:59。"
   delete: 刪這一列
@@ -65,6 +67,8 @@ en:
   departure_field: Departure
   return_field: Return departure
   edited: Edited by hand
+  pushed: "Pushed %{minutes} min later, originally %{time}"
+  title_separator: "; "
   rejected_typed: "“%{typed}” is not a time. %{writings}"
   accepted_writings: "Type a time as 0530, 530, 5:30 or 05:30; past midnight keep counting from 24, so 00:45 is 2445, up to 29:59."
   delete: Delete this row

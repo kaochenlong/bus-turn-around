@@ -32,8 +32,9 @@ export function departuresTable(cells) {
   return table
 }
 
-// A planned trip from a direction and a "HH:MM-HH:MM" leg.
-export function trip(goBack, leg, { fallback = false, edited = false } = {}) {
+// A planned trip from a direction and a "HH:MM-HH:MM" leg; as laid out, not
+// typed and with its departure as its original one, unless told otherwise.
+export function trip(goBack, leg, { fallback = false, edited = false, typed = false, original } = {}) {
   const [departure, arrival] = leg.split("-").map(at)
-  return { goBack, departure, arrival, fallback, edited }
+  return { goBack, departure, arrival, fallback, edited, typed, original: original ?? departure }
 }

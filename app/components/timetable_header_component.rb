@@ -18,12 +18,15 @@ class TimetableHeaderComponent < ApplicationComponent
   # The latest covered day names the route.
   def route_day = covered.last
 
+  # The figures that count departure cells, shown with the cells unit.
+  CELL_FIGURES = %i[edited pushed].freeze
+
   # The figures shown: the translation key of each label, its value as the
   # server renders it (a dash where the browser fills it in) and the name the
   # browser and the tests read it by.
   def figures
     [ [ :percentile, @timetable.percentile, "percentile" ], [ :buffer, @timetable.buffer, "buffer" ], [ :vehicles_per_day, decimal(@timetable.vehicles_per_day), "vehicles-per-day" ],
-      [ :vehicles, NONE, "vehicles" ], [ :departures_0, NONE, "departures-0" ], [ :departures_1, NONE, "departures-1" ], [ :edited, NONE, "edited" ] ]
+      [ :vehicles, NONE, "vehicles" ], [ :departures_0, NONE, "departures-0" ], [ :departures_1, NONE, "departures-1" ], [ :edited, NONE, "edited" ], [ :pushed, NONE, "pushed" ] ]
   end
 
   def decimal(value) = format("%.1f", value)

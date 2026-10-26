@@ -55,6 +55,10 @@ RSpec.describe TimetableSheetComponent, type: :component do
       .to eq([ [ true ] * 6, true, true ])
   end
 
+  it "單子的 template 帶跟著往後推的說明，留著推了幾分與原本時刻的位子，也帶它接在手動改過後面時的分隔" do
+    expect([ %w[%{minutes} %{time}].map { sheet_template["data-pushed-title"]&.include?(it) }, sheet_template["data-title-separator"].present? ]).to eq([ [ true, true ], true ])
+  end
+
   it "單子的 template 帶兩個方向的名字與退回全天的標記；四小時那兩句已經填好小時數；印刷時至少補到 14 列" do
     expect([ sheet_template["data-direction-0"], sheet_template["data-direction-1"], sheet_template["data-fallback-mark"].present?,
              sheet_template["data-rest-credit-text"].include?("4"), sheet_template["data-shorter-text"].include?("4"), sheet_template["data-min-rows"] ])

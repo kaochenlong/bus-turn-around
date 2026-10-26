@@ -264,8 +264,8 @@
 ### 班表
 
 - 定義：網站用量到的行駛時間百分位數、停車端的休息分鐘數與每個方向每小時的發車數，鋪出一條路線一天、每台車一張單子，合起來就是這一天的班表（單一台車那一張是班本）。在瀏覽器裡鋪、改、印，伺服器不存。要不要照著發是調度員的事，網站不替它定位。
-- 在資料或程式碼裡：班表頁 `GET /routes/<Id>/timetable`（參數 `day`、`range`、`buffer`、`p` 是起始值），`RoutePage::Timetable` 把量到的資料組成 JSON 嵌進頁面（`script[data-timetable-data]`），量到的值來自 `RoutePage::PlannedRunTimes`、`RoutePage::MeasuredDepartures`、`RoutePage::TimetableOverruns`；鋪排、四小時休息、改時刻、刪列、加列是 `app/frontend/timetable/` 的 JavaScript（Vitest 測），Alpine 元件 `timetable` 用 `TimetableSheetComponent` 的 template 畫單子。入口是路線頁換休息試算卡的「排成班表」與名稱列的「班表」。
-- 邊界：只到單一路線、單一天、車輛：不排駕駛的班（職號、姓名、調度員欄在螢幕上不顯示，印出來留白）、不做全網或多路線、沒有目標函數，所以不是最佳化。預設的發車數是涵蓋日子量到的每小時趟次平均，不讀公佈的班距。四小時休息只報數字、標「若一人開完這張單」，不標合規。手動改到接不上的停留印負數，不自動往後推；換百分位數、休息或發車數重新鋪排會蓋掉手動改的；`buffer` 與 `p` 寫回網址，發車數與手動改的不進網址。沒有 JavaScript 鋪不出來，是網站裡唯一要 JavaScript 的頁。公佈的班表（`GetTimeTable.gz` 這類）在「趟次與班次」那條，不是這裡。
+- 在資料或程式碼裡：班表頁 `GET /routes/<Id>/timetable`（參數 `day`、`range`、`buffer`、`p` 是起始值），`RoutePage::Timetable` 把量到的資料組成 JSON 嵌進頁面（`script[data-timetable-data]`），量到的值來自 `RoutePage::PlannedRunTimes`、`RoutePage::MeasuredDepartures`、`RoutePage::TimetableOverruns`；鋪排、四小時休息、改時刻、刪列、加列與往後推是 `app/frontend/timetable/` 的 JavaScript（Vitest 測），Alpine 元件 `timetable` 用 `TimetableSheetComponent` 的 template 畫單子。入口是路線頁換休息試算卡的「排成班表」與名稱列的「班表」。
+- 邊界：只到單一路線、單一天、車輛：不排駕駛的班（職號、姓名、調度員欄在螢幕上不顯示，印出來留白）、不做全網或多路線、沒有目標函數，所以不是最佳化。預設的發車數是涵蓋日子量到的每小時趟次平均，不讀公佈的班距。四小時休息只報數字、標「若一人開完這張單」，不標合規。改一格發車之後，同一張單後面沒被手動打過的趟次接不上，就往後推到停滿那一端的停留，只往後、不往前，被推過的格子另外標、頁首另外數；手動打的時刻不會被推，比前一趟到達還早時停留印負數；換百分位數、休息或發車數重新鋪排會蓋掉手動改的與被推過的；`buffer` 與 `p` 寫回網址，發車數與手動改的不進網址。沒有 JavaScript 鋪不出來，是網站裡唯一要 JavaScript 的頁。公佈的班表（`GetTimeTable.gz` 這類）在「趟次與班次」那條，不是這裡。
 - 不要用：排班系統、最佳化、草稿、試算單、班表產生器。
 
 ### 資料限制
