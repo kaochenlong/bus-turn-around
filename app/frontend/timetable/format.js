@@ -49,3 +49,16 @@ export function stopText(minutes) {
   if (minutes === null || minutes === undefined) return ""
   return minutes < 0 ? `${MINUS}${Math.abs(minutes)}` : String(minutes)
 }
+
+// A YYYY-MM-DD date with its weekday, as the site writes days: labels holds
+// the site's dayLabel and its weekdays from Sunday.
+export function formatDay(labels, date) {
+  return fill(labels.dayLabel, { date, weekday: labels.weekdays[new Date(Date.parse(date)).getUTCDay()] })
+}
+
+// The rest in the tightest four hours in words: the minutes filled into
+// minutesLabel, or shorterLabel for a sheet shorter than four hours, which
+// has none.
+export function minutesText(minutes, shorterLabel, minutesLabel) {
+  return minutes === null ? shorterLabel : fill(minutesLabel, { minutes })
+}

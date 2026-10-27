@@ -36,7 +36,8 @@
       <%# 時刻被退回時的說明，字讀單子 template 的同一組 data 屬性；被退回的輸入框用 aria-describedby 指到它 %>
       <p data-add-vehicle-rejection id="add-vehicle-rejection" hidden role="alert" class="w-full text-note text-red-700"></p>
     </div>
-    <%= render TimetableSheetComponent.new(timetable: @timetable, coverage: @coverage) %>
+    <%= render TimetableSheetComponent.new(route_name: @timetable.route_name,
+                                           basis: TimetableSheetComponent::Basis.new(days: @timetable.covered.map(&:day), day_type: @coverage.day_type)) %>
     <%= render TimetableOverrunTableComponent.new(overruns: @timetable.overruns, percentile: @timetable.percentile, buffer: @timetable.buffer) %>
     <%= render TimetableLimitationsComponent.new %>
   <% else %>

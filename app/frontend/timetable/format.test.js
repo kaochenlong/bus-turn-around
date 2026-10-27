@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { clock, fieldClock, parseClock, stopText } from "./format.js"
+import { clock, fieldClock, formatDay, minutesText, parseClock, stopText } from "./format.js"
 
 describe("parseClock：營運日的時刻，冒號可打可不打，時 00 到 29、分 00 到 59", () => {
   // The spec's example "Typed times", plus the shapes the page can receive.
@@ -54,5 +54,26 @@ describe("stopText：停留的分鐘數，沒有值空白，負數用 U+2212 的
     [null, ""],
   ])("%j → %j", (minutes, text) => {
     expect(stopText(minutes)).toBe(text)
+  })
+})
+
+describe("formatDay：網站寫日期的樣子，帶星期", () => {
+  const labels = { dayLabel: "%{date}（%{weekday}）", weekdays: ["日", "一", "二", "三", "四", "五", "六"] }
+
+  it.each([
+    ["2026-10-27", "2026-10-27（二）"],
+    ["2026-10-25", "2026-10-25（日）"],
+  ])("%s → %s", (date, text) => {
+    expect(formatDay(labels, date)).toBe(text)
+  })
+})
+
+describe("minutesText：四小時休息的分鐘數，單子不到四小時（null）時寫另一句", () => {
+  it.each([
+    [43, "43 分"],
+    [0, "0 分"],
+    [null, "不到 4 小時"],
+  ])("%j → %s", (minutes, text) => {
+    expect(minutesText(minutes, "不到 4 小時", "%{minutes} 分")).toBe(text)
   })
 })

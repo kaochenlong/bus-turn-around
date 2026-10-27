@@ -6,11 +6,15 @@
 // Vehicles are named by the sheets' numbers only. Every change the
 // dispatcher makes goes through day.js, is kept in this browser and draws the
 // whole view anew; a change that cannot be made is explained beside the
-// field it came from and changes nothing.
+// field it came from and changes nothing. The day record's two files are made
+// here from the day, by day_record.js, and downloaded without a request; the
+// printed record is drawn from the day when the browser is about to print.
 import { arrivingAt, changeDeparture, changeVehicle, currentDay, defaultEnd, departuresAt, minutesOfDay, recordArrival, undoLast, vehiclesAt } from "./day.js"
+import { changeLogCsv, csvFileName, marksFor, sheetHeader, sheetNotes, sheetsCsv } from "./day_record.js"
 import { timelineView } from "./day_timeline_view.js"
-import { clock, fieldClock, fill, parseClock, stopText } from "./format.js"
+import { clock, fieldClock, fill, formatDay, minutesText, parseClock, stopText } from "./format.js"
 import { OTHER_END } from "./layout.js"
+import { sheetView } from "./sheet_view.js"
 
 // The words for each refusal of a vehicle change.
 const REFUSALS = { elsewhere: "elsewhere", "day-ended": "dayEnded", "no-trips": "noTrips" }
@@ -18,6 +22,10 @@ const REFUSALS = { elsewhere: "elsewhere", "day-ended": "dayEnded", "no-trips": 
 // How many departures show above the one the panel scrolls to, as on the
 // canvas.
 const PANEL_CONTEXT = 3
+
+// How long a downloaded file's address is kept: a browser may still be
+// reading the file when the click that started the download returns.
+const DOWNLOAD_KEPT_MS = 60 * 1000
 
 // The view inside the component's root. now is the page's clock, read
 // whenever it is needed; keep(day) keeps a changed day and says whether this
@@ -31,6 +39,8 @@ export function dayView(root, { now, keep }) {
   const endName = (end) => root.querySelector(`[data-end="${end}"]`).dataset.name
   const changeReason = root.querySelector("[data-change-reason]")
   const form = root.querySelector("form[data-record]")
+  // The printed record's sheets, from the timetable's sheet templates.
+  const sheets = sheetView(root.querySelector("template[data-sheet-template]"), root.querySelector("template[data-row-template]"))
   const timelineSection = root.querySelector("[data-day-timeline]")
   // The timeline's words, which name the selected trip.
   const timelineWords = JSON.parse(timelineSection.dataset.labels)
@@ -306,7 +316,7 @@ export function dayView(root, { now, keep }) {
       const minutes = minutesOfDay(this.day.date, now())
       slot("date").textContent = formatDay(labels, this.day.date)
       slot("basis").textContent = basisText(labels, this.day.basis)
-      this.renderFigures(current.figures)
+      this.writeFigures(current.figures, "data-figure", "shortest-detail")
       timeline.draw(this.day, current, minutes, this.selected)
       for (const button of root.querySelectorAll("[data-end]")) button.setAttribute("aria-pressed", String(Number(button.dataset.end) === this.end))
       slot("arrival-column").textContent = fill(labels.arrivalColumn, { stop: endName(this.end) })
@@ -317,13 +327,16 @@ export function dayView(root, { now, keep }) {
       this.renderChanges()
     },
 
-    renderFigures({ swaps, typed, waiting, shortestStop }) {
-      const figure = (name, value) => { root.querySelector(`[data-figure=${name}]`).textContent = value }
+    // The day's figures into the elements carrying the attribute, the
+    // header's or the printed record's, and the vehicle and the departure of
+    // the shortest stop into the slot named detail.
+    writeFigures({ swaps, typed, waiting, shortestStop }, attribute, detail) {
+      const figure = (name, value) => { root.querySelector(`[${attribute}=${name}]`).textContent = value }
       figure("swaps", swaps)
       figure("typed", typed)
       figure("waiting", waiting)
       figure("shortest", shortestStop?.minutes ?? labels.none)
-      slot("shortest-detail").textContent = shortestStop ? fill(labels.shortestDetail, { vehicle: vehicleName(shortestStop.vehicle), departure: time(shortestStop.departure) }) : ""
+      slot(detail).textContent = shortestStop ? fill(labels.shortestDetail, { vehicle: vehicleName(shortestStop.vehicle), departure: time(shortestStop.departure) }) : ""
     },
 
     // The departures from the selected end, with the line of now before the
@@ -444,6 +457,64 @@ export function dayView(root, { now, keep }) {
       root.querySelector("[data-undo]").disabled = changes.every((change) => change.undone)
     },
 
+    // The day record as it prints, drawn from the day as it stands when the
+    // browser is about to print: the summary page, with the day, what it was
+    // planned from, the figures, every vehicle's rest and the change log,
+    // and one sheet per vehicle in vehicle number order.
+    drawRecord() {
+      const current = currentDay(this.day)
+      slot("record-date").textContent = formatDay(labels, this.day.date)
+      slot("record-basis").textContent = basisText(labels, this.day.basis)
+      this.writeFigures(current.figures, "data-record-figure", "record-shortest-detail")
+      const credits = [...current.credits].sort((a, b) => a.vehicle - b.vehicle)
+      slot("record-credits").replaceChildren(...credits.map(({ vehicle, now, planned }) => this.item("record-credit", {
+        vehicle: vehicleName(vehicle),
+        now: minutesText(now, labels.creditShorter, labels.creditMinutes),
+        planned: minutesText(planned, labels.creditPlannedShorter, labels.creditPlanned),
+      })))
+      this.drawRecordChanges()
+      const paper = { printHeader: sheetHeader(this.day, labels), origins: { 0: endName(0), 1: endName(1) } }
+      const vehicles = [...current.vehicles].sort((a, b) => a.number - b.number)
+      root.querySelector("[data-record-sheets]").replaceChildren(...vehicles.map((vehicle) => this.recordSheet(vehicle, paper)))
+    },
+
+    // One vehicle's printed sheet: the timetable's sheet with the marks after
+    // its times, and the notes explaining them under its table, when it has
+    // any.
+    recordSheet(vehicle, paper) {
+      const fragment = sheets.sheet(vehicle, { ...paper, ...marksFor(vehicle, labels) })
+      const notes = sheetNotes(this.day, vehicle, labels)
+      if (notes.length > 0) {
+        const list = template("sheet-notes").content.firstElementChild.cloneNode(true)
+        list.replaceChildren(...notes.map((note) => Object.assign(document.createElement("li"), { textContent: note })))
+        fragment.querySelector("[data-rest-credit]").before(list)
+      }
+      return fragment
+    },
+
+    // The printed change log: every change in the order recorded, when, what
+    // it did, its reason and whether it is undone; without changes, the line
+    // that says so in place of the table.
+    drawRecordChanges() {
+      const { changes } = this.day
+      slot("record-changes-heading").textContent = fill(labels.changesHeading, { count: changes.length })
+      slot("record-changes").replaceChildren(...changes.map((change) => {
+        const row = this.item("record-change", { at: time(minutesOfDay(this.day.date, new Date(change.at))), text: this.changeText(change), reason: change.reason })
+        row.querySelector("[data-slot=undone]").hidden = !change.undone
+        return row
+      }))
+      slot("record-changes").closest("table").hidden = changes.length === 0
+      root.querySelector("[data-record-changes-none]").hidden = changes.length > 0
+    },
+
+    // One of the day record's files downloaded, the change log or the day's
+    // sheets, in the words of the page and with its ends' names.
+    exportFile(kind) {
+      const words = { ...labels.csv, stops: { 0: endName(0), 1: endName(1) } }
+      const text = kind === "changes" ? changeLogCsv(this.day, words) : sheetsCsv(this.day, currentDay(this.day), words)
+      download(csvFileName(this.day, kind), text)
+    },
+
     // What a change did, from what the log kept when it was made.
     changeText(change) {
       if (change.kind === "arrival") return fill(labels.changeArrival, { vehicle: vehicleName(change.vehicle), time: time(change.time), stop: endName(change.end) })
@@ -486,7 +557,24 @@ export function dayView(root, { now, keep }) {
     if (action) view.act(action, { keyboard: event.detail === 0 })
   })
   root.querySelector("[data-undo]").addEventListener("click", () => view.commit(undoLast(view.day)))
+  for (const button of root.querySelectorAll("[data-export]")) button.addEventListener("click", () => view.exportFile(button.dataset.export))
+  // The browser's print; the record is drawn when the browser announces it,
+  // whether it starts here or from the browser's own menu.
+  root.querySelector("[data-print-record]").addEventListener("click", () => window.print())
   return view
+}
+
+// A file made in the browser downloaded through a link to its blob, so
+// nothing is sent to the server.
+function download(name, text) {
+  const address = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }))
+  const link = document.createElement("a")
+  link.href = address
+  link.download = name
+  document.body.append(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(address), DOWNLOAD_KEPT_MS)
 }
 
 // The trip and the control a focused element is, when it is one of a
@@ -505,11 +593,6 @@ function runningTrip(current, tripId) {
     if (trip) return { vehicle: vehicle.number, trip }
   }
   throw new Error(`no trip ${tripId} in the day`)
-}
-
-// A YYYY-MM-DD date with its weekday, as the site writes days.
-export function formatDay(labels, date) {
-  return fill(labels.dayLabel, { date, weekday: labels.weekdays[new Date(Date.parse(date)).getUTCDay()] })
 }
 
 // What the day was planned from: the covered day or days with their day

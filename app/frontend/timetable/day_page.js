@@ -11,9 +11,9 @@ import { Turbo } from "@hotwired/turbo-rails"
 import { previousDate, startDay, taipeiDate } from "./day.js"
 import { handOver, release, takeOver } from "./day_handoff.js"
 import { discardDay, loadDay, saveDay } from "./day_storage.js"
-import { dayView, formatDay } from "./day_view.js"
+import { dayView } from "./day_view.js"
 import { wholeInRange } from "./fields.js"
-import { fill } from "./format.js"
+import { fill, formatDay } from "./format.js"
 import { holdsFor, layOut } from "./layout.js"
 
 export function dayDispatch() {
@@ -28,6 +28,12 @@ export function dayDispatch() {
       this.timetablePath = this.planTimetable.getAttribute("href")
       this.view = dayView(this.dayRoot, { now: () => this.now(), keep: (day) => this.keep(day) })
       this.dayRoot.querySelector("[data-restart]").addEventListener("click", () => this.restart())
+      // The browser announces a print before it prints, from the record's
+      // button or its own menu: the record is drawn then from the day shown.
+      this.drawRecordBeforePrint = () => {
+        if (!this.dayRoot.hidden) this.view.drawRecord()
+      }
+      window.addEventListener("beforeprint", this.drawRecordBeforePrint)
       this.initPlan()
       const handed = takeOver(this.routeId)
       const day = handed ?? this.kept(taipeiDate(this.now()))?.day
@@ -36,6 +42,10 @@ export function dayDispatch() {
         return
       }
       this.showPlan()
+    },
+
+    destroy() {
+      window.removeEventListener("beforeprint", this.drawRecordBeforePrint)
     },
 
     // The page's clock, which the day dispatch reads for the Taipei date and

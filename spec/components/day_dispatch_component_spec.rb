@@ -51,4 +51,26 @@ RSpec.describe DayDispatchComponent, type: :component do
   it "日期照網站的寫法帶星期：星期日到星期六的字與日期的寫法" do
     expect([ labels["weekdays"], labels["dayLabel"] ]).to eq([ RoutePage::Format::WEEKDAYS, "%{date}（%{weekday}）" ])
   end
+
+  it "頁首有印出當天紀錄、匯出修改清單、匯出最後的單三個按鈕" do
+    expect(%w[button[data-print-record] button[data-export=changes] button[data-export=sheets]].map { root.css("header #{it}").size }).to eq([ 1, 1, 1 ])
+  end
+
+  it "兩個 CSV 的表頭跟 day_record.js 寫的欄數一樣（修改清單 8 欄、最後的單 9 欄），三種修改、是與否、兩個方向都有字，那一趟留著方向與發車的位子" do
+    csv = labels["csv"]
+    expect([ csv["changesHeader"].size, csv["sheetsHeader"].size, csv["kinds"].keys.sort, [ csv["yes"], csv["no"] ].all?(&:present?), csv["directions"], %w[%{direction} %{departure}].all? { csv["trip"].include?(it) } ])
+      .to eq([ 8, 9, %w[arrival departure vehicle], true, { "0" => "去程", "1" => "返程" }, true ])
+  end
+
+  it "單子標題下那一行與三種註記留著瀏覽器要填的位子，三種記號與列出好幾班時的分隔都有字" do
+    filled = { "sheetHeader" => %w[%{date} %{days} %{percentile} %{buffer}], "sheetDaysOne" => %w[%{day} %{dayType}], "sheetDaysRange" => %w[%{first} %{last} %{dayType} %{count}] }
+    notes = { "swapped" => %w[%{mark} %{departures} %{vehicle}], "recorded" => %w[%{mark} %{arrival} %{planned}], "typed" => %w[%{mark} %{departure} %{from}] }
+    expect([ filled.all? { |key, names| names.all? { labels[key]&.include?(it) } }, notes.all? { |key, names| names.all? { labels.dig("notes", key)&.include?(it) } },
+             labels["marks"]&.values_at("swapped", "recorded", "typed")&.all?(&:present?), labels.dig("notes", "separator").present? ]).to eq([ true ] * 4)
+  end
+
+  it "放單子的位置與單子的 template 都在：template 的表單抬頭有路線名，標題下那一行留給瀏覽器照存著的那一天寫" do
+    template = root.at_css("template[data-sheet-template]")
+    expect([ root.css("[data-record-sheets]").size, template&.at_css("[data-sheet-form-header]")&.text&.include?("測試幹線"), template&.[]("data-print-header") ]).to eq([ 1, true, "" ])
+  end
 end

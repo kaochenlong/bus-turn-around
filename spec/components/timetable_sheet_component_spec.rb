@@ -3,29 +3,13 @@
 require "rails_helper"
 
 RSpec.describe TimetableSheetComponent, type: :component do
-  # The spec's four-departure day of route 9001, 2026-10-19, a weekday.
-  let(:route_day) do
-    create(:route_day).tap do |route_day|
-      route_day.stops.create!([ { go_back: 0, seq: 0, stop_name: "甲站" }, { go_back: 1, seq: 5, stop_name: "乙站" } ])
-      [ [ "06:00", 50, 0 ], [ "06:30", 50, 0 ], [ "07:00", 45, 1 ], [ "07:30", 45, 1 ] ].each { |start, minutes, go_back| trip(route_day, start, minutes, go_back) }
-    end
-  end
   let(:rendered) { render_sheet }
 
-  def trip(route_day, start, minutes, go_back)
-    start_time = Time.zone.parse("2026-10-19 #{start}")
-    route_day.trips.create!(bus_id: "TEST-0001", path_attribute_id: 9001, go_back:, band: "other", start_time:, end_time: start_time + minutes.minutes,
-                            first_seq: 0, last_seq: 4, n_events: 10, n_stops_observed: 5, completeness: "complete",
-                            start_from_arrival: false, end_from_departure: false)
+  # Route 測試幹線's sheets as the timetable page lays them out, from the
+  # weekdays given.
+  def render_sheet(days: [ Date.new(2026, 10, 19) ])
+    render_inline(described_class.new(route_name: "測試幹線", basis: described_class::Basis.new(days:, day_type: "weekday")))
   end
-
-  def render_sheet(range: "day", buffer: 15, percentile: 85)
-    coverage = RoutePage::Coverage.new(route_id: 9001, day: route_day.day.iso8601, range:)
-    ends = RoutePage::Ends.from_config({ 0 => "stop", 1 => "stop" }, route_id: 9001)
-    timetable = RoutePage::Timetable.new(route_days: coverage.route_days, ends:, buffer:, percentile:)
-    render_inline(described_class.new(timetable:, coverage:))
-  end
-
 
   def sheet_template = rendered.at_css("template[data-sheet-template]")
 
@@ -70,9 +54,13 @@ RSpec.describe TimetableSheetComponent, type: :component do
   end
 
   it "涵蓋最近 7 天時資料依據寫從哪一天到哪一天、幾個平日" do
-    create(:route_day, day: Date.new(2026, 10, 16))
-    header = render_sheet(range: "7d").at_css("template[data-sheet-template]")["data-print-header"]
+    header = render_sheet(days: [ Date.new(2026, 10, 16), Date.new(2026, 10, 19) ]).at_css("template[data-sheet-template]")["data-print-header"]
     expect(%w[2026-10-16（五） 2026-10-19（一） 平日 2].map { header.include?(it) }).to eq([ true ] * 4)
+  end
+
+  it "只給路線名時（當天紀錄的單），表單抬頭照樣有路線名，標題下那一行留給瀏覽器寫" do
+    template = render_inline(described_class.new(route_name: "測試幹線")).at_css("template[data-sheet-template]")
+    expect([ template.at_css("[data-sheet-form-header]").text.include?("測試幹線"), template["data-print-header"] ]).to eq([ true, "" ])
   end
 
   it "印刷用的表單抬頭：公司與站的空格、路線名、車次的位子、車號的空格、年月日星期的空格、資料依據的位子" do

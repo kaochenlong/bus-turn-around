@@ -10,7 +10,10 @@
 # records a vehicle back there, and the change log. The server writes the
 # markup, the wording and the route's name and ends; the day itself lives in
 # the browser, which fills in the rest from the templates here and the words
-# in data-labels.
+# in data-labels. The day record of the day-dispatch-record spec is here too:
+# the controls that print it and export its two files, and what is printed in
+# place of the view, a summary page, the vehicles' sheets with notes under
+# them and the record's data limitations, shown only when printed.
 class DayDispatchComponent < ApplicationComponent
   # The rest window of the vehicles' figures, the sheets' own.
   WINDOW_HOURS = TimetableSheetComponent::WINDOW_HOURS
@@ -26,6 +29,10 @@ class DayDispatchComponent < ApplicationComponent
   # A header cell of the departures, held at the top of their frame with its
   # line drawn as a shadow, which a collapsed border would leave behind.
   HEADER_CLASSES = "sticky top-0 z-1 h-8 bg-white shadow-[inset_0_-1px_0_var(--color-slate-300)]"
+  # A cell of the printed record's change log, ruled like the printed sheets;
+  # its header cells are smaller and bold, as theirs are.
+  RECORD_CELL_CLASSES = "border-[0.5pt] border-black px-[2mm] py-[1.5mm] align-middle"
+  RECORD_HEADER_CLASSES = "border-[0.5pt] border-black px-[1mm] py-[1.5mm] align-middle text-[9pt] leading-[1.25] font-bold"
 
   # An end of the route, named by the direction that departs from it: what
   # its control says, and its name in the view's sentences.
@@ -61,13 +68,15 @@ class DayDispatchComponent < ApplicationComponent
 
   # The words the browser writes with the day's values, %{…} left for it to
   # fill; how the site writes a day with its weekday and names a day type;
-  # and the words for times the sheets share.
+  # the words for times the sheets share; and the exported files' words with
+  # the directions' names.
   def labels_json
     labels = t(".labels").deep_transform_keys { it.to_s.camelize(:lower) }
     labels.merge("creditShorter" => t(".labels.credit_shorter", hours: WINDOW_HOURS), "creditPlannedShorter" => t(".labels.credit_planned_shorter", hours: WINDOW_HOURS),
                  "none" => NONE, "dayLabel" => RoutePage::Format::DAY_LABEL,
                  "weekdays" => RoutePage::Format::WEEKDAYS, "dayTypes" => DAY_TAG_COLORS.keys.index_with { day_type_label(it) },
                  "nextDay" => t("times.next_day", time: "%{time}"), "acceptedWritings" => t("times.accepted_writings"),
-                 "rejectedTyped" => t("times.rejected_typed", typed: "%{typed}", writings: t("times.accepted_writings"))).to_json
+                 "rejectedTyped" => t("times.rejected_typed", typed: "%{typed}", writings: t("times.accepted_writings")),
+                 "csv" => labels["csv"].merge("directions" => RoutePage::Ends::DIRECTIONS.to_h { [ it.to_s, t("directions.#{it}") ] })).to_json
   end
 end

@@ -6,10 +6,10 @@
 // the sense that it says it needs JavaScript.
 import { addRow, addVehicle, changeDeparture, countEdited, countPushed, deleteRow, pushedMinutes } from "./edits.js"
 import { wholeInRange } from "./fields.js"
-import { clock, fieldClock, parseClock, stopText } from "./format.js"
+import { clock, fieldClock, parseClock } from "./format.js"
 import { holdsFor, layOut, plan } from "./layout.js"
-import { minimumCredit } from "./rest_windows.js"
 import { rows } from "./rows.js"
+import { sheetView } from "./sheet_view.js"
 
 const DIRECTIONS = [0, 1]
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour)
@@ -35,7 +35,7 @@ export function timetable() {
       if (!script) return
       this.data = JSON.parse(script.textContent)
       this.sheetTemplate = this.$root.querySelector("template[data-sheet-template]")
-      this.rowTemplate = this.$root.querySelector("template[data-row-template]")
+      this.sheetView = sheetView(this.sheetTemplate, this.$root.querySelector("template[data-row-template]"))
       this.sheets = this.$root.querySelector("[data-sheets]")
       this.controls = this.$root.querySelector("[data-timetable-controls]")
       this.readControls()
@@ -283,95 +283,74 @@ export function timetable() {
       return this.sheetTemplate.getAttribute(`data-direction-${goBack}`)
     },
 
-    // One vehicle's sheet from the template: a row from the row template for
-    // each of its rows, the blank rows the paper has, then its values.
+    // One vehicle's sheet: the paper the sheet view draws, then the planning
+    // controls on it.
     sheet(vehicle) {
-      const fragment = this.sheetTemplate.content.cloneNode(true)
-      const section = fragment.querySelector("[data-vehicle]")
-      const body = section.querySelector("[data-slot=rows]")
-      const count = rows(vehicle.trips).length
-      for (let i = 0; i < count; i += 1) body.append(this.rowTemplate.content.cloneNode(true))
-      this.fillRows(body, count)
-      this.writeSheet(section, vehicle)
+      const fragment = this.sheetView.sheet(vehicle, this.paper())
+      this.writeControls(fragment.querySelector("[data-vehicle]"), vehicle)
       return fragment
     },
 
-    // A sheet's values, into a sheet just cloned or one already on the page
-    // with a row element for each of the vehicle's rows: the title, the rows,
-    // the add control's wording, the all-day legend when a trip fell back,
-    // and the rest in the tightest four hours.
+    // A sheet's values, into a sheet already on the page with a row element
+    // for each of the vehicle's rows: the paper and the planning controls.
     writeSheet(section, vehicle) {
+      this.sheetView.write(section, vehicle, this.paper())
+      this.writeControls(section, vehicle)
+    },
+
+    // What the timetable prints on its sheets: the line under the form's
+    // title with the percentile and the rest in use, the first stops by the
+    // page's stop names or else the directions, and the all-day mark after
+    // the arrival of a trip whose hour fell back; no mark after a departure.
+    paper() {
       const labels = this.sheetTemplate.dataset
-      section.dataset.vehicle = vehicle.number
+      return {
+        printHeader: labels.printHeader.replace("%{percentile}", this.percentile).replace("%{buffer}", this.buffer),
+        origins: Object.fromEntries(DIRECTIONS.map((goBack) => [goBack, this.data.stopNames[goBack] ?? this.directionName(goBack)])),
+        departureMark: () => "",
+        arrivalMark: (trip) => (trip.fallback ? labels.fallbackMark : ""),
+      }
+    },
+
+    // The planning parts of a sheet: its id and the id of its rejection
+    // message, the add control's wording, the all-day legend when a trip fell
+    // back, and every row's controls.
+    writeControls(section, vehicle) {
+      const labels = this.sheetTemplate.dataset
       section.id = `vehicle-${vehicle.number}`
       section.querySelector("[data-rejection]").id = `rejection-${vehicle.number}`
-      const title = labels.title.replace("%{number}", vehicle.number)
-      section.querySelector("[data-slot=title]").textContent = title
-      section.querySelector("[data-slot=run-number]").textContent = title
-      section.querySelector("[data-slot=print-header]").textContent = labels.printHeader.replace("%{percentile}", this.percentile).replace("%{buffer}", this.buffer)
-      const sheetRows = rows(vehicle.trips)
-      section.querySelectorAll("tr[data-row]").forEach((tr, i) => this.writeRow(tr, vehicle, sheetRows[i], labels))
       section.querySelector("[data-slot=add-label]").textContent = labels.addLabel.replace("%{direction}", this.directionName(vehicle.trips[0].goBack))
       section.querySelector("[data-fallback-legend]").hidden = !vehicle.trips.some((trip) => trip.fallback)
-      const credit = minimumCredit(vehicle.trips)
-      const line = section.querySelector("[data-rest-credit]")
-      line.dataset.restCredit = credit ?? ""
-      line.textContent = credit === null ? labels.shorterText : labels.restCreditText.replace("%{minutes}", credit)
+      const sheetRows = rows(vehicle.trips)
+      section.querySelectorAll("tr[data-row]").forEach((tr, i) => this.writeRowControls(tr, vehicle, sheetRows[i], labels))
     },
 
-    // Blank rows after the trips until the sheet has the paper's row count,
-    // shown only when printed; the first cell is the actions column, which is
-    // not printed either.
-    fillRows(body, count) {
-      const columns = this.sheetTemplate.content.querySelectorAll("thead th").length
-      for (let i = count; i < Number(this.sheetTemplate.dataset.minRows); i += 1) {
-        const tr = document.createElement("tr")
-        tr.setAttribute("data-filler", "")
-        tr.className = "hidden print:table-row"
-        for (let c = 0; c < columns; c += 1) {
-          const td = document.createElement("td")
-          if (c === 0) td.className = "print:hidden"
-          tr.append(td)
-        }
-        body.append(tr)
-      }
-    },
-
-    // A row's values: the two trips' times and the stops after them, the
-    // first stop's name, and which row the delete control takes out.
-    writeRow(tr, vehicle, row, labels) {
-      tr.dataset.row = row.number
+    // A row's controls: each trip's departure field, the all-day mark on each
+    // arrival as an attribute, and which row the delete control takes out.
+    writeRowControls(tr, vehicle, row, labels) {
       const departures = tr.querySelectorAll("[data-departure]")
       const arrivals = tr.querySelectorAll("[data-arrival]")
-      const stops = tr.querySelectorAll("[data-stop]")
       this.departureCell(departures[0], row.first, vehicle, (row.number - 1) * 2, labels)
-      tr.querySelector("[data-slot=origin]").textContent = this.data.stopNames[row.first.goBack] ?? this.directionName(row.first.goBack)
-      this.arrivalCell(arrivals[0], row.first, labels)
-      stops[0].textContent = stopText(row.stop)
+      arrivals[0].toggleAttribute("data-fallback", row.first.fallback)
       if (row.second) {
         this.departureCell(departures[1], row.second, vehicle, (row.number - 1) * 2 + 1, labels)
-        this.arrivalCell(arrivals[1], row.second, labels)
-      } else {
-        departures[1].replaceChildren()
+        arrivals[1].toggleAttribute("data-fallback", row.second.fallback)
       }
-      stops[1].textContent = stopText(row.nextStop)
       const remove = tr.querySelector("[data-delete-row]")
       remove.dataset.sheet = vehicle.number
       remove.dataset.row = row.number
     },
 
-    // A departure cell: the printed time, the editable field with the
-    // service-day time, which sheet and trip it belongs to (data-sheet, so
-    // that data-vehicle marks sheets only), and the edited and pushed marks,
-    // which the field's title puts in words.
+    // A departure cell's field: the editable service-day time, which sheet
+    // and trip it belongs to (data-sheet, so that data-vehicle marks sheets
+    // only), and the edited and pushed marks, which the field's title puts
+    // in words.
     departureCell(cell, trip, vehicle, index, labels) {
       const pushed = pushedMinutes(trip)
-      cell.dataset.departure = trip.departure
       cell.dataset.sheet = vehicle.number
       cell.dataset.index = index
       cell.toggleAttribute("data-edited", trip.edited)
       cell.toggleAttribute("data-pushed", pushed > 0)
-      cell.querySelector("span").textContent = clock(trip.departure, labels.nextDay)
       const input = cell.querySelector("input")
       input.value = fieldClock(trip.departure)
       input.title = this.marksTitle(trip, pushed, labels)
@@ -385,12 +364,6 @@ export function timetable() {
       if (trip.edited) marks.push(labels.editedTitle)
       if (pushed > 0) marks.push(labels.pushedTitle.replace("%{minutes}", pushed).replace("%{time}", clock(trip.original, labels.nextDay)))
       return marks.join(labels.titleSeparator)
-    },
-
-    arrivalCell(cell, trip, labels) {
-      cell.dataset.arrival = trip.arrival
-      cell.toggleAttribute("data-fallback", trip.fallback)
-      cell.textContent = clock(trip.arrival, labels.nextDay) + (trip.fallback ? labels.fallbackMark : "")
     },
   }
 }

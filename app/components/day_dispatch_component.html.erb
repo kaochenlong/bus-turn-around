@@ -12,6 +12,10 @@
     <div class="flex flex-wrap items-center gap-2">
       <%# 計畫的班表連到班表頁：瀏覽器照顯示的那一天把計畫依據填進網址，打開就是同一份單子 %>
       <a href="<%= timetable_path %>" data-plan-timetable class="<%= BUTTON_CLASSES %> inline-flex items-center"><%= t(".plan_timetable") %></a>
+      <%# 當天紀錄：印出來，或匯出成兩個 CSV，各一個按鈕；都在瀏覽器裡做，伺服器什麼都不收 %>
+      <button type="button" data-print-record class="<%= BUTTON_CLASSES %>"><%= t(".print_record") %></button>
+      <button type="button" data-export="changes" class="<%= BUTTON_CLASSES %>"><%= t(".export_changes") %></button>
+      <button type="button" data-export="sheets" class="<%= BUTTON_CLASSES %>"><%= t(".export_sheets") %></button>
       <button type="button" data-restart class="<%= BUTTON_CLASSES %>"><%= t(".restart") %></button>
     </div>
   </header>
@@ -118,6 +122,56 @@
     </aside>
   </div>
 
+  <%# 當天紀錄：螢幕上不出現，印的時候取代上面的畫面。第一頁是摘要（頁首、四個數字、每台車的休息、修改清單），
+      接著一車一頁、單子下面印註記，最後一頁是資料限制，再接 layout 的顯名聲明。數值照 design 的 Design Source；
+      值由瀏覽器照存著的那一天填 %>
+  <div data-day-record class="hidden text-[11pt] leading-[1.35] text-black print:block">
+    <section data-record-summary class="flex flex-col gap-[5mm]">
+      <header class="flex flex-col gap-[1mm]">
+        <p class="text-[10pt] font-semibold tracking-[0.04em]"><%= t(".day_record.eyebrow") %></p>
+        <h2 class="text-[18pt] leading-[1.25] font-bold"><%= route_name %>　<span data-slot="record-date"></span></h2>
+        <p data-slot="record-basis" class="text-[10pt]"></p>
+        <p class="text-[10pt]"><%= t(".day_record.entered") %></p>
+      </header>
+      <dl class="flex flex-wrap gap-[2mm]">
+        <% %w[swaps typed waiting shortest].each do |figure| %>
+          <div class="inline-flex items-baseline gap-[1.5mm] border-[0.5pt] border-black px-[3mm] py-[1.5mm] text-[10pt]">
+            <dt><%= t(".figures.#{figure}") %></dt>
+            <dd class="inline-flex items-baseline gap-[1mm]">
+              <span data-record-figure="<%= figure %>" class="font-route-figure text-[14pt] font-bold"></span><%= t(".figures.#{figure}_unit") %>
+              <% if figure == "shortest" %><span data-slot="record-shortest-detail"></span><% end %>
+            </dd>
+          </div>
+        <% end %>
+      </dl>
+      <section class="flex flex-col gap-[2mm]">
+        <h3 class="text-[11pt] font-bold"><%= t(".day_record.credits_heading", hours: WINDOW_HOURS) %></h3>
+        <%# 一列 6 格、照車號；格線由清單畫上與左、每一格畫右與下 %>
+        <ul data-slot="record-credits" class="grid grid-cols-6 border-t-[0.5pt] border-l-[0.5pt] border-black"></ul>
+      </section>
+      <section class="flex flex-col gap-[2mm]">
+        <h3 data-slot="record-changes-heading" class="text-[11pt] font-bold"></h3>
+        <table class="w-full table-fixed border-collapse text-[10pt] leading-[1.3]">
+          <colgroup><col class="w-[20mm]"><col><col class="w-[62mm]"><col class="w-[18mm]"></colgroup>
+          <thead>
+            <tr>
+              <% %w[at change reason].each do |column| %>
+                <th class="<%= RECORD_HEADER_CLASSES %> text-left"><%= t(".day_record.columns.#{column}") %></th>
+              <% end %>
+              <th class="<%= RECORD_HEADER_CLASSES %> text-center"><%= t(".day_record.columns.undone") %></th>
+            </tr>
+          </thead>
+          <tbody data-slot="record-changes"></tbody>
+        </table>
+        <p data-record-changes-none hidden class="text-[10pt]"><%= t(".day_record.changes_none") %></p>
+      </section>
+    </section>
+    <%# 一車一頁：用班表頁同一套單子，只給路線名，標題下那一行由瀏覽器照存著的那一天寫 %>
+    <div data-record-sheets></div>
+    <%= render TimetableSheetComponent.new(route_name:) %>
+    <%= render DayRecordLimitationsComponent.new %>
+  </div>
+
   <%# 發車表的一列：發車可以打時刻、派車是選單；換過車時派車底下寫原排；在時間軸上選了的那一班畫框。
       時刻被退回或換車不成立時，下一列寫原因 %>
   <template data-departure-row>
@@ -154,5 +208,23 @@
   </template>
   <template data-change-item>
     <li class="contents"><span data-slot="at" class="font-route-figure text-label font-semibold"></span><span class="in-data-undone:text-slate-500"><span data-slot="text" class="in-data-undone:line-through"></span><span data-slot="reason" class="in-data-undone:line-through"></span><span data-slot="undone" hidden class="ml-1.5 rounded bg-slate-100 px-1.5 text-tick text-slate-600"><%= t(".undone") %></span></span></li>
+  </template>
+  <%# 印出來的紀錄：每台車的休息一格、修改清單一列（已復原的寫在最後一欄，字不劃線）、一張單下面的註記 %>
+  <template data-record-credit>
+    <li class="flex items-baseline justify-between gap-[2mm] border-r-[0.5pt] border-b-[0.5pt] border-black px-[2mm] py-[1.5mm] text-[10pt] leading-[1.3]">
+      <span data-slot="vehicle" class="font-semibold"></span>
+      <span class="inline-flex items-baseline gap-[1.5mm]"><span data-slot="now" class="font-route-figure text-[12pt] font-bold"></span><span data-slot="planned" class="text-[9pt]"></span></span>
+    </li>
+  </template>
+  <template data-record-change>
+    <tr class="break-inside-avoid">
+      <td data-slot="at" class="<%= RECORD_CELL_CLASSES %> font-route-figure font-semibold whitespace-nowrap"></td>
+      <td data-slot="text" class="<%= RECORD_CELL_CLASSES %>"></td>
+      <td data-slot="reason" class="<%= RECORD_CELL_CLASSES %>"></td>
+      <td class="<%= RECORD_CELL_CLASSES %> text-center whitespace-nowrap"><span data-slot="undone" hidden><%= t(".undone") %></span></td>
+    </tr>
+  </template>
+  <template data-sheet-notes>
+    <ul data-sheet-notes class="mt-[3mm] text-[10pt] leading-[1.35]"></ul>
   </template>
 </section>

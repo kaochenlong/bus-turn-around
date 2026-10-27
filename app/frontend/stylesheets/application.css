@@ -223,35 +223,52 @@
    各自帶 print:hidden，時刻改印同格的文字；每張單自己帶紙本那樣的抬頭（print:block）。main 改回區塊排版、不用 flex，斷頁才照一般區塊
    的規則走、Safari 才可靠；每張單印完就換頁（新舊兩種屬性都寫），所以一車一頁，最後一張之後的超時表、資料限制與頁尾另起一頁。
    邊界與內距照一般 Word 表格印出來的樣子：每張單自己留 10mm／12mm 內距當頁邊（@page 只給 8mm，具名頁不是每個瀏覽器都吃），不留網頁的左右留白與卡片外框，文字黑色 11pt，格線 0.5pt 黑線、每格都有，
-   格子內距 1.5mm 2mm、列高約 8mm，表頭粗體不上底色。十三欄要橫印才放得下：用具名頁，不影響網站其他頁的列印 */
+   格子內距 1.5mm 2mm、列高約 8mm，表頭粗體不上底色。十三欄要橫印才放得下：用具名頁，不影響網站其他頁的列印。
+   單子的規則（選擇器帶 [data-record-sheets] 的那幾條）當天紀錄印的單子也用，兩頁的單子印出來一樣 */
 @page timetable { size: A4 landscape; margin: 8mm; }
 @media print {
   [data-site-bar], [data-timetable-header], [data-timetable-controls], [data-regeneration-notice], [data-needs-script], [data-add-vehicle], button[data-print] { display: none !important; }
   body:has(main[data-timetable]) { background: #fff; }
   main[data-timetable] { display: block; max-width: none; padding: 0; page: timetable; color: #000; font-size: 11pt; line-height: 1.35; }
   /* 邊界用單子自己的內距：具名頁的 margin 不是每個瀏覽器的預覽都吃（Safari 尤其），內距在哪裡都在 */
-  main[data-timetable] [data-vehicle] { break-after: page; page-break-after: always; border: 0; border-radius: 0; padding: 10mm 12mm; }
-  main[data-timetable] [data-vehicle] * { color: #000; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] { break-after: page; page-break-after: always; border: 0; border-radius: 0; padding: 10mm 12mm; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] * { color: #000; }
   [data-vehicle] [data-sheet-form-header] { margin-bottom: 4mm; }
   [data-vehicle] tr { break-inside: avoid; page-break-inside: avoid; }
   [data-vehicle] .overflow-x-auto { overflow: visible; }
-  main[data-timetable] [data-vehicle] .data-table { width: 100%; border-collapse: collapse; font-size: 11pt; line-height: 1.3; }
-  main[data-timetable] [data-vehicle] .data-table th,
-  main[data-timetable] [data-vehicle] .data-table td { border: 0.5pt solid #000; padding: 1.5mm 2mm; height: 8mm; vertical-align: middle; }
-  main[data-timetable] [data-vehicle] .data-table th { font-weight: 700; background: none; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] .data-table { width: 100%; border-collapse: collapse; font-size: 11pt; line-height: 1.3; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] .data-table th,
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] .data-table td { border: 0.5pt solid #000; padding: 1.5mm 2mm; height: 8mm; vertical-align: middle; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] .data-table th { font-weight: 700; background: none; }
   [data-vehicle] [data-fallback-legend], [data-vehicle] [data-rest-credit] { margin-top: 3mm; font-size: 10pt; }
   /* 整張表要放進一頁的寬度：固定欄寬照紙本的比例（合計 240mm，A4 橫向扣邊界約 257mm，瀏覽器不吃 @page 時也有約 248mm），
      表頭 9pt 且可以換行，手填欄不再撐螢幕上的最小寬度；站名太長就在那一格換行、那一列變高 */
-  main[data-timetable] [data-vehicle] .data-table { table-layout: fixed; font-size: 10pt; }
-  main[data-timetable] [data-vehicle] .data-table th { padding-inline: 1mm; font-size: 9pt; line-height: 1.25; white-space: normal; min-width: 0; }
-  main[data-timetable] [data-vehicle] .data-table td { white-space: nowrap; }
-  main[data-timetable] [data-vehicle] .data-table td[data-slot="origin"] { white-space: normal; }
-  main[data-timetable] [data-vehicle] th[data-column="driver_number"] { width: 13mm; }
-  main[data-timetable] [data-vehicle] th[data-column="driver_name"] { width: 15mm; }
-  main[data-timetable] [data-vehicle] th[data-column="departure"] { width: 19mm; }
-  main[data-timetable] [data-vehicle] th[data-column="origin"] { width: 28mm; }
-  main[data-timetable] [data-vehicle] th:is([data-column="dispatcher"], [data-column="dispatcher_again"]) { width: 14mm; }
-  main[data-timetable] [data-vehicle] th:is([data-column="arrival"], [data-column="return_departure"], [data-column="return_arrival"], [data-column="next_stop"]) { width: 22mm; }
-  main[data-timetable] [data-vehicle] th[data-column="stop"] { width: 15mm; }
-  main[data-timetable] [data-vehicle] th:is([data-column="accumulated_mileage"], [data-column="trip_mileage"]) { width: 17mm; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] .data-table { table-layout: fixed; font-size: 10pt; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] .data-table th { padding-inline: 1mm; font-size: 9pt; line-height: 1.25; white-space: normal; min-width: 0; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] .data-table td { white-space: nowrap; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] .data-table td[data-slot="origin"] { white-space: normal; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] th[data-column="driver_number"] { width: 13mm; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] th[data-column="driver_name"] { width: 15mm; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] th[data-column="departure"] { width: 19mm; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] th[data-column="origin"] { width: 28mm; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] th:is([data-column="dispatcher"], [data-column="dispatcher_again"]) { width: 14mm; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] th:is([data-column="arrival"], [data-column="return_departure"], [data-column="return_arrival"], [data-column="next_stop"]) { width: 22mm; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] th[data-column="stop"] { width: 15mm; }
+  :is(main[data-timetable], [data-record-sheets]) [data-vehicle] th:is([data-column="accumulated_mileage"], [data-column="trip_mileage"]) { width: 17mm; }
+}
+
+/* 當天紀錄的列印：印出來是紀錄，不是畫面。當天調度畫面上的頁首、四個數字、選取的那一趟、時間軸與側欄都不印，只印紀錄：
+   第一頁摘要、一車一頁、最後一頁資料限制，接著 layout 的顯名聲明；紀錄本身在螢幕上藏著（hidden print:block）。
+   main 與當天調度改回區塊排版，斷頁才照一般區塊的規則走。具名頁跟班表頁的單子一樣是 A4 橫式；頁尾的顯名聲明也掛在同一個具名頁，
+   換具名頁會強制斷頁，不掛的話顯名聲明會自己多印一頁。摘要跟單子一樣自己留 10mm／12mm 內距當頁邊，單子用上面跟班表頁共用的規則。
+   只在顯示當天調度時套用（當天調度的區塊沒有 hidden）：今天還沒開始的畫面照原本的版面印 */
+@page day-record { size: A4 landscape; margin: 8mm; }
+@media print {
+  body:has(main[data-day-dispatch-page] > [data-day-dispatch]:not([hidden])) { background: #fff; }
+  main[data-day-dispatch-page]:has(> [data-day-dispatch]:not([hidden])),
+  body:has(main[data-day-dispatch-page] > [data-day-dispatch]:not([hidden])) footer[data-attribution] { page: day-record; }
+  main[data-day-dispatch-page]:has(> [data-day-dispatch]:not([hidden])) { display: block; max-width: none; margin: 0; padding: 0; }
+  main[data-day-dispatch-page] > [data-day-dispatch] { display: block; }
+  [data-day-dispatch] > :not([data-day-record]) { display: none !important; }
+  [data-record-summary] { break-after: page; page-break-after: always; padding: 10mm 12mm; }
 }

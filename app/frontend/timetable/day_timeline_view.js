@@ -10,7 +10,7 @@
 // that vehicle, and along its own lane types its departure, by the rules of
 // day.js the view is handed.
 import { fitsLabel, laneAt, minuteAt, positionOf, timelineRange } from "./day_timeline.js"
-import { fieldClock, fill } from "./format.js"
+import { fieldClock, fill, minutesText } from "./format.js"
 import { OTHER_END } from "./layout.js"
 import { SHORT_STOP_MINUTES } from "./rest_windows.js"
 
@@ -92,7 +92,6 @@ export function timelineView(section, { labels, time, vehicleName, endName, onSe
       lane.querySelector("[data-slot=vehicle]").textContent = vehicleName(vehicle.number)
       lane.querySelector("[data-slot=notes]").textContent = changesOn(vehicle).map(({ departure, from }) => fill(words.note, { time: time(departure), vehicle: vehicleName(from) })).join("\n")
       lane.querySelector("[data-slot=trips]").append(...this.marks(vehicle))
-      const minutesText = (minutes, shorter, text) => (minutes === null ? shorter : fill(text, { minutes }))
       lane.querySelector("[data-slot=credit]").textContent = minutesText(credit.now, labels.creditShorter, labels.creditMinutes)
       lane.querySelector("[data-slot=planned]").textContent = credit.now === credit.planned ? "" : minutesText(credit.planned, labels.creditPlannedShorter, labels.creditPlanned)
       return lane
