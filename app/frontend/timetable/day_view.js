@@ -6,7 +6,8 @@
 // Vehicles are named by the sheets' numbers only. Every change the
 // dispatcher makes goes through day.js, is kept in this browser and draws the
 // whole view anew; a change that cannot be made is explained beside the
-// field it came from and changes nothing. The day record's two files are made
+// field it came from and changes nothing. As the clock moves on, only what
+// depends on now is drawn anew. The day record's two files are made
 // here from the day, by day_record.js, and downloaded without a request; the
 // printed record is drawn from the day when the browser is about to print.
 import { arrivingAt, changeDeparture, changeVehicle, currentDay, defaultEnd, departuresAt, minutesOfDay, recordArrival, undoLast, vehiclesAt } from "./day.js"
@@ -39,6 +40,7 @@ export function dayView(root, { now, keep }) {
   const endName = (end) => root.querySelector(`[data-end="${end}"]`).dataset.name
   const changeReason = root.querySelector("[data-change-reason]")
   const form = root.querySelector("form[data-record]")
+  const departuresFrame = root.querySelector("[data-departures-frame]")
   // The printed record's sheets, from the timetable's sheet templates.
   const sheets = sheetView(root.querySelector("template[data-sheet-template]"), root.querySelector("template[data-row-template]"))
   const timelineSection = root.querySelector("[data-day-timeline]")
@@ -314,6 +316,9 @@ export function dayView(root, { now, keep }) {
       this.rejection = null
       const current = currentDay(this.day)
       const minutes = minutesOfDay(this.day.date, now())
+      // The minute drawn, which the timeline and the departures now show.
+      this.minute = minutes
+      this.departuresMinute = minutes
       slot("date").textContent = formatDay(labels, this.day.date)
       slot("basis").textContent = basisText(labels, this.day.basis)
       this.writeFigures(current.figures, "data-figure", "shortest-detail")
@@ -325,6 +330,45 @@ export function dayView(root, { now, keep }) {
       this.renderRecordForm(current)
       this.renderActions(current)
       this.renderChanges()
+    },
+
+    // Now at another minute without the dispatcher doing anything, as the
+    // minute clock or the page shown again tells, as in the requirement "Day
+    // dispatch view follows the clock": the timeline's mark and line of now,
+    // the vehicles at the end and the departures drawn for it. Within the
+    // minute drawn last nothing changes, so a clock held still, as the system
+    // specs hold it, draws nothing.
+    refreshNow() {
+      if (!this.day) return
+      const minutes = minutesOfDay(this.day.date, now())
+      if (minutes === this.minute) return
+      this.minute = minutes
+      const current = currentDay(this.day)
+      timeline.moveNow(minutes)
+      this.renderStanding(current, minutes)
+      this.refreshDepartures()
+    },
+
+    // The departures drawn for the minute shown, unless the focus is in their
+    // frame or a refused change is explained under one of them: then they
+    // stay as drawn, so a menu being chosen from or a time being typed is
+    // left alone. focusLeft says the focus is leaving their frame. Their
+    // statuses and their line of now move only when now passes a departure,
+    // so otherwise only the line's time changes and the rows, their controls
+    // and the frame's scroll stay.
+    refreshDepartures({ focusLeft = false } = {}) {
+      const held = this.rejection || (!focusLeft && departuresFrame.contains(document.activeElement))
+      if (this.minute === this.departuresMinute || held) return
+      const current = currentDay(this.day)
+      const statuses = (minutes) => departuresAt(current, this.end, minutes).map((row) => row.status).join()
+      if (statuses(this.minute) === statuses(this.departuresMinute)) {
+        slot("departures").querySelector("tr[data-now-line] [data-slot=now]").textContent = fill(labels.nowLine, { time: time(this.minute) })
+      } else {
+        const scrolled = departuresFrame.scrollTop
+        slot("departures").replaceChildren(...this.departureRows(current, this.minute))
+        departuresFrame.scrollTop = scrolled
+      }
+      this.departuresMinute = this.minute
     },
 
     // The day's figures into the elements carrying the attribute, the
@@ -550,6 +594,11 @@ export function dayView(root, { now, keep }) {
   departures.addEventListener("change", (event) => {
     const menu = event.target.closest("[data-control=vehicle]")
     if (menu) view.giveDeparture(menu)
+  })
+  // Departures left as drawn while the focus was in their frame are drawn
+  // for now once it leaves; a departure typed there was handled first.
+  departuresFrame.addEventListener("focusout", (event) => {
+    if (!departuresFrame.contains(event.relatedTarget)) view.refreshDepartures({ focusLeft: true })
   })
   form.addEventListener("submit", (event) => view.record(event))
   slot("trip-actions").addEventListener("click", (event) => {

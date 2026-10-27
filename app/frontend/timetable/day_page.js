@@ -5,7 +5,8 @@
 // the page's data as the timetable page lays out its sheets before any edit,
 // offering the day kept for yesterday, and starts the day from it. The
 // plan's timetable leads to the timetable page as the shown day was planned;
-// starting again discards the day and shows today's plan again.
+// starting again discards the day and shows today's plan again. A day shown
+// follows the page's clock.
 import { Turbo } from "@hotwired/turbo-rails"
 
 import { previousDate, startDay, taipeiDate } from "./day.js"
@@ -15,6 +16,7 @@ import { dayView } from "./day_view.js"
 import { wholeInRange } from "./fields.js"
 import { fill, formatDay } from "./format.js"
 import { holdsFor, layOut } from "./layout.js"
+import { startMinuteClock } from "./minute_clock.js"
 
 export function dayDispatch() {
   return {
@@ -34,6 +36,13 @@ export function dayDispatch() {
         if (!this.dayRoot.hidden) this.view.drawRecord()
       }
       window.addEventListener("beforeprint", this.drawRecordBeforePrint)
+      // Back on the page after it was hidden, a day shown draws now at once
+      // and the clock waits for the next whole minute again: a hidden page's
+      // timers run late.
+      this.drawNowWhenShown = () => {
+        if (document.visibilityState === "visible" && this.stopClock) this.followClock({ drawNow: true })
+      }
+      document.addEventListener("visibilitychange", this.drawNowWhenShown)
       this.initPlan()
       const handed = takeOver(this.routeId)
       const day = handed ?? this.kept(taipeiDate(this.now()))?.day
@@ -46,6 +55,8 @@ export function dayDispatch() {
 
     destroy() {
       window.removeEventListener("beforeprint", this.drawRecordBeforePrint)
+      document.removeEventListener("visibilitychange", this.drawNowWhenShown)
+      this.stopFollowingClock()
     },
 
     // The page's clock, which the day dispatch reads for the Taipei date and
@@ -92,6 +103,7 @@ export function dayDispatch() {
     // yesterday to continue, a line when a day kept for today or yesterday
     // cannot be read, and the plan laid out.
     showPlan() {
+      this.stopFollowingClock()
       this.dayRoot.hidden = true
       this.startRoot.hidden = false
       const today = taipeiDate(this.now())
@@ -160,6 +172,21 @@ export function dayDispatch() {
       this.dayRoot.hidden = false
       this.view.show(day, { kept })
       this.planTimetable.setAttribute("href", planningPath(this.timetablePath, day.basis))
+      this.followClock()
+    },
+
+    // The day shown follows the page's clock, as in the requirement "Day
+    // dispatch view follows the clock": now is drawn anew at every whole
+    // minute, and at once when drawNow says so.
+    followClock({ drawNow = false } = {}) {
+      this.stopFollowingClock()
+      if (drawNow) this.view.refreshNow()
+      this.stopClock = startMinuteClock({ now: () => this.now(), onMinute: () => this.view.refreshNow() })
+    },
+
+    stopFollowingClock() {
+      this.stopClock?.()
+      this.stopClock = null
     },
 
     // Once the dispatcher confirms, the day is discarded, here and in this

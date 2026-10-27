@@ -36,16 +36,23 @@ RSpec.describe "當天調度的時間軸", :js, type: :system do
 
   def timeline_text(*keys, **values) = component_text("day_timeline_component", :labels, *keys, **values)
 
-  # Starts today's plan of 9001, laid out from weekdays, and waits for the timeline.
+  # Starts today's plan of 9001, laid out from weekdays, the page's clock held
+  # still, and waits for the timeline.
   def start_day
     visit "/routes/9001/dispatch?type=weekday"
     find("[data-day-start] [data-plan-summary] [data-slot=vehicles]", text: /\d/)
-    click_button component_text("day_start_component", :start)
+    hold_clock.then { click_button component_text("day_start_component", :start) }
     find("[data-day-timeline] [data-lane]", match: :first)
   end
 
-  # Opens the day dispatch page again and waits for the timeline of the day kept.
-  def continue_day = visit("/routes/9001/dispatch").then { find("[data-day-timeline] [data-lane]", match: :first) }
+  # Opens the day dispatch page again and waits for the timeline of the day
+  # kept, the page's clock held still.
+  def continue_day = visit("/routes/9001/dispatch").then { find("[data-day-timeline] [data-lane]", match: :first) }.tap { hold_clock }
+
+  # Holds the page's clock at the time it reads, so a day shown stays drawn
+  # for that minute: the minute clock then finds nothing to draw anew while
+  # an example works on the timeline or the panel. set_clock replaces it.
+  def hold_clock = page.execute_script("const component = Alpine.$data(document.querySelector('main[x-data]')); const held = component.now(); component.now = () => held")
 
   # Sets the clock of the page to `time` of today in Taipei and draws the day
   # again by pressing the end already selected.

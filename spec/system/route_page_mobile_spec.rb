@@ -209,4 +209,9 @@ RSpec.describe "路線頁的手機版", :duckdb, :js, type: :system do
     cells = on_phone { [ "[data-bar-from]", "td:first-child" ].map { displays("[data-section=run-times] [data-direction='0'] tbody #{it}").uniq } }
     expect(cells).to eq([ [ "none" ], [ "table-cell" ] ])
   end
+
+  it "名稱列的 GitHub 連結在手機上不顯示，1400 寬時顯示" do
+    repository_link = "[data-site-bar] a[href='#{SiteBarComponent::REPOSITORY_URL}']"
+    expect([ on_phone { displayed_count(repository_link) }, on_wide_screen { displayed_count(repository_link) } ]).to eq([ 0, 1 ])
+  end
 end

@@ -38,11 +38,18 @@ RSpec.describe "當天調度", :js, type: :system do
   # Opens the day dispatch page and waits for today's plan to be laid out.
   def open_plan(query = "?type=weekday") = open_dispatch(query).then { find("[data-day-start] [data-plan-summary] [data-slot=vehicles]", text: /\d/) }
 
-  # Opens the day dispatch page and waits for the day it shows.
-  def open_day = open_dispatch.then { find("[data-day-dispatch] [data-slot=date]", text: /\S/) }
+  # Opens the day dispatch page and waits for the day it shows, the page's
+  # clock held still.
+  def open_day = open_dispatch.then { find("[data-day-dispatch] [data-slot=date]", text: /\S/) }.tap { hold_clock }
 
-  # Starts the day from today's plan as it stands and waits for the day dispatch view.
-  def click_start = click_button(plan_text(:start)).then { find("[data-day-dispatch] [data-slot=date]", text: /\S/) }
+  # Starts the day from today's plan as it stands, the page's clock held
+  # still, and waits for the day dispatch view.
+  def click_start = hold_clock.then { click_button(plan_text(:start)) }.then { find("[data-day-dispatch] [data-slot=date]", text: /\S/) }
+
+  # Holds the page's clock at the time it reads, so a day shown stays drawn
+  # for that minute: the minute clock then finds nothing to draw anew while
+  # an example works on the departures. set_clock and run_clock_from replace it.
+  def hold_clock = page.execute_script("const component = Alpine.$data(document.querySelector('main[x-data]')); const held = component.now(); component.now = () => held")
 
   def start_day = open_plan.then { click_start }
 
@@ -86,6 +93,28 @@ RSpec.describe "當天調度", :js, type: :system do
       document.querySelector("[data-day-dispatch]:not([hidden]) [data-end][aria-pressed=true]")?.click()
     JS
   end
+
+  # Puts in place of the page's clock one running on from `time` of today in
+  # Taipei (HH:MM:SS.mmm) as real time passes, and tells the page it is shown
+  # again, as when the dispatcher comes back to its tab: the page draws now
+  # and waits for the next whole minute of that clock. Nothing is pressed.
+  def run_clock_from(time)
+    page.execute_script(<<~JS)
+      const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei" }).format(new Date())
+      const ahead = new Date(`${today}T#{time}+08:00`).getTime() - Date.now()
+      Alpine.$data(document.querySelector("main[x-data]")).now = () => new Date(Date.now() + ahead)
+      document.dispatchEvent(new Event("visibilitychange"))
+    JS
+  end
+
+  # The text of the timeline's mark of now, once it shows `time`.
+  def now_mark(time) = find("[data-day-timeline] [data-now]", text: time).text
+
+  # Puts the focus on the vehicle menu of the departure listed at `time`,
+  # without opening it.
+  def focus_vehicle_menu(time) = page.execute_script("document.querySelector(\"[data-day-dispatch] tr[data-trip][data-departure='#{minutes(time)}'] [data-control=vehicle]\").focus()")
+
+  def focused_control = page.evaluate_script("document.activeElement?.dataset.control ?? null")
 
   # Three more trips of the stored day in each of the 08 to 11 hours, from
   # 甲站 in the 08 and 10 hours and from 乙站 in the 09 and 11, running as
@@ -311,6 +340,27 @@ RSpec.describe "當天調度", :js, type: :system do
     it "頁面上沒有任何車輛識別碼" do
       start_day
       expect(page.html.include?("TEST-0001")).to be(false)
+    end
+  end
+
+  describe "跟著時鐘走" do
+    it "規格的時鐘走了一分鐘：07:20:59.5 起不按任何東西，到 07:21 時乙站 07:20 那一班變成已發車、現在那條線移到它後面，1 號車不再停在乙站" do
+      start_day.then { show_end("乙站", "返程") }.then { run_clock_from("07:20:59.500") }.then { now_mark("07:21") }
+      expect([ column(:status), row_order, list(:standing) ]).to eq([ %w[departed departed next].map { day_text(:labels, :statuses, it) },
+                                                                      [ "07:00", "07:20", day_text(:labels, :now_line, time: "07:21"), "07:40" ],
+                                                                      [ [ "2 號車", day_text(:labels, :standing_next, arrival: "07:10", minutes: 11, next: "07:40") ] ] ])
+    end
+
+    it "規格的切回分頁：時鐘換到 07:42:20 再切回來，現在馬上是 07:42，不等 07:43；甲站三班都已發車，發車表的現在那條線在最後、寫 07:42" do
+      start_day.then { run_clock_from("07:42:20") }
+      expect([ now_mark("07:42"), row_order ]).to eq([ day_text(:labels, :now_line, time: "07:42"), [ "06:00", "06:20", "06:40", day_text(:labels, :now_line, time: "07:42") ] ])
+    end
+
+    it "規格的焦點在發車表：焦點在乙站 07:40 的派車選單時時鐘走到 07:21，現在換了、發車表照 07:20、焦點還在；焦點離開後 07:20 那一班變成已發車" do
+      start_day.then { show_end("乙站", "返程") }.then { set_clock("07:20") }.then { focus_vehicle_menu("07:40") }
+      held = run_clock_from("07:20:59.500").then { now_mark("07:21") }.then { [ column(:status), focused_control ] }
+      find("[data-change-reason]").click.then { find("[data-day-dispatch] tr[data-departure='#{minutes('07:20')}'][data-status=departed]") }
+      expect([ held, column(:status) ]).to eq([ [ %w[departed next planned].map { day_text(:labels, :statuses, it) }, "vehicle" ], %w[departed departed next].map { day_text(:labels, :statuses, it) } ])
     end
   end
 

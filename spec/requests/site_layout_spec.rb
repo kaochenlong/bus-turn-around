@@ -38,25 +38,25 @@ RSpec.describe "Site layout", type: :request do
   # the global I18n backend.
   def bar_wording(key) = YAML.load_file(Rails.root.join("app/components/site_bar_component.yml"), aliases: true).dig("tw", key)
 
-  it "首頁的名稱列恰好兩個連結：站名連回 /，關於這個網站連到文章" do
+  it "首頁的名稱列恰好三個連結：站名連回 /，GitHub 連到 repo，關於這個網站連到文章" do
     get root_path
-    expect(bar_links.map(&:first)).to eq([ "/", SiteBarComponent::ABOUT_URL ])
+    expect(bar_links.map(&:first)).to eq([ "/", SiteBarComponent::REPOSITORY_URL, SiteBarComponent::ABOUT_URL ])
   end
 
-  it "規格的路線頁的名稱列：四個連結，班表連到該路線的班表頁、當天調度連到當天調度頁，都沒有 aria-current；關於的文字照舊是關於這個網站；9001 沒有資料也一樣" do
+  it "規格的路線頁的名稱列：五個連結，班表連到該路線的班表頁、當天調度連到當天調度頁，都沒有 aria-current；GitHub 連到 repo；關於的文字照舊是關於這個網站；9001 沒有資料也一樣" do
     get route_path(9001)
     expect(bar_links).to eq([ [ "/", I18n.t("site.name"), nil ], [ "/routes/9001/timetable", bar_wording("timetable"), nil ], [ "/routes/9001/dispatch", bar_wording("day_dispatch"), nil ],
-                              [ SiteBarComponent::ABOUT_URL, bar_wording("about_lead") + bar_wording("about_rest"), nil ] ])
+                              [ SiteBarComponent::REPOSITORY_URL, bar_wording("repository"), nil ], [ SiteBarComponent::ABOUT_URL, bar_wording("about_lead") + bar_wording("about_rest"), nil ] ])
   end
 
-  it "規格的班表頁的名稱列：四個連結，班表連到班表頁本身、帶 aria-current=page，當天調度沒有" do
+  it "規格的班表頁的名稱列：五個連結，班表連到班表頁本身、帶 aria-current=page，當天調度沒有" do
     get route_timetable_path(9001)
-    expect(bar_links.map { [ it[0], it[2] ] }).to eq([ [ "/", nil ], [ "/routes/9001/timetable", "page" ], [ "/routes/9001/dispatch", nil ], [ SiteBarComponent::ABOUT_URL, nil ] ])
+    expect(bar_links.map { [ it[0], it[2] ] }).to eq([ [ "/", nil ], [ "/routes/9001/timetable", "page" ], [ "/routes/9001/dispatch", nil ], [ SiteBarComponent::REPOSITORY_URL, nil ], [ SiteBarComponent::ABOUT_URL, nil ] ])
   end
 
-  it "規格的當天調度頁的名稱列：四個連結，當天調度連到當天調度頁本身、帶 aria-current=page，班表沒有" do
+  it "規格的當天調度頁的名稱列：五個連結，當天調度連到當天調度頁本身、帶 aria-current=page，班表沒有" do
     get route_dispatch_path(9001)
-    expect(bar_links.map { [ it[0], it[2] ] }).to eq([ [ "/", nil ], [ "/routes/9001/timetable", nil ], [ "/routes/9001/dispatch", "page" ], [ SiteBarComponent::ABOUT_URL, nil ] ])
+    expect(bar_links.map { [ it[0], it[2] ] }).to eq([ [ "/", nil ], [ "/routes/9001/timetable", nil ], [ "/routes/9001/dispatch", "page" ], [ SiteBarComponent::REPOSITORY_URL, nil ], [ SiteBarComponent::ABOUT_URL, nil ] ])
   end
 
   it "首頁的 body 第一個元素是唯一一條網站名稱列，在 main 之前，連回 / 、文字是站名" do
