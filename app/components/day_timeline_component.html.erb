@@ -27,7 +27,9 @@
 
   <ul class="flex flex-wrap gap-x-4 gap-y-1.5 text-tick text-slate-600">
     <% directions.each_with_index do |name, go_back| %>
-      <li data-legend-direction="<%= go_back %>" class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="<%= SWATCH_CLASSES %> <%= DIRECTION_SWATCHES.fetch(go_back) %>"></span><%= name %></li>
+      <% bus = DIRECTION_BUSES.fetch(go_back) %>
+      <%# 一台小公車：車頭朝右，有擋風玻璃與後窗，跟時間軸上的趟次同色 %>
+      <li data-legend-direction="<%= go_back %>" class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="relative rounded-[2px_4px_4px_2px] <%= SWATCH_CLASSES %> <%= bus.fetch(:body) %>"><span class="absolute inset-y-0.5 right-px w-0.75 rounded-[1px_2px_2px_1px] <%= bus.fetch(:windshield) %>"></span><span class="absolute inset-y-0.75 left-px w-px <%= bus.fetch(:rear) %>"></span></span><%= name %></li>
     <% end %>
     <li class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="<%= SWATCH_CLASSES %> rounded-[3px] border-2 border-teal-700"></span><%= t(".legend.swapped") %></li>
     <li class="inline-flex items-center gap-1.5"><span aria-hidden="true" class="<%= SWATCH_CLASSES %> <%= LATE_CLASSES %>"></span><%= t(".legend.late") %></li>
@@ -51,10 +53,11 @@
       </div>
     </div>
   </template>
-  <%# 一趟：兩個方向用深淺分；改過發車時刻的時刻加底線；拖著的那一段浮起來，原位的那一段變淡 %>
+  <%# 一趟：從上面看的公車，車頭朝右（時間往右走，車頭停在到達的時刻）。兩個方向用深淺分，後窗、擋風玻璃、後照鏡照方向配色；
+      後照鏡伸出車身上下各 2px，所以不切掉超出的部分，時刻只在放得下時才寫。改過發車時刻的時刻加底線；拖著的那一台浮起來，原位的那一台變淡 %>
   <template data-timeline-trip>
     <button type="button" data-timeline-trip
-            class="absolute top-2.5 h-6 cursor-grab overflow-hidden rounded-[3px] pl-0.75 text-left font-route-figure text-[11px] leading-6 font-medium whitespace-nowrap select-none in-data-compact:top-1 in-data-compact:h-5 in-data-compact:leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 data-[go-back=0]:bg-slate-700 data-[go-back=0]:text-white data-[go-back=1]:bg-slate-300 data-[go-back=1]:text-slate-900 data-typed:underline data-typed:decoration-2 data-typed:underline-offset-2 data-dragging:opacity-35 data-ghost:pointer-events-none data-ghost:z-3 data-ghost:opacity-90 data-ghost:shadow-[0_4px_10px_rgba(15,23,42,0.35)]"></button>
+            class="group/trip absolute top-2.5 h-6 cursor-grab rounded-[4px_8px_8px_4px] font-route-figure text-[11px] leading-6 font-medium whitespace-nowrap shadow-[0_1px_1px_rgba(15,23,42,0.3)] select-none in-data-compact:top-1 in-data-compact:h-5 in-data-compact:leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 data-[go-back=0]:bg-slate-700 data-[go-back=0]:text-white data-[go-back=1]:bg-slate-300 data-[go-back=1]:text-slate-900 data-typed:underline data-typed:decoration-2 data-typed:underline-offset-2 data-dragging:opacity-35 data-ghost:pointer-events-none data-ghost:z-3 data-ghost:opacity-90 data-ghost:shadow-[0_4px_10px_rgba(15,23,42,0.35)]"><%= bus_parts %><span data-slot="label" class="absolute top-0 left-1.5"></span></button>
   </template>
   <template data-timeline-hour-tick>
     <span class="absolute bottom-0.75 -translate-x-1/2 font-route-figure text-tick leading-3.5 text-slate-500"></span>
@@ -76,15 +79,15 @@
   <template data-timeline-late-label>
     <span data-late-label class="absolute -top-0.75 text-[11px] leading-3.25 font-semibold whitespace-nowrap text-slate-900 in-data-compact:top-1.5 in-data-compact:-translate-x-1/2 in-data-compact:rounded-[3px] in-data-compact:border in-data-compact:border-slate-600 in-data-compact:bg-white in-data-compact:px-1 in-data-compact:text-[10px] in-data-compact:leading-3.5 in-data-compact:font-bold"></span>
   </template>
-  <%# 段外面的框：換過車、選取的那一趟、拖到別台車時會換走的班 %>
+  <%# 公車外面的框：換過車、選取的那一趟、拖到別台車時會換走的班；圓角跟著車身，車頭那一端圓一點 %>
   <template data-timeline-swapped>
-    <span aria-hidden="true" class="pointer-events-none absolute top-1.75 h-7.5 rounded-[5px] border-2 border-teal-700 in-data-compact:top-px in-data-compact:h-6.5"></span>
+    <span aria-hidden="true" class="pointer-events-none absolute top-1.75 h-7.5 rounded-[6px_10px_10px_6px] border-2 border-teal-700 in-data-compact:top-px in-data-compact:h-6.5"></span>
   </template>
   <template data-timeline-selected>
-    <span aria-hidden="true" class="pointer-events-none absolute top-1 h-9 rounded-[7px] border-2 border-slate-900 in-data-compact:-top-0.5 in-data-compact:h-8"></span>
+    <span aria-hidden="true" class="pointer-events-none absolute top-1 h-9 rounded-[10px_14px_14px_10px] border-2 border-slate-900 in-data-compact:-top-0.5 in-data-compact:h-8"></span>
   </template>
   <template data-timeline-exchange>
-    <span data-exchange aria-hidden="true" class="pointer-events-none absolute top-1.75 h-7.5 rounded-[5px] border-2 border-dashed border-teal-700 in-data-compact:top-px in-data-compact:h-6.5"></span>
+    <span data-exchange aria-hidden="true" class="pointer-events-none absolute top-1.75 h-7.5 rounded-[6px_10px_10px_6px] border-2 border-dashed border-teal-700 in-data-compact:top-px in-data-compact:h-6.5"></span>
   </template>
   <%# 拖拉時的小標籤：拖到別台車寫從幾點起互換，沿著自己那一條拖寫指到的整分鐘 %>
   <template data-timeline-drag-hint>

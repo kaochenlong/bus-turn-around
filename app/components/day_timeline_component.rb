@@ -19,9 +19,22 @@ class DayTimelineComponent < ApplicationComponent
   VEHICLE_PADDING = "pl-1.5 sm:pl-2"
   # A swatch of the legend as large as on the canvas.
   SWATCH_CLASSES = "inline-block h-3 w-5.5 shrink-0"
-  # The direction's colour, a trip's and its swatch's: direction 0 dark,
-  # direction 1 light.
-  DIRECTION_SWATCHES = { 0 => "rounded-xs bg-slate-700", 1 => "rounded-xs bg-slate-300" }.freeze
+  # The legend's small bus of each direction, coloured as its trips are:
+  # direction 0 dark, direction 1 light, its windshield and rear window
+  # shaded against its body.
+  DIRECTION_BUSES = {
+    0 => { body: "bg-slate-700", windshield: "bg-slate-400", rear: "bg-slate-500" },
+    1 => { body: "bg-slate-300", windshield: "bg-slate-500", rear: "bg-slate-400" }
+  }.freeze
+  # The bus a trip is drawn as, seen from above with its front to the right:
+  # its rear window, its windshield and its two mirrors sticking out 2px
+  # above and below it, each shaded by the trip's direction (data-go-back).
+  BUS_PARTS = [
+    "absolute inset-y-1.5 left-0.5 w-0.5 rounded-[1px] group-data-[go-back=0]/trip:bg-slate-500 group-data-[go-back=1]/trip:bg-slate-400",
+    "absolute inset-y-0.75 right-0.5 w-1.25 rounded-[2px_4px_4px_2px] group-data-[go-back=0]/trip:bg-slate-400 group-data-[go-back=1]/trip:bg-slate-500",
+    "absolute right-2 -top-0.5 h-0.5 w-0.75 rounded-t-[1px] group-data-[go-back=0]/trip:bg-slate-700 group-data-[go-back=1]/trip:bg-slate-400",
+    "absolute right-2 -bottom-0.5 h-0.5 w-0.75 rounded-b-[1px] group-data-[go-back=0]/trip:bg-slate-700 group-data-[go-back=1]/trip:bg-slate-400"
+  ].freeze
   # The look of a recorded late return, the extension and its swatch.
   LATE_CLASSES = "border border-slate-600 bg-[repeating-linear-gradient(135deg,#94a3b8_0_2px,#ffffff_2px_6px)]"
 
@@ -46,6 +59,10 @@ class DayTimelineComponent < ApplicationComponent
   end
 
   def action(name) = @actions.fetch(name)
+
+  # The parts of a trip's bus, written with nothing between them, so the text
+  # of a trip's button is its departure alone.
+  def bus_parts = safe_join(BUS_PARTS.map { tag.span(class: it, aria: { hidden: true }) })
 
   # The words the browser writes with the day's values, %{…} left for it to
   # fill, and the names of the two directions.

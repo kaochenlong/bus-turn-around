@@ -1,21 +1,33 @@
 <%# 連結的字色跟著 aria-current：班表頁上「班表」是目前這一頁，當天調度頁上是「當天調度」。
-    relative：關於的後半段在手機上是 sr-only（絕對定位），以連結為準，不會把版面撐寬 %>
+    relative：關於的後半段是 sr-only（絕對定位），以連結為準，不會把版面撐寬 %>
 <% text_link = "relative inline-flex min-h-11 items-center rounded-sm text-table font-medium text-slate-600 select-none hover:text-slate-900 aria-[current=page]:text-slate-900 " \
                "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700" %>
 <header data-site-bar class="border-b border-slate-200 bg-white font-route">
-  <%# 選單接在標誌旁邊靠左 %>
   <div class="page-column flex items-center gap-4 py-3.5 sm:gap-7">
     <%= link_to helpers.root_path, class: "inline-flex rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700" do %>
       <%= image_tag "turnaround-logo.webp", alt: "", width: 640, height: 219, class: "h-12 w-auto", aria: { hidden: true } %>
       <span class="sr-only"><%= t("site.name") %></span>
     <% end %>
-    <div class="flex items-center gap-5 sm:gap-7">
+    <%# 標誌之後分兩組：這條路線的連結接在標誌旁邊，講網站本身的推到右端；兩組之間最少跟連結之間一樣寬 %>
+    <div class="flex flex-1 items-center gap-5 sm:gap-7">
       <% if timetable_link? %>
         <%= link_to t(".timetable"), timetable_path, aria: { current: current_for(:timetable) }, data: { timetable_link: true }, class: text_link %>
         <%= link_to t(".day_dispatch"), day_dispatch_path, aria: { current: current_for(:dispatch) }, data: { day_dispatch_link: true }, class: text_link %>
       <% end %>
-      <%# 手機上（640px 以下）只顯示「關於」，後半段留給讀螢幕軟體，連結文字照舊是完整的 %>
-      <%= link_to ABOUT_URL, class: text_link do %><%= t(".about_lead") %><span class="max-sm:sr-only"><%= t(".about_rest") %></span><% end %>
+      <div class="ml-auto flex items-center gap-6.5">
+        <%# GitHub 的 mark 照抄 @primer/octicons 19.42.0 的 mark-github-24.svg。640px 以下不顯示：手機上的路線頁放不下。
+            左右各 2px 讓點擊範圍有 24px，這 2px 算在間距裡，圖示到「關於」的字是 28px，跟其他連結之間一樣 %>
+        <%= link_to REPOSITORY_URL, target: "_blank", rel: "noopener", aria: { describedby: NEW_TAB_ID }, class: "#{text_link} px-0.5 max-sm:hidden" do %>
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5 fill-current">
+            <path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943" />
+          </svg>
+          <span class="sr-only"><%= t(".repository") %></span>
+        <% end %>
+        <%# 每種寬度都只顯示「關於」，後半段留給讀螢幕軟體，連結文字照舊是完整的 %>
+        <%= link_to ABOUT_URL, target: "_blank", rel: "noopener", aria: { describedby: NEW_TAB_ID }, class: text_link do %><%= t(".about_lead") %><span class="sr-only"><%= t(".about_rest") %></span><% end %>
+        <%# 兩個連結都另開新分頁，畫面上不標；讀螢幕軟體從 aria-describedby 念這一句 %>
+        <span id="<%= NEW_TAB_ID %>" hidden><%= t(".new_tab") %></span>
+      </div>
     </div>
   </div>
 </header>

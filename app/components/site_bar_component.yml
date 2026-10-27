@@ -1,8 +1,12 @@
 ---
 tw: &tw
-  # 關於的連結分兩段：手機上只顯示前一段，後一段留給讀螢幕軟體，連起來是完整的連結文字
+  # 關於的連結分兩段：畫面上只顯示前一段，後一段留給讀螢幕軟體，連起來是完整的連結文字
   about_lead: 關於
   about_rest: 這個網站
+  # GitHub 圖示的連結給讀螢幕軟體念的字
+  repository: GitHub
+  # GitHub 與關於另開新分頁，讀螢幕軟體在連結名字之後念這一句
+  new_tab: 另開新分頁
   timetable: 班表
   day_dispatch: 當天調度
 zh-TW:
@@ -10,5 +14,7 @@ zh-TW:
 en:
   about_lead: About
   about_rest: " this site"
+  repository: GitHub
+  new_tab: opens in a new tab
   timetable: Timetable
   day_dispatch: Day dispatch

@@ -1,9 +1,10 @@
 // The timeline of the day dispatch, as in the day-dispatch-timeline spec,
 // drawn into the markup and the templates DayTimelineComponent writes: one
 // lane per vehicle on the time axis of day_timeline.js, every trip a button
-// on its current vehicle's lane, the stops at a stopping end, the recorded
-// late returns, the vehicle changes, the typed departures, the mark and the
-// line of now, and every lane's rest in the tightest four hours. Positions
+// drawn as a bus seen from above on its current vehicle's lane, the stops at
+// a stopping end, the recorded late returns, the vehicle changes, the typed
+// departures, the mark and the line of now, and every lane's rest in the
+// tightest four hours. Positions
 // are percentages of the axis, so the lanes follow the page's width; which
 // labels fit is worked out again when the axis changes width. A trip dragged
 // with a mouse or a pen onto another vehicle's lane gives its departure to
@@ -15,9 +16,11 @@ import { OTHER_END } from "./layout.js"
 import { SHORT_STOP_MINUTES } from "./rest_windows.js"
 
 // The narrowest trip that shows its departure and the narrowest gap that
-// shows its stop, in pixels. A stop shorter than SHORT_STOP_MINUTES, which
-// does not count as rest, shows below its gap however narrow the gap is.
-const DEPARTURE_LABEL_PX = 26
+// shows its stop, in pixels. A trip is drawn as a bus, its rear window and
+// windshield taking room on either side of its departure. A stop shorter
+// than SHORT_STOP_MINUTES, which does not count as rest, shows below its gap
+// however narrow the gap is.
+const DEPARTURE_LABEL_PX = 36
 const STOP_LABEL_PX = 13
 
 // How far a pressed trip moves, in pixels, before it is dragged; a shorter
@@ -77,11 +80,19 @@ export function timelineView(section, { labels, time, vehicleName, endName, onSe
       const lanes = [...current.vehicles].sort((a, b) => a.number - b.number)
       slot("lanes").replaceChildren(...lanes.map((vehicle) => this.lane(vehicle, credits.get(vehicle.number))))
       this.order()
-      this.drawNow()
-      slot("legend-now").textContent = fill(labels.nowLine, { time: time(now) })
+      this.moveNow(now)
       const stops = slot("legend-stops")
       stops.textContent = stopsAtText(day.stoppingEnds, words, endName) ?? ""
       stops.hidden = stops.textContent === ""
+    },
+
+    // Now at another minute, nothing else changing: the mark and the line of
+    // now and the legend's time. The lanes and the trips stay as they are, so
+    // a trip being dragged, selected or focused is left alone.
+    moveNow(now) {
+      drawn.now = now
+      this.drawNow()
+      slot("legend-now").textContent = fill(labels.nowLine, { time: time(now) })
     },
 
     // A vehicle's lane: its number and the vehicle changes it runs, its
@@ -121,14 +132,16 @@ export function timelineView(section, { labels, time, vehicleName, endName, onSe
       return spanned(clone("stop"), arrival, next.departure, range, String(next.stop))
     },
 
-    // A trip's button from its departure to its planned arrival, or to its
-    // recorded arrival when that is earlier; a recorded arrival later than
-    // planned extends it, labelled with the minutes late.
+    // A trip's button, a bus from its departure to its planned arrival, or to
+    // its recorded arrival when that is earlier, its departure written on it
+    // when it fits; a recorded arrival later than planned extends it,
+    // labelled with the minutes late.
     trip(vehicle, trip) {
       const { range, axisPx, selected } = drawn
       const late = trip.recorded && trip.plannedArrival !== null && trip.arrival > trip.plannedArrival
       const end = late ? trip.plannedArrival : trip.arrival
-      const button = spanned(clone("trip"), trip.departure, end, range, fitsLabel(end - trip.departure, range, axisPx, DEPARTURE_LABEL_PX) ? fieldClock(trip.departure) : "")
+      const button = spanned(clone("trip"), trip.departure, end, range)
+      button.querySelector("[data-slot=label]").textContent = fitsLabel(end - trip.departure, range, axisPx, DEPARTURE_LABEL_PX) ? fieldClock(trip.departure) : ""
       const swapped = trip.plannedVehicle !== vehicle.number
       button.dataset.timelineTrip = trip.id
       button.dataset.goBack = trip.goBack
