@@ -1,0 +1,17 @@
+---
+tw: &tw
+  title: 這份紀錄的資料限制
+  items:
+    - 回到時刻、換車與改過的發車時刻是調度員在這台電腦記下的，不是量到的；沒記下的趟次照計畫印。
+    - 一張單是一台車，不是一個駕駛。雙班制下同一台車兩個人開，職號與姓名要由調度員填；四小時休息的數字寫的是「若一人開完這張單」。
+    - 計畫行駛時間是涵蓋日子裡量到的百分位數，只算起站、末站都有記錄到的完整趟次，不是保證。
+    - 印出來的時刻過了午夜寫成「隔日 00:07」；匯出的檔案照營運日寫成 24:07。
+zh-TW:
+  <<: *tw
+en:
+  title: Limitations of this record
+  items:
+    - Recorded arrivals, vehicle changes and retimed departures were typed in by the dispatcher on this computer, not measured; a trip without a record prints as planned.
+    - A sheet is a vehicle, not a driver. With two shifts per vehicle two people drive it, and the driver number and name are the dispatcher's to fill in; the four-hour rest figure reads "if one person drove the whole sheet".
+    - Planned run times are measured percentiles of the covered days, from complete trips with both terminals observed only; they are not guarantees.
+    - Printed times past midnight read "next day 00:07"; the exported files keep service-day times such as 24:07.

@@ -11,8 +11,9 @@
 # browser only fills values, and reads the few words it needs from the sheet
 # template's data attributes. Printed, each sheet is a page of its own with
 # the paper's heading (company and depot blanks, the route, the run number, a
-# blank plate, date blanks), the paper's columns with the blank ones, and
-# ruled rows padded to the paper's count.
+# blank plate, date blanks, and a line on what it was laid out from), the
+# paper's columns with the blank ones, and ruled rows padded to the paper's
+# count. The timetable page and the day record print the same sheets.
 class TimetableSheetComponent < ApplicationComponent
   # The columns in the paper's order; the two stops are ours, right after the
   # times they belong to.
@@ -38,9 +39,16 @@ class TimetableSheetComponent < ApplicationComponent
   ICON_BUTTON_CLASSES = "inline-flex size-9 items-center justify-center rounded-md text-slate-500 select-none hover:bg-slate-100 hover:text-slate-900 " \
                         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
 
-  def initialize(timetable:, coverage:)
-    @timetable = timetable
-    @coverage = coverage
+  # What the timetable page lays its sheets out from: the covered days,
+  # oldest first, and their day type.
+  Basis = Data.define(:days, :day_type)
+
+  # route_name: the route on the printed form's title; basis: the timetable
+  # page's Basis, or nil for sheets whose line under the title the browser
+  # writes whole, as the day record does from the day it keeps.
+  def initialize(route_name:, basis: nil)
+    @route_name = route_name
+    @basis = basis
   end
 
   def small_sample = RoutePage::RunTimes::SMALL_SAMPLE
@@ -48,18 +56,22 @@ class TimetableSheetComponent < ApplicationComponent
   def blank?(column) = BLANK_COLUMNS.include?(column)
 
   # The printed form's title: blanks for the company and the depot, then the route.
-  def form_title = t(".form.title", route: @timetable.route_name)
+  def form_title = t(".form.title", route: @route_name)
 
   # What the sheet was laid out from: the covered day or days with their day
   # type, and the percentile and rest in use, which the browser fills in since
-  # they change on the page.
-  def print_header = t(".print_header", days: covered_days_text, percentile: "%{percentile}", buffer: "%{buffer}")
+  # they change on the page; nil without a basis.
+  def print_header
+    return unless @basis
+
+    t(".print_header", days: covered_days_text, percentile: "%{percentile}", buffer: "%{buffer}")
+  end
 
   private
 
   def covered_days_text
-    days = @timetable.covered.map(&:day)
-    day_type = day_type_label(@coverage.day_type)
+    days = @basis.days
+    day_type = day_type_label(@basis.day_type)
     return t(".days_one", day: day_label(days.last), day_type:) if days.size == 1
 
     t(".days_range", first: day_label(days.first), last: day_label(days.last), day_type:, count: days.size)

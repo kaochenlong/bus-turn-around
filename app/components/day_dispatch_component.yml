@@ -2,7 +2,21 @@
 tw: &tw
   eyebrow: 當天調度
   plan_timetable: 計畫的班表
+  print_record: 印出當天紀錄
+  export_changes: 匯出修改清單
+  export_sheets: 匯出最後的單
   restart: 重新開始
+  # 印出來的當天紀錄第一頁；四個數字的名稱與單位用上面 figures 的
+  day_record:
+    eyebrow: 當天調度紀錄
+    entered: 回到時刻、換車與改過的發車時刻是調度員在這台電腦記下的，不是量到的；沒記下的趟次照計畫。
+    credits_heading: "每台車連續 %{hours} 小時裡最少休（若一人開完這張單）"
+    columns:
+      at: 記下時刻
+      change: 修改
+      reason: 原因
+      undone: 已復原
+    changes_none: 沒有修改
   not_kept: 這一天沒有存在這台電腦：重新整理或關掉頁面，記下的都會不見。
   figures:
     swaps: 換車
@@ -76,12 +90,49 @@ tw: &tw
     change_departure: "%{vehicle} %{from} 那一班改成 %{departure} 發車"
     change_reason: "：%{reason}"
     restart_confirm: 重新開始會丟掉這台電腦存著的這一天：記下的回到時刻、換車與改過的發車時刻都會不見。確定嗎？
+    # 印出來的單子：標題下那一行，與時刻後面的記號、單子下面的註記
+    sheet_header: "%{date}當天調度的單・依 %{days} 的實測鋪排・p%{percentile}・停車端休息 %{buffer} 分"
+    sheet_days_one: "%{day} %{dayType}"
+    sheet_days_range: "%{first} 到 %{last}（%{dayType} %{count} 天）"
+    marks:
+      swapped: ＊
+      recorded: †
+      typed: ‡
+    notes:
+      swapped: "%{mark} %{departures} 原排 %{vehicle}"
+      recorded: "%{mark} %{arrival} 是記下的回到時刻，原定 %{planned}"
+      typed: "%{mark} %{departure} 改過，原本 %{from}"
+      separator: 、
+    # 匯出的兩個 CSV：表頭一欄一個字，欄數跟 app/frontend/timetable/day_record.js 寫的一樣
+    csv:
+      changes_header: [記下時刻, 種類, 車, 那一趟, 換給, 時刻, 原因, 已復原]
+      sheets_header: [車, 方向, 起站, 發車, 到達, 到達是記下的, 原排, 改過發車, 原本的發車]
+      kinds:
+        arrival: 記下回到
+        vehicle: 換車
+        departure: 改發車
+      trip: "%{direction} %{departure}"
+      "yes": 是
+      "no": 否
 zh-TW:
   <<: *tw
 en:
   eyebrow: Day dispatch
   plan_timetable: Plan's timetable
+  print_record: Print the day record
+  export_changes: Export changes
+  export_sheets: Export final sheets
   restart: Start again
+  day_record:
+    eyebrow: Day dispatch record
+    entered: Recorded arrivals, vehicle changes and retimed departures were typed in by the dispatcher on this computer, not measured; trips without a record are as planned.
+    credits_heading: "Each vehicle's rest in the tightest %{hours} hours (if one person drove the whole sheet)"
+    columns:
+      at: Recorded at
+      change: Change
+      reason: Reason
+      undone: Undone
+    changes_none: No changes
   not_kept: This day is not kept on this computer; reloading or closing the page loses what was recorded.
   figures:
     swaps: Vehicle changes
@@ -155,3 +206,25 @@ en:
     change_departure: "%{vehicle}'s %{from} departure retimed to %{departure}"
     change_reason: ": %{reason}"
     restart_confirm: Starting again discards the day kept on this computer, with every recorded arrival, vehicle change and retimed departure. Start again?
+    sheet_header: "%{date} day dispatch sheet · laid out from the measured %{days} · p%{percentile} · %{buffer} min rest at the stopping end"
+    sheet_days_one: "%{day} (%{dayType})"
+    sheet_days_range: "%{first} to %{last} (%{count} %{dayType} days)"
+    marks:
+      swapped: "*"
+      recorded: †
+      typed: ‡
+    notes:
+      swapped: "%{mark} %{departures} planned on %{vehicle}"
+      recorded: "%{mark} %{arrival} is the recorded arrival, planned %{planned}"
+      typed: "%{mark} %{departure} retimed, originally %{from}"
+      separator: ", "
+    csv:
+      changes_header: [Recorded at, Kind, Vehicle, Trip, Given to, Time, Reason, Undone]
+      sheets_header: [Vehicle, Direction, From, Departs, Arrives, Arrival recorded, Planned vehicle, Departure retimed, Planned departure]
+      kinds:
+        arrival: Recorded arrival
+        vehicle: Vehicle change
+        departure: Retimed departure
+      trip: "%{direction} %{departure}"
+      "yes": "yes"
+      "no": "no"

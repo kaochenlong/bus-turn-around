@@ -254,7 +254,7 @@ RSpec.describe "當天調度的時間軸", :js, type: :system do
     end
 
     it "規格的點一趟側欄移過去：側欄列著甲站時點 4 號車 11:40 從乙站發的那一趟，側欄換到乙站、捲到 11:40 並標成選取的那一班，頁面不跟著捲" do
-      page.driver.browser.manage.window.resize_to(1400, 700)
+      page.driver.browser.manage.window.resize_to(1400, 780)
       start_day.then { click_trip(4, "11:40") }
       expect([ pressed_end, departure_shown("11:40"), page.evaluate_script("window.scrollY") ]).to eq([ "1", [ true, true ], 0 ])
     end
