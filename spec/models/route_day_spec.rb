@@ -17,6 +17,7 @@ require "rails_helper"
 #  public_toilets_day  :date
 #  route_name          :string           not null
 #  static_day          :date             not null
+#  stop_districts_day  :date
 #  route_id            :integer          not null
 #
 # Indexes

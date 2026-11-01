@@ -146,5 +146,15 @@ SET VARIABLE nature_min_layovers = 20;
 SET VARIABLE nature_pass_through_max_share = 0.05;
 SET VARIABLE nature_stop_min_share = 0.5;
 
+-- Stop districts (analysis/stop_districts.sql). A route belongs to a
+-- district when at least this percentage of the page route's distinct stop
+-- locations lie in it. On 2026-10-22 any stop at all would have put every one
+-- of the seven page routes in 中正區 (1% to 27% of their stop locations),
+-- while the stopping ends alone would have made 235 a route of 新莊區 only.
+-- A whole percentage compared with whole counts, because 70 * 0.1 is
+-- 7.000000000000001 in floating point and seven stops of seventy would miss
+-- one tenth.
+SET VARIABLE district_min_share_percent = 10;
+
 -- Minutes from one timestamp to a later one, with the seconds kept.
 CREATE OR REPLACE MACRO minutes_between(earlier, later) AS epoch(later - earlier) / 60;

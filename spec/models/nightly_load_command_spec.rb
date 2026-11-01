@@ -68,7 +68,7 @@ RSpec.describe NightlyLoadCommand, type: :model do
       loads << [ day.iso8601, route_id ]
       raise error if [ day.iso8601, route_id ] == failing
 
-      { trips: 1, layovers: 2, trip_stop_counts: 3, end_toilets: 4, end_cells: 5 }
+      { trips: 1, layovers: 2, trip_stop_counts: 3, end_toilets: 4, end_cells: 5, districts: 6 }
     end
   end
 
@@ -275,8 +275,8 @@ RSpec.describe NightlyLoadCommand, type: :model do
     it "2026-10-19 的 9100 失敗：印出那一天、路線與訊息，另外兩個照樣寫入，摘要 2 寫入 1 失敗 0 不齊，結束碼非零" do
       status, out = load_three(recording_loader(failing: [ "2026-10-19", 9100 ]))
       expect([ status.zero?, loads.size, out.lines.grep(/寫入：|失敗：/).map(&:chomp), out.lines.last.chomp ]).to eq(
-        [ false, 3, [ "2026-10-19 9001 寫入：趟次 1、折返停留 2、趟次站 3、兩端公廁 4 間、靜止格 5 格", "2026-10-19 9100 失敗：測試用的失敗",
-                      "2026-10-23 9001 寫入：趟次 1、折返停留 2、趟次站 3、兩端公廁 4 間、靜止格 5 格" ], "載入 2 個路線日、失敗 1 個、原始檔不齊 0 天" ]
+        [ false, 3, [ "2026-10-19 9001 寫入：趟次 1、折返停留 2、趟次站 3、兩端公廁 4 間、靜止格 5 格、行政區 6 區", "2026-10-19 9100 失敗：測試用的失敗",
+                      "2026-10-23 9001 寫入：趟次 1、折返停留 2、趟次站 3、兩端公廁 4 間、靜止格 5 格、行政區 6 區" ], "載入 2 個路線日、失敗 1 個、原始檔不齊 0 天" ]
       )
     end
 
@@ -299,7 +299,7 @@ RSpec.describe NightlyLoadCommand, type: :model do
     it "fixture 的 2026-10-19 用真的 loader 寫進 9001：印出跟 derived:load 一樣的筆數，結束碼 0", :duckdb do
       status, out = run_command("--load", env: { "PATH" => ENV.fetch("PATH") }, loader: described_class::LOADER)
       expect([ status, out.lines.grep(/寫入：/).map(&:chomp), out.lines.last.chomp, RouteDay.pluck(:route_id, :day) ]).to eq(
-        [ 0, [ "2026-10-19 9001 寫入：趟次 27、折返停留 18、趟次站 96、兩端公廁 5 間、靜止格 1 格" ], "載入 1 個路線日、失敗 0 個、原始檔不齊 0 天", [ [ 9001, Date.new(2026, 10, 19) ] ] ]
+        [ 0, [ "2026-10-19 9001 寫入：趟次 27、折返停留 18、趟次站 96、兩端公廁 5 間、靜止格 1 格、行政區 2 區" ], "載入 1 個路線日、失敗 0 個、原始檔不齊 0 天", [ [ 9001, Date.new(2026, 10, 19) ] ] ]
       )
     end
   end

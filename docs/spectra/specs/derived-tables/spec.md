@@ -181,7 +181,7 @@ tests:
 ---
 ### Requirement: Day eligibility
 
-A day D SHALL be loaded only when `bus_event/<D>/` contains at least one hour file, `bus_data/<D>/` contains at least one hour file, `static/<D>/` contains `GetRoute.gz`, `GetStop.gz` and `GetPathDetail.gz`, the read window of D has ended, shown by an hour file `bus_event/<D+1>/01.jsonl` or `bus_event/<D+1>/01.jsonl.gz`, `external/taipei-mrt-exits/` contains at least one MRT entrance snapshot, `external/public-toilets/` contains at least one public toilet snapshot as defined by `turnaround-facilities`, and `external/office-calendar/<year of D>/` contains at least one office calendar snapshot as defined by `day-types` whose newest file has a row for D. A day that fails these checks SHALL fail with a message naming the missing file or directory; a missing entrance snapshot SHALL name `bin/rails external:mrt_exits`, a missing toilet snapshot SHALL name `bin/rails external:public_toilets`, and a missing calendar snapshot SHALL name `bin/rails external:office_calendar YEAR=<year of D>`. When the entrance snapshot is missing together with any other snapshot, the message SHALL name the entrance snapshot; when only the toilet and calendar snapshots are missing, the message SHALL name the toilet snapshot.
+A day D SHALL be loaded only when `bus_event/<D>/` contains at least one hour file, `bus_data/<D>/` contains at least one hour file, `static/<D>/` contains `GetRoute.gz`, `GetStop.gz` and `GetPathDetail.gz`, the read window of D has ended, shown by an hour file `bus_event/<D+1>/01.jsonl` or `bus_event/<D+1>/01.jsonl.gz`, `external/taipei-mrt-exits/` contains at least one MRT entrance snapshot, `external/public-toilets/` contains at least one public toilet snapshot as defined by `turnaround-facilities`, `external/stop-districts/` contains at least one stop district snapshot as defined by `stop-districts`, and `external/office-calendar/<year of D>/` contains at least one office calendar snapshot as defined by `day-types` whose newest file has a row for D. A day that fails these checks SHALL fail with a message naming the missing file or directory; a missing entrance snapshot SHALL name `bin/rails external:mrt_exits`, a missing toilet snapshot SHALL name `bin/rails external:public_toilets`, a missing stop district snapshot SHALL name `bin/rails external:stop_districts`, and a missing calendar snapshot SHALL name `bin/rails external:office_calendar YEAR=<year of D>`. When the entrance snapshot is missing together with any other snapshot, the message SHALL name the entrance snapshot; when the toilet snapshot is missing together with the stop district or calendar snapshot, the message SHALL name the toilet snapshot; when only the stop district and calendar snapshots are missing, the message SHALL name the stop district snapshot.
 
 #### Scenario: Read window not over
 
@@ -195,13 +195,18 @@ A day D SHALL be loaded only when `bus_event/<D>/` contains at least one hour fi
 
 #### Scenario: No calendar snapshot
 
-- **WHEN** the data root has an entrance snapshot and a toilet snapshot but no file under `external/office-calendar/2026/`, and day 2026-10-19 is loaded
+- **WHEN** the data root has an entrance snapshot, a toilet snapshot and a stop district snapshot but no file under `external/office-calendar/2026/`, and day 2026-10-19 is loaded
 - **THEN** the day fails with a message naming `bin/rails external:office_calendar YEAR=2026` and nothing is written for it
 
 #### Scenario: No toilet snapshot
 
 - **WHEN** the data root has an entrance snapshot but no file under `external/public-toilets/`
 - **THEN** the day fails with a message naming `bin/rails external:public_toilets` and nothing is written for it
+
+#### Scenario: No stop district snapshot
+
+- **WHEN** the data root has an entrance snapshot and a toilet snapshot but no file under `external/stop-districts/`
+- **THEN** the day fails with a message naming `bin/rails external:stop_districts` and nothing is written for it
 
 #### Scenario: No vehicle position files
 
@@ -210,120 +215,66 @@ A day D SHALL be loaded only when `bus_event/<D>/` contains at least one hour fi
 
 
 <!-- @trace
-source: turnaround-facilities
-updated: 2026-10-24
+source: home-district-filter
+updated: 2026-11-02
 code:
-  - app/components/cycle_table_component.yml
-  - app/frontend/hero/scene.js
-  - app/components/turnaround_facilities_component.html.erb
-  - app/frontend/hero/runtime.js
-  - spec/factories/route_day_ends.rb
-  - app/components/section_nav_component.yml
-  - spec/factories/route_days.rb
-  - app/models/route_page/facilities.rb
-  - app/models/public_toilets_snapshot.rb
-  - output/branding-v2/a-bus/favicon.ico
-  - app/models/route_day_end_toilet.rb
-  - app/models/route_page/cycles.rb
-  - app/components/turnaround_facilities_component.yml
-  - spec/fixtures/analysis/bus_data/2026-10-19/11.jsonl
-  - app/models/route_day_end_cell.rb
-  - app/models/derived_load_command.rb
-  - app/components/site_bar_component.html.erb
-  - app/components/cycle_table_component.rb
-  - analysis/README.md
-  - app/components/attribution_component.yml
-  - spec/fixtures/analysis/bus_data/2026-10-19/08.jsonl
-  - analysis/derived_export.sql
-  - config/environments/production.rb
-  - app/frontend/end_map/runtime.js
-  - spec/factories/route_day_end_toilets.rb
-  - analysis/turnaround_facilities.sql
-  - app/components/home_hero_component.yml
-  - app/components/home_hero_component.rb
-  - app/assets/images/home-hero-wide.webp
-  - public/turnaround/icon-16.png
-  - config/locales/tw.yml
-  - app/assets/images/home-hero-narrow.webp
-  - app/models/route_day.rb
-  - app/components/section_nav_component.rb
-  - spec/fixtures/analysis/bus_data/2026-10-19/12.jsonl
-  - Gemfile.lock
-  - config/map.yml
-  - spec/fixtures/analysis/external/public-toilets/2026-10-19.csv
-  - config/database.yml
-  - app/components/data_limitations_component.yml
-  - app/components/end_map_component.html.erb
-  - public/turnaround/og-image-v2.jpg
-  - app/components/end_map_component.rb
-  - db/schema.rb
-  - tools/hero/export.js
-  - .kamal/secrets
-  - app/frontend/entrypoints/application.js
-  - app/models/route_day_end.rb
-  - public/turnaround/icon-32.png
-  - config/locales/en.yml
-  - app/frontend/stylesheets/application.css
-  - docs/decisions.md
-  - app/views/layouts/application.html.erb
-  - .ruby-version
-  - tools/hero/index.html
-  - app/components/attribution_component.rb
-  - spec/fixtures/analysis/bus_data/2026-10-19/06.jsonl
-  - analysis/params.sql
-  - public/turnaround/favicon.ico
-  - app/models/route_page/end_map.rb
-  - spec/fixtures/analysis/bus_data/2026-10-19/07.jsonl
-  - app/assets/images/home-hero-tall.webp
-  - bin/health-card
-  - Gemfile
-  - app/components/cycle_table_component.html.erb
-  - output/branding-v2/a-bus/favicon-preview.png
-  - config/deploy.yml
-  - package.json
-  - app/components/home_hero_component.html.erb
+  - app/components/route_list_component.rb
   - app/components/attribution_component.html.erb
-  - spec/factories/route_day_end_cells.rb
+  - app/frontend/route_list/district_filter.js
+  - app/components/route_list_component.html.erb
+  - Gemfile.lock
+  - spec/factories/route_day_districts.rb
+  - analysis/derived_export.sql
+  - spec/factories/route_days.rb
+  - db/schema.rb
+  - spec/fixtures/analysis/external/stop-districts/2026-10-19.csv
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.shp
+  - app/frontend/entrypoints/application.js
+  - app/models/home_page/route_districts.rb
+  - app/models/route_day_district.rb
+  - analysis/stop_district_snapshot.sql
   - spec/fixtures/analysis/README.md
-  - output/branding-v2/a-bus/logo.png
-  - app/assets/images/turnaround-logo.webp
-  - public/turnaround/apple-touch-icon.png
-  - lib/tasks/external.rake
-  - Dockerfile
-  - spec/support/duckdb.rb
-  - app/views/routes/show.html.erb
-  - db/migrate/20261023190654_add_turnaround_facilities_to_derived_tables.rb
-  - config/credentials/production.yml.enc
-  - app/components/turnaround_facilities_component.rb
-  - app/models/map_tiles.rb
-  - docs/data-sources.md
-  - app/components/end_map_component.yml
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.prj
+  - app/components/attribution_component.yml
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.dbf
+  - README.md
+  - analysis/README.md
+  - app/models/home_page/route_list.rb
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.cpg
+  - .agents/skills/spectra-apply/SKILL.md
   - app/models/route_day_loader.rb
+  - .github/skills/spectra-apply/SKILL.md
+  - app/models/stop_districts_snapshot.rb
+  - config/route_page.yml
+  - analysis/stop_districts.sql
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.shx
+  - docs/data-sources.md
+  - analysis/params.sql
+  - db/migrate/20261101172102_create_route_day_districts.rb
+  - app/models/route_day_stop.rb
+  - Gemfile
+  - lib/tasks/external.rake
+  - app/models/route_day.rb
+  - app/components/route_list_component.yml
 tests:
-  - spec/components/turnaround_facilities_component_spec.rb
-  - spec/assets/home_hero_images_spec.rb
-  - spec/requests/route_page_fixture_spec.rb
-  - spec/requests/site_layout_spec.rb
-  - spec/analysis/params_spec.rb
-  - spec/models/route_page/cycles_spec.rb
-  - spec/models/map_tiles_spec.rb
-  - spec/models/route_day_spec.rb
-  - spec/analysis/fixtures_spec.rb
-  - spec/models/route_day_loader_spec.rb
-  - spec/system/end_map_spec.rb
-  - spec/components/home_hero_component_spec.rb
-  - spec/analysis/turnaround_facilities_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/components/cycle_table_component_spec.rb
-  - spec/models/route_page/facilities_spec.rb
-  - spec/models/route_page/end_map_spec.rb
-  - spec/system/route_page_mobile_spec.rb
-  - spec/models/public_toilets_snapshot_spec.rb
   - spec/models/derived_load_command_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/analysis/stop_district_snapshot_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/derived_push_command_spec.rb
+  - spec/models/stop_districts_snapshot_spec.rb
   - spec/analysis/derived_export_spec.rb
-  - spec/analysis/cli_spec.rb
-  - spec/components/end_map_component_spec.rb
-  - spec/system/home_hero_spec.rb
+  - spec/models/home_page/route_districts_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/models/nightly_load_command_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - app/frontend/route_list/district_filter.test.js
+  - spec/analysis/stop_districts_spec.rb
+  - spec/models/home_page/route_list_spec.rb
+  - spec/system/home_district_filter_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/models/route_page/ends_spec.rb
 -->
 
 ---
@@ -1462,4 +1413,92 @@ tests:
   - spec/analysis/stop_speeds_spec.rb
   - spec/analysis/turnaround_facilities_spec.rb
   - spec/models/route_page/stop_speeds_spec.rb
+-->
+
+---
+### Requirement: Stop district rows stored with the route day
+
+The derived export SHALL write `stops.csv` with the column `district` between `stop_location_id` and `shape_meters`, holding each stop's district as defined by `stop-districts` and empty for a stop without one, and SHALL write `districts.csv` with the columns `county, town, n_locations, share, qualifies`, one row per district of the page route's stop locations as defined by `stop-districts`, ordered by `n_locations` descending, then `county`, then `town`; `route_day.csv` SHALL carry `stop_districts_day`, the day of the stop district snapshot used, after `public_toilets_day`. The loader SHALL store `district` on `route_day_stops`, `stop_districts_day` on `route_days`, and each district row in `route_day_districts` against the route day, keyed uniquely by route day, county and town and deleted with the route day, inside the same transaction as the other tables; two district rows with the same county and town SHALL fail the day and leave the previously stored day unchanged. The summary line of a written route day SHALL name the number of district rows as 行政區 N 區. `bin/push-derived` SHALL carry `route_day_districts` with the other derived tables.
+
+#### Scenario: Fixture day district rows stored
+
+- **WHEN** `derived:load ROUTE=9001 DAY=2026-10-19` runs with the fixture snapshot `external/stop-districts/2026-10-19.csv`
+- **THEN** `route_day_districts` has two rows for that route day, 臺北市 測試區 with 9 locations, share 0.9 and qualifying, and 新北市 甲區 with 1 location, share 0.1 and qualifying; the route day's `stop_districts_day` is 2026-10-19; the outbound stops at 81000 to 81004 of that route day store the district 臺北市測試區; and the summary line ends with 行政區 2 區
+
+#### Scenario: District rows replaced with the day
+
+- **WHEN** the same route day is loaded again
+- **THEN** `route_day_districts` still has exactly two rows for that route day, and the counts of trips, layovers and trip stop counts are unchanged
+
+#### Scenario: Duplicate district rows
+
+- **WHEN** the staged district rows hold two rows with the same county and town
+- **THEN** the load fails and the previously stored day is unchanged
+
+#### Scenario: Derived tables pushed
+
+- **WHEN** `bin/push-derived` lists the derived tables
+- **THEN** `route_day_districts` is listed among the tables that reference `route_days`
+
+<!-- @trace
+source: home-district-filter
+updated: 2026-11-02
+code:
+  - app/components/route_list_component.rb
+  - app/components/attribution_component.html.erb
+  - app/frontend/route_list/district_filter.js
+  - app/components/route_list_component.html.erb
+  - Gemfile.lock
+  - spec/factories/route_day_districts.rb
+  - analysis/derived_export.sql
+  - spec/factories/route_days.rb
+  - db/schema.rb
+  - spec/fixtures/analysis/external/stop-districts/2026-10-19.csv
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.shp
+  - app/frontend/entrypoints/application.js
+  - app/models/home_page/route_districts.rb
+  - app/models/route_day_district.rb
+  - analysis/stop_district_snapshot.sql
+  - spec/fixtures/analysis/README.md
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.prj
+  - app/components/attribution_component.yml
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.dbf
+  - README.md
+  - analysis/README.md
+  - app/models/home_page/route_list.rb
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.cpg
+  - .agents/skills/spectra-apply/SKILL.md
+  - app/models/route_day_loader.rb
+  - .github/skills/spectra-apply/SKILL.md
+  - app/models/stop_districts_snapshot.rb
+  - config/route_page.yml
+  - analysis/stop_districts.sql
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.shx
+  - docs/data-sources.md
+  - analysis/params.sql
+  - db/migrate/20261101172102_create_route_day_districts.rb
+  - app/models/route_day_stop.rb
+  - Gemfile
+  - lib/tasks/external.rake
+  - app/models/route_day.rb
+  - app/components/route_list_component.yml
+tests:
+  - spec/models/derived_load_command_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/analysis/fixtures_spec.rb
+  - spec/analysis/stop_district_snapshot_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/derived_push_command_spec.rb
+  - spec/models/stop_districts_snapshot_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/home_page/route_districts_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/models/nightly_load_command_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - app/frontend/route_list/district_filter.test.js
+  - spec/analysis/stop_districts_spec.rb
+  - spec/models/home_page/route_list_spec.rb
+  - spec/system/home_district_filter_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/models/route_page/ends_spec.rb
 -->

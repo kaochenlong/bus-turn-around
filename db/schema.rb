@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_26_054634) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_01_172102) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -31,6 +31,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_054634) do
     t.integer "n_buses", null: false
     t.integer "n_trips", null: false
     t.index ["route_day_id", "station_id"], name: "index_route_day_depots_on_route_day_id_and_station_id", unique: true
+  end
+
+  create_table "route_day_districts", force: :cascade do |t|
+    t.bigint "route_day_id", null: false
+    t.string "county", null: false
+    t.string "town", null: false
+    t.integer "n_locations", null: false
+    t.float "share", null: false
+    t.boolean "qualifies", null: false
+    t.index ["route_day_id", "county", "town"], name: "index_route_day_districts_on_route_day_id_and_county_and_town", unique: true
   end
 
   create_table "route_day_end_cells", force: :cascade do |t|
@@ -91,6 +101,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_054634) do
     t.integer "route_id", null: false
     t.integer "stop_location_id"
     t.float "shape_meters"
+    t.string "district"
     t.index ["route_day_id", "route_id", "go_back", "seq"], name: "index_route_day_stops_on_route_day_route_direction_seq", unique: true
   end
 
@@ -108,6 +119,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_054634) do
     t.date "office_calendar_day", null: false
     t.date "public_toilets_day"
     t.jsonb "member_names", default: {}, null: false
+    t.date "stop_districts_day"
     t.index ["route_id", "day"], name: "index_route_days_on_route_id_and_day", unique: true
   end
 
@@ -148,6 +160,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_054634) do
 
   add_foreign_key "layovers", "route_days", on_delete: :cascade
   add_foreign_key "route_day_depots", "route_days", on_delete: :cascade
+  add_foreign_key "route_day_districts", "route_days", on_delete: :cascade
   add_foreign_key "route_day_end_cells", "route_day_ends", on_delete: :cascade
   add_foreign_key "route_day_end_toilets", "route_day_ends", on_delete: :cascade
   add_foreign_key "route_day_ends", "route_days", on_delete: :cascade

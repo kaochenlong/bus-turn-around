@@ -53,8 +53,23 @@ RSpec.describe RoutePage::Ends, type: :model do
     expect([ ends.nature(0), ends.nature(1), RoutePage.member_route_ids(16111) ]).to eq([ :stop, :stop, [ 16111, 19108 ] ])
   end
 
-  it "有路線頁的路線就是設定裡的路線：test 環境是 15373、10712、11764、16111 與 9001" do
-    expect(RoutePage.route_ids).to contain_exactly(15373, 10712, 11764, 16111, 9001)
+  it "235 去程結束的交通部觀光署那一端直接折返，返程結束的西盛那一端停車" do
+    ends = RoutePage.ends(10283)
+    expect([ ends.nature(0), ends.nature(1) ]).to eq(%i[pass_through stop])
+  end
+
+  it "復興幹線去程結束的景華公園那一端直接折返，返程結束的建北站那一端停車" do
+    ends = RoutePage.ends(11833)
+    expect([ ends.nature(0), ends.nature(1) ]).to eq(%i[pass_through stop])
+  end
+
+  it "22 去程結束的二二八和平公園那一端直接折返，返程結束的松德站那一端停車" do
+    ends = RoutePage.ends(10832)
+    expect([ ends.nature(0), ends.nature(1) ]).to eq(%i[pass_through stop])
+  end
+
+  it "有路線頁的路線就是設定裡的路線：test 環境是 15373、10712、11764、16111、10283、11833、10832 與 9001" do
+    expect(RoutePage.route_ids).to contain_exactly(15373, 10712, 11764, 16111, 10283, 11833, 10832, 9001)
   end
 
   describe "同一頁的附屬路線" do

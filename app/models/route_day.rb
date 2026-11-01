@@ -1,6 +1,6 @@
 # One route on one Taipei day, as written by bin/rails derived:load. Its stops,
-# trips, layovers, ends, route shapes and depots are deleted with it by the
-# database.
+# trips, layovers, ends, route shapes, depots and districts are deleted with it
+# by the database.
 # == Schema Information
 #
 # Table name: route_days
@@ -18,6 +18,7 @@
 #  public_toilets_day  :date
 #  route_name          :string           not null
 #  static_day          :date             not null
+#  stop_districts_day  :date
 #  route_id            :integer          not null
 #
 # Indexes
@@ -31,4 +32,5 @@ class RouteDay < ApplicationRecord
   has_many :ends, class_name: "RouteDayEnd", dependent: nil
   has_many :shapes, class_name: "RouteDayShape", dependent: nil
   has_many :depots, class_name: "RouteDayDepot", dependent: nil
+  has_many :districts, class_name: "RouteDayDistrict", dependent: nil
 end

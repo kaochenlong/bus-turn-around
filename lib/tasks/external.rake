@@ -14,6 +14,11 @@ namespace :external do
     exit PublicToiletsSnapshot.run(ENV.to_h)
   end
 
+  desc "下載內政部的鄉鎮市區界線，判每個站位在哪一縣市與鄉鎮市區，存成快照；這台機器要有 DuckDB 的 spatial 延伸；資料根目錄給 TURNAROUND_DATA"
+  task stop_districts: :environment do
+    exit StopDistrictsSnapshot.run(ENV.to_h)
+  end
+
   desc "抓 TDX 估算的一條路線的站間旅行時間，原始回應存成快照，只做內部對照：ROUTE_NAME=307；憑證在 credentials 的 tdx 底下，資料根目錄給 TURNAROUND_DATA"
   task tdx_s2s_travel_time: :environment do
     exit TdxS2sTravelTimeSnapshot.run(ENV.to_h)

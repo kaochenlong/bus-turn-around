@@ -9,7 +9,7 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
 
   def stored_counts
     [ Trip.count, Layover.count, TripStopCount.count, RouteDayStop.count, RouteDay.count, RouteDayEnd.count, RouteDayEndToilet.count, RouteDayEndCell.count,
-      RouteDayShape.count, RouteDayDepot.count, TripStopSpeed.count ]
+      RouteDayShape.count, RouteDayDepot.count, TripStopSpeed.count, RouteDayDistrict.count ]
   end
 
   def fixture(path) = File.join(DuckdbHelpers::FIXTURE_DATA, path)
@@ -34,9 +34,9 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     end
   end
 
-  it "fixture 2026-10-19 寫入兩次，趟次 27、折返停留 18、趟次站 96、站序 20（9001 與成員路線 9050 各 10）、路線日 1、兩端 2、公廁 5、靜止格 1、路線軌跡 2、調度站 1、站間車速 1，第二次後不變" do
+  it "fixture 2026-10-19 寫入兩次，趟次 27、折返停留 18、趟次站 96、站序 20（9001 與成員路線 9050 各 10）、路線日 1、兩端 2、公廁 5、靜止格 1、路線軌跡 2、調度站 1、站間車速 1、行政區 2，第二次後不變" do
     load_day
-    expect { load_day }.not_to(change { stored_counts }.from([ 27, 18, 96, 20, 1, 2, 5, 1, 2, 1, 1 ]))
+    expect { load_day }.not_to(change { stored_counts }.from([ 27, 18, 96, 20, 1, 2, 5, 1, 2, 1, 1, 2 ]))
   end
 
   describe "寫入後的站間車速" do
@@ -75,8 +75,8 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     end
   end
 
-  it "回傳寫入的趟次、折返停留、趟次站、兩端、公廁、靜止格、路線軌跡與調度站筆數" do
-    expect(load_day).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, trip_stop_speeds: 1, ends: 2, end_toilets: 5, end_cells: 1, shapes: 2, depots: 1)
+  it "回傳寫入的趟次、折返停留、趟次站、兩端、公廁、靜止格、路線軌跡、調度站與行政區筆數" do
+    expect(load_day).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, trip_stop_speeds: 1, ends: 2, end_toilets: 5, end_cells: 1, shapes: 2, depots: 1, districts: 2)
   end
 
   describe "寫入後的調度站" do
@@ -252,7 +252,7 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     # fixture's and whose entrance folder holds the fixture snapshot under two
     # later dates.
     def data_root_with_snapshots(dir)
-      link_fixture(dir, "public-toilets", "office-calendar")
+      link_fixture(dir, "public-toilets", "office-calendar", "stop-districts")
       FileUtils.mkdir_p(File.join(dir, "external/taipei-mrt-exits"))
       %w[2026-10-20 2026-10-22].each { FileUtils.cp(fixture("external/taipei-mrt-exits/2026-10-19.csv"), File.join(dir, "external/taipei-mrt-exits/#{it}.csv")) }
       dir
@@ -269,7 +269,7 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     # the fixture's, with the fixture toilet snapshot as 2026-10-20 and the
     # same without 甲站對面-男廁 as 2026-10-23.
     def data_root_with_toilet_snapshots(dir)
-      link_fixture(dir, "taipei-mrt-exits", "office-calendar")
+      link_fixture(dir, "taipei-mrt-exits", "office-calendar", "stop-districts")
       FileUtils.mkdir_p(File.join(dir, "external/public-toilets"))
       lines = File.readlines(fixture("external/public-toilets/2026-10-19.csv"))
       File.write(File.join(dir, "external/public-toilets/2026-10-20.csv"), lines.join)
@@ -284,7 +284,7 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
   end
 
   describe "有捷運出入口快照與辦公日曆、沒有公廁快照時" do
-    let(:root) { link_fixture(Dir.mktmpdir("no-toilets"), "taipei-mrt-exits", "office-calendar") }
+    let(:root) { link_fixture(Dir.mktmpdir("no-toilets"), "taipei-mrt-exits", "office-calendar", "stop-districts") }
 
     after { FileUtils.remove_entry(root) }
 
@@ -305,6 +305,91 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     end
   end
 
+  describe "寫入後的行政區" do
+    before { load_day }
+
+    it "兩列：臺北市 測試區 9 個站位、占比 0.9、達門檻，新北市 甲區 1 個站位、0.1、達門檻" do
+      rows = RouteDayDistrict.order(n_locations: :desc).pluck(:county, :town, :n_locations, :share, :qualifies)
+      expect(rows).to eq([ [ "臺北市", "測試區", 9, 0.9, true ], [ "新北市", "甲區", 1, 0.1, true ] ])
+    end
+
+    it "每站帶行政區：9001 去程五站是臺北市測試區、返程末站甲站是新北市甲區；路線日記下快照日 2026-10-19" do
+      districts = RouteDayStop.where(route_id: 9001).order(:go_back, :seq).pluck(:district)
+      expect([ districts.first(5).uniq, districts.last, RouteDay.sole.stop_districts_day ]).to eq([ [ "臺北市測試區" ], "新北市甲區", Date.new(2026, 10, 19) ])
+    end
+
+    it "同一天再載一次：還是恰好兩列" do
+      expect { load_day }.not_to(change(RouteDayDistrict, :count).from(2))
+    end
+  end
+
+  describe "成員日的行政區" do
+    before { described_class.new(route_id: 9001, day: Date.new(2026, 10, 23), data_root: DuckdbHelpers::FIXTURE_DATA, duckdb: "duckdb", out: StringIO.new).call }
+
+    it "9050 的己站帶臺北市測試區、己站對面沒有行政區；占比仍只算 9001 的站位，9 個與 1 個" do
+      member_districts = RouteDayStop.where(route_id: 9050).order(:go_back, :seq).pluck(:district)
+      expect([ member_districts.values_at(2, 7), RouteDayDistrict.pluck(:n_locations).sort ]).to eq([ [ "臺北市測試區", nil ], [ 1, 9 ] ])
+    end
+  end
+
+  describe "districts.csv 有同一個縣市與區兩列時" do
+    before do
+      load_day
+      break_next_export("districts.csv", "臺北市,測試區,9,0.9,true")
+    end
+
+    it "那一天失敗，錯誤訊息指出 route_day_districts" do
+      expect { load_day }.to raise_error(RouteDayLoader::Error, /route_day_districts/)
+    end
+
+    it "失敗之後，先前那次的行政區還在" do
+      expect { load_day_ignoring_failure }.not_to(change(RouteDayDistrict, :count).from(2))
+    end
+  end
+
+  describe "站位行政區快照有兩份（2026-10-20 與 2026-10-22）時" do
+    # A data root whose raw files and other snapshots are the fixture's and
+    # whose stop district folder holds the fixture snapshot under two later dates.
+    def data_root_with_district_snapshots(dir)
+      link_fixture(dir, "taipei-mrt-exits", "public-toilets", "office-calendar")
+      FileUtils.mkdir_p(File.join(dir, "external/stop-districts"))
+      %w[2026-10-20 2026-10-22].each { FileUtils.cp(fixture("external/stop-districts/2026-10-19.csv"), File.join(dir, "external/stop-districts/#{it}.csv")) }
+      dir
+    end
+
+    it "用檔名日期最新的那一份，並記在路線日上" do
+      Dir.mktmpdir { described_class.new(route_id: 9001, day:, data_root: data_root_with_district_snapshots(it), duckdb: "duckdb").call }
+      expect(RouteDay.sole.stop_districts_day).to eq(Date.new(2026, 10, 22))
+    end
+  end
+
+  describe "沒有站位行政區快照時" do
+    let(:root) { Dir.mktmpdir("no-districts") }
+
+    after { FileUtils.remove_entry(root) }
+
+    # The message of the failure of a load from a data root with the given
+    # snapshot folders, or nil when it succeeds.
+    def failure_with(externals)
+      described_class.new(route_id: 9001, day:, data_root: link_fixture(root, *externals), duckdb: "duckdb").call
+      nil
+    rescue RouteDayLoader::Error => e
+      e.message
+    end
+
+    it "其他快照都在：失敗，說要先跑 bin/rails external:stop_districts，什麼都不寫" do
+      expect([ failure_with(%w[taipei-mrt-exits public-toilets office-calendar]), stored_counts.sum ]).to match([ %r{bin/rails external:stop_districts}, 0 ])
+    end
+
+    it "公廁與行政區快照都缺：訊息指名公廁" do
+      expect(failure_with(%w[taipei-mrt-exits office-calendar])).to include('bin/rails external:public_toilets')
+    end
+
+    it "行政區與日曆快照都缺：訊息指名行政區" do
+      expect(failure_with(%w[taipei-mrt-exits public-toilets])).to include('bin/rails external:stop_districts')
+    end
+  end
+
   describe "路線還沒寫進 config/route_page.yml 時" do
     let(:out) { StringIO.new }
 
@@ -312,8 +397,9 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
 
     def load_unconfigured = described_class.new(route_id: 9001, day:, data_root: DuckdbHelpers::FIXTURE_DATA, duckdb: "duckdb", out:).call
 
-    it "趟次、折返停留、趟次站、站間車速、路線軌跡與調度站照寫，兩端、公廁與靜止格都是 0 列" do
-      expect(load_unconfigured).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, trip_stop_speeds: 1, ends: 0, end_toilets: 0, end_cells: 0, shapes: 2, depots: 1)
+    it "趟次、折返停留、趟次站、站間車速、路線軌跡、調度站與行政區照寫，兩端、公廁與靜止格都是 0 列" do
+      expect(load_unconfigured).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, trip_stop_speeds: 1, ends: 0, end_toilets: 0, end_cells: 0, shapes: 2, depots: 1,
+                                      districts: 2)
     end
 
     it "資料庫裡兩端、公廁與靜止格都沒有列" do
@@ -348,7 +434,7 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     # A data root whose raw files, entrance snapshot and toilet snapshot are
     # the fixture's and whose 2026 calendar marks 2026-10-19 as the holiday 補假.
     def data_root_with_holiday(dir)
-      link_fixture(dir, "taipei-mrt-exits", "public-toilets")
+      link_fixture(dir, "taipei-mrt-exits", "public-toilets", "stop-districts")
       FileUtils.mkdir_p(File.join(dir, "external/office-calendar/2026"))
       calendar = File.read(fixture("external/office-calendar/2026/2026-10-19.csv"))
       File.write(File.join(dir, "external/office-calendar/2026/2026-10-19.csv"), calendar.sub("20261019,一,0,", "20261019,一,2,補假"))

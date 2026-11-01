@@ -30,10 +30,25 @@ Every route in the route list configuration SHALL carry the nature of both of it
 - **WHEN** the ends of route 16111 are read
 - **THEN** direction 0, whose trips end at 莊敬里, is `stop`, and direction 1, whose trips end at 臺北客運板橋前站(藝文), is `stop`, and the same two natures apply to the trips of its member route 19108
 
+#### Scenario: Both ends of 235
+
+- **WHEN** the ends of route 10283 are read
+- **THEN** direction 0, whose trips end at 交通部觀光署, is `pass_through`, and direction 1, whose trips end at 西盛, is `stop`
+
+#### Scenario: Both ends of 復興幹線
+
+- **WHEN** the ends of route 11833 are read
+- **THEN** direction 0, whose trips end at 景華公園, is `pass_through`, and direction 1, whose trips end at 建北站, is `stop`
+
+#### Scenario: Both ends of 22
+
+- **WHEN** the ends of route 10832 are read
+- **THEN** direction 0, whose trips end at 二二八和平公園, is `pass_through`, and direction 1, whose trips end at 松德站, is `stop`
+
 #### Scenario: Route list is the set of configured routes
 
-- **WHEN** the configuration holds routes 15373, 10712, 11764, 16111 and 9001 and nothing else, 16111 listing 19108 and 9001 listing 9050 under `member_routes`
-- **THEN** the routes that have a route page are exactly 15373, 10712, 11764, 16111 and 9001, and neither 19108 nor 9050 has one
+- **WHEN** the configuration holds routes 15373, 10712, 11764, 16111, 10283, 11833, 10832 and 9001 and nothing else, 16111 listing 19108 and 9001 listing 9050 under `member_routes`
+- **THEN** the routes that have a route page are exactly 15373, 10712, 11764, 16111, 10283, 11833, 10832 and 9001, and neither 19108 nor 9050 has one
 
 #### Scenario: Member route configured as a key
 
@@ -42,35 +57,66 @@ Every route in the route list configuration SHALL carry the nature of both of it
 
 
 <!-- @trace
-source: 01-pass-through-wording
-updated: 2026-10-24
+source: daan-top-three-routes
+updated: 2026-11-02
 code:
-  - README.md
-  - docs/background.md
-  - app/components/route_summary_component.yml
-  - app/components/buffer_trade_component.yml
+  - Gemfile.lock
+  - spec/fixtures/analysis/README.md
+  - docs/data-sources.md
+  - lib/tasks/external.rake
+  - app/models/stop_districts_snapshot.rb
   - config/route_page.yml
-  - docs/decisions.md
-  - app/components/turnaround_facilities_component.yml
-  - app/components/data_limitations_component.yml
-  - app/components/stop_sequence_component.yml
-  - app/components/layover_chart_component.yml
   - analysis/README.md
-  - app/components/layover_table_component.yml
+  - app/components/route_list_component.yml
+  - analysis/stop_district_snapshot.sql
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.shx
+  - analysis/params.sql
+  - analysis/derived_export.sql
+  - app/components/attribution_component.yml
+  - app/models/home_page/route_list.rb
+  - app/models/route_day_loader.rb
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.cpg
+  - app/models/route_day.rb
+  - app/components/route_list_component.html.erb
+  - Gemfile
+  - app/models/route_day_district.rb
+  - db/migrate/20261101172102_create_route_day_districts.rb
+  - .github/skills/spectra-apply/SKILL.md
+  - app/frontend/route_list/district_filter.js
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.shp
+  - spec/factories/route_day_districts.rb
+  - analysis/stop_districts.sql
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.dbf
+  - app/models/route_day_stop.rb
+  - app/frontend/entrypoints/application.js
+  - app/components/route_list_component.rb
+  - app/models/home_page/route_districts.rb
+  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.prj
+  - app/components/attribution_component.html.erb
+  - spec/fixtures/analysis/external/stop-districts/2026-10-19.csv
+  - README.md
+  - db/schema.rb
+  - spec/factories/route_days.rb
+  - .agents/skills/spectra-apply/SKILL.md
 tests:
-  - spec/components/route_summary_component_spec.rb
-  - spec/components/turnaround_facilities_component_spec.rb
-  - spec/components/buffer_trade_component_spec.rb
-  - spec/system/end_map_spec.rb
-  - spec/models/route_page/cycles_spec.rb
-  - spec/components/cycle_table_component_spec.rb
-  - spec/analysis/turnaround_facilities_spec.rb
-  - spec/components/stop_sequence_component_spec.rb
-  - spec/models/route_page/buffer_trade_spec.rb
-  - spec/components/layover_table_component_spec.rb
+  - spec/models/stop_districts_snapshot_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/analysis/stop_district_snapshot_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/models/home_page/route_list_spec.rb
+  - spec/models/route_day_spec.rb
+  - app/frontend/route_list/district_filter.test.js
+  - spec/analysis/fixtures_spec.rb
+  - spec/analysis/stop_districts_spec.rb
+  - spec/models/derived_push_command_spec.rb
+  - spec/models/home_page/route_districts_spec.rb
+  - spec/requests/pages_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/system/home_district_filter_spec.rb
   - spec/models/route_page/ends_spec.rb
-  - spec/requests/routes_spec.rb
-  - spec/components/layover_chart_component_spec.rb
+  - spec/components/route_list_component_spec.rb
+  - spec/models/nightly_load_command_spec.rb
 -->
 
 ---

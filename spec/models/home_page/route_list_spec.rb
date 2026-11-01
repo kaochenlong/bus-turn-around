@@ -20,6 +20,10 @@ RSpec.describe HomePage::RouteList, type: :model do
 
   def summary(entries) = entries.map { [ it.route_id, it.route_day&.day&.iso8601 ] }
 
+  # Each entry's districts and whether its latest day has them, then the
+  # list's options, default district and number of routes without districts.
+  def districts_summary(list) = [ list.entries.map { [ it.districts, it.districts_known ] }, list.district_options, list.default_district, list.n_unknown ]
+
   # Each entry's layover count per stopping end, with the SQL statements issued
   # while building and reading the entries, schema queries left out.
   def counts_and_statements
@@ -49,6 +53,13 @@ RSpec.describe HomePage::RouteList, type: :model do
     store_days(15373, "2026-10-19", "2026-10-20", "2026-10-21")
     store_days(9001, "2026-10-18", "2026-10-19", "2026-10-20")
     expect(summary_and_route_days_selects).to eq([ [ [ 15373, "2026-10-21" ], [ 9001, "2026-10-20" ] ], 1 ])
+  end
+
+  it "entries 帶達門檻的區與最新一天有沒有行政區：9001 兩區、15373 的最新一天沒有快照日；district_options 合起來排序，預設是第一個，n_unknown 是 1" do
+    allow(RoutePage).to receive(:route_ids).and_return([ 15373, 9001 ])
+    store_days(15373, "2026-10-21")
+    create(:route_day, route_id: 9001, day: Date.new(2026, 10, 20), stop_districts_day: Date.new(2026, 10, 19)).then { create(:route_day_district, route_day: it, county: "新北市", town: "甲區") && create(:route_day_district, route_day: it) }
+    expect(districts_summary(described_class.new)).to eq([ [ [ [], false ], [ [ "測試區", "新北市甲區" ], true ] ], [ "測試區", "新北市甲區" ], "測試區", 1 ])
   end
 
   it "figures 只含停車端的列、依方向排序：15373 只有返程那一端，兩端都停車的 9001 兩端都有，沒有資料的 10712 是空的" do

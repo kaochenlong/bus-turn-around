@@ -73,6 +73,72 @@ shared:
         # removed were short ones that started from a segment observing a
         # single stop, so it is still a stop.
         1: stop
+    10283:
+      # 235 (新莊－國父紀念館). Both ends verified 2026-11-01 on the
+      # network-wide survey of 2026-10-19 to 2026-10-22 run by change
+      # 02-end-nature-survey (bin/rails survey:end_natures), which measures
+      # the same two numbers as the verifications above with the same SQL
+      # and agreed with all eight ends configured above. The figures are the
+      # four days together, from tmp/end-natures/report-2026-10-19_2026-10-22.csv,
+      # also tabled in the design of change daan-top-three-routes.
+      ends:
+        # Outbound trips end at 交通部觀光署 and the next trip leaves
+        # 國父紀念館, 323 m away. The 464 layovers there with GPS had a
+        # median of 4.1 minutes (p10 2.9, p90 4.8); in 14 of them (3.0%) the
+        # bus stood still for more than 2 minutes, the longest standstill
+        # had a median of 0.7 and a maximum of 4.0 minutes, and the GPS
+        # never got more than 236 m (p90 221 m) from the nearer of the two
+        # stops.
+        0: pass_through
+        # Inbound trips end at 西盛 and the next trip leaves the 西盛 stop of
+        # the other direction, 86 m away. The 251 layovers there with GPS
+        # (252 in all) had a median of 47.0 minutes (p10 16.1, p90 119.5);
+        # in 215 of them (85.7%) the bus stood still for more than 2
+        # minutes, the longest standstill had a median of 26.3 and a
+        # maximum of 314.6 minutes, and nine of ten stayed within 163 m of
+        # the nearer stop (maximum 2,134 m).
+        1: stop
+    11833:
+      # 復興幹線 (建國北路－景美). Both ends verified 2026-11-01 on the
+      # network-wide survey of 2026-10-19 to 2026-10-22 run by change
+      # 02-end-nature-survey, four days together, from
+      # tmp/end-natures/report-2026-10-19_2026-10-22.csv.
+      ends:
+        # Outbound trips end at 景華公園 and the next trip leaves 景美國中,
+        # 280 m away. The 432 layovers there with GPS had a median of 3.2
+        # minutes (p10 2.3, p90 4.3); in none of them did the bus stand
+        # still for more than 2 minutes (longest standstill median 0.3,
+        # maximum 2.0 minutes), and the GPS never got more than 182 m
+        # (p90 173 m) from the nearer of the two stops.
+        0: pass_through
+        # Inbound trips end at 建北站 and the next trip leaves the same stop.
+        # The 230 layovers there with GPS (242 in all) had a median of 17.4
+        # minutes (p10 7.4, p90 35.1); in 138 of them (60.0%) the bus stood
+        # still for more than 2 minutes, the longest standstill had a median
+        # of 4.2 and a maximum of 107.7 minutes, and nine of ten stayed
+        # within 184 m of the stop (maximum 206 m).
+        1: stop
+    10832:
+      # 22 (松德站－衡陽路). Both ends verified 2026-11-01 on the
+      # network-wide survey of 2026-10-19 to 2026-10-22 run by change
+      # 02-end-nature-survey, four days together, from
+      # tmp/end-natures/report-2026-10-19_2026-10-22.csv.
+      ends:
+        # Outbound trips end at 二二八和平公園 and the next trip leaves
+        # 博愛路, 141 m away. The 362 layovers there with GPS had a median of
+        # 1.8 minutes (p10 1.1, p90 2.8); in none of them did the bus stand
+        # still for more than 2 minutes (longest standstill median 0.0,
+        # maximum 1.3 minutes), and the GPS never got more than 283 m
+        # (p90 100 m) from the nearer of the two stops.
+        0: pass_through
+        # Inbound trips end at 松德站 and the next trip leaves the 松德站
+        # stop of the other direction, 28 m away. The 280 layovers there
+        # with GPS (286 in all) had a median of 22.8 minutes (p10 7.6, p90
+        # 70.4); in 159 of them (56.8%) the bus stood still for more than 2
+        # minutes, the longest standstill had a median of 7.0 and a maximum
+        # of 152.7 minutes, and nine of ten stayed within 176 m of the
+        # nearer stop; the 24,833 m maximum is a GPS outlier.
+        1: stop
 
 test:
   routes:

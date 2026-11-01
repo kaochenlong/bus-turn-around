@@ -41,7 +41,7 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
 
   it "寫入一天：印出那一天的趟次、折返停留、趟次站筆數與兩端的公廁間數、靜止格數，結束碼 0" do
     status, out = run_command("DAY" => "2026-10-19")
-    expect([ status, out.lines.first.chomp ]).to eq([ 0, "2026-10-19 寫入：趟次 27、折返停留 18、趟次站 96、兩端公廁 5 間、靜止格 1 格" ])
+    expect([ status, out.lines.first.chomp ]).to eq([ 0, "2026-10-19 寫入：趟次 27、折返停留 18、趟次站 96、兩端公廁 5 間、靜止格 1 格、行政區 2 區" ])
   end
 
   it "讀檔視窗還沒結束的日子失敗，說明缺哪個小時檔，那一天不寫" do
@@ -52,7 +52,7 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
   describe "資料根目錄缺東西時" do
     # A data root in `dir` that links the fixture's given feeds and external
     # snapshot folders, so an example can leave some out.
-    def data_root(dir, feeds: %w[bus_event bus_seat_event bus_data static], externals: %w[taipei-mrt-exits public-toilets office-calendar])
+    def data_root(dir, feeds: %w[bus_event bus_seat_event bus_data static], externals: %w[taipei-mrt-exits public-toilets stop-districts office-calendar])
       feeds.each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, it), File.join(dir, it)) }
       FileUtils.mkdir_p(File.join(dir, "external"))
       externals.each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, "external", it), File.join(dir, "external", it)) }
@@ -60,11 +60,12 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
     end
 
     {
-      "三種快照都沒有" => [ { externals: [] }, "bin/rails external:mrt_exits" ],
+      "四種快照都沒有" => [ { externals: [] }, "bin/rails external:mrt_exits" ],
       "有辦公日曆、沒有捷運出入口與公廁快照" => [ { externals: %w[office-calendar] }, "bin/rails external:mrt_exits" ],
       "有捷運出入口快照與辦公日曆、沒有公廁快照" => [ { externals: %w[taipei-mrt-exits office-calendar] }, "bin/rails external:public_toilets" ],
       "只有捷運出入口快照" => [ { externals: %w[taipei-mrt-exits] }, "bin/rails external:public_toilets" ],
-      "有捷運出入口與公廁快照、沒有辦公日曆" => [ { externals: %w[taipei-mrt-exits public-toilets] }, "bin/rails external:office_calendar YEAR=2026" ],
+      "有捷運出入口、公廁與站位行政區快照、沒有辦公日曆" => [ { externals: %w[taipei-mrt-exits public-toilets stop-districts] }, "bin/rails external:office_calendar YEAR=2026" ],
+      "有捷運出入口與公廁快照、沒有站位行政區快照" => [ { externals: %w[taipei-mrt-exits public-toilets office-calendar] }, "bin/rails external:stop_districts" ],
       "當天有 bus_event、沒有 bus_data 小時檔" => [ { feeds: %w[bus_event bus_seat_event static] }, "bus_data/2026-10-19" ]
     }.each do |situation, (options, message)|
       it "#{situation}：那一天失敗，訊息含 #{message}，什麼都不寫" do

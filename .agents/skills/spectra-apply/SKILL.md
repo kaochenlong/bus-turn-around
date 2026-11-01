@@ -16,6 +16,8 @@ Implement a Spectra change's tasks.
 
 **Task tracking:** `tasks.md` checkboxes are truth. Attribute files by task baseline or explicit paths, never the whole dirty tree. `<task-number>` is the number written before the task in `tasks.md`, e.g. `2.1`; use the task's 1-based position only when it has no number or the number repeats.
 
+An implementation checkbox records its delivered implementation and permitted checks. Owner verification records its own result separately; a completed implementation stays checked while owner checks remain pending.
+
 **Prerequisite:** `spectra` CLI; if unavailable, report and STOP.
 
 ## Write for the reader
@@ -91,23 +93,26 @@ Use the active conversation language for user-visible analysis, questions, label
    - relevant Implementation Contract excerpt
    - relevant Requirement, Scenario, and Example blocks
    - verification commands
+   - explicit execution restrictions and owner-reserved checks; return unexecuted commands with the restriction as evidence
    - active TDD and audit flags, and the root-cause fix rule below
 
    Exclude unrelated tasks, complete proposal, complete design, and unrelated spec set. Workers must not run `spectra task start` or `spectra task done`; return touched files, verification evidence, unresolved blockers. Missing/conflicting context: stop without guessing; main supplies relevant excerpts or reports the blocker.
 
    **Main-thread completion**
 
-   Only the main thread attributes tasks. Before dispatch/edits: `spectra task start --change "<name>" <task-number>`. After verification: `spectra task done --change "<name>" <task-number> --file <path>`; repeat `--file` for every worker-reported touched path. Incomplete work stays pending.
+   Only the main thread attributes tasks. Before dispatch/edits: `spectra task start --change "<name>" <task-number>`. After the task's completion check below: `spectra task done --change "<name>" <task-number> --file <path>`; repeat `--file` for every worker-reported touched path. Incomplete work stays pending.
 
    For every task:
 
    1. Announce; review task/design/specs under context validity. **Read the Implementation Contract for this task before editing any source file.** If absent, use `tasks.md`; unclear criteria block work.
+      **Classify by the deliverable**, not the word "owner": an implementation with a note such as "verification performed by owner" can finish before that verification. A task delivering an executed verification result stays pending until that result exists. An explicit condition such as "mark done only after owner acceptance" remains binding until satisfied or explicitly changed by the user. Continue other authorized dependency-ready tasks.
    2. For `## Design Source`, read `.spectra/design-cache/<name>/*.dc.html` under the validity rule. Missing source: pause and ask to re-provide it; never guess visual values.
    3. A path-only/vague task, contract conflict or refuted premise (disproved savings/mechanism) blocks work. Pause, report evidence and propose an artifact update; never edit artifacts silently.
    4. Check reuse/patterns, scope, efficiency/placeholders; first TDD tests use `##### Example:` GIVEN/WHEN/THEN values.
    5. Capture the baseline as above.
    6. Change only what the task's behavior requires; fix defects you meet under the root-cause fix rule below.
-   7. **Verify before marking done**: review `tasks.md` and Implementation Contract under the validity rule; every requirement and named target must pass. Passing verification does not settle a refuted premise. With `tdd: true`, a test the task names whose subject the test scope criterion excludes is met by its recorded exclusion ground; report that test with its ground when marking the task done.
+   7. **Verify before marking done**: review `tasks.md` and Implementation Contract under the validity rule; for implementation, confirm every implementation requirement and required test file, then run authorized relevant checks and require their success. Missing implementation or an unresolved relevant failure keeps the task pending. Passing verification does not settle a refuted premise. With `tdd: true`, a test the task names whose subject the test scope criterion excludes is met by its recorded exclusion ground; report that test with its ground when marking the task done.
+      Checks explicitly reserved for the owner remain not-run: record task number, command/manual action and reason as non-checkbox evidence in `tasks.md`, or reference a separate owner task with that information. Preserve task wording, numbering and dependencies. Once implementation criteria above are met, proceed to task done without waiting for owner results, another permission request, or an ingest rewrite. Owner restrictions defer execution; required test code, authorized checks and known failures retain their obligations. Example: check 1.1 after its implementation checks; leave owner app acceptance 2.1 pending. Verification deliverables and explicit owner completion gates still require their actual results.
    8. With a baseline: `spectra task done --change "<name>" <task-number>`. Otherwise repeat `--file <path>` for attributable source/tests. With no baseline or explicit files, update only the checkbox; never attribute the whole dirty tree.
 
    **Classify failures before pausing**:
@@ -122,14 +127,15 @@ Use the active conversation language for user-visible analysis, questions, label
 
 6. **Final check**
 
-   Run `spectra instructions apply --change "<name>" --json --summary`. If state is `all_done`, do not request instructions again. Run `spectra instructions apply --change "<name>" --json --compact` only when state is not `all_done` to resume.
+   Run `spectra instructions apply --change "<name>" --json --summary`. If state is `all_done`, do not request instructions again. Run `spectra instructions apply --change "<name>" --json --compact` only when state is not `all_done` and authorized dependency-ready work remains. If only owner verification and work waiting on it remain, report their task numbers and pending evidence, then finish this session without repeating compact requests or requiring immediate owner acceptance.
 
    **Check that every spec scenario has a test** (`tdd: true` only): classify each delta specs `#### Scenario`/`##### Example` under `$spectra-verify` **Scenario Coverage**/**Example Traceability** into exactly one of three results: covered by a test, excluded by the test scope criterion (`spectra instructions --skill tdd`), or an uncovered gap. For each exclusion, report the ground for exclusion and leave it out of the gaps/test recommendations. Recommend gap fixes or report "every scenario has a test or a recorded exclusion". This check does not block completion. When `tdd` is not `true`, skip this audit entirely and proceed to the completion report unchanged.
+   Run this coverage check even when handing off owner work. A present but unexecuted test establishes coverage only, not a passing result.
 
 7. **Report status**
 
-   Show this session's completed tasks and N/M. If all done: recommend `$spectra-verify <name>` and `$spectra-review <name>` before `$spectra-archive`.
+   Show this session's completed tasks and N/M from the CLI; separate executed checks from pending owner checks from `tasks.md`, including completed legacy tasks. `all_done` records checkbox completion; owner acceptance and unexecuted checks retain their reported status. If all done: recommend `$spectra-verify <name>` and `$spectra-review <name>` before `$spectra-archive`.
 
-   Completion line: "All tasks complete! Run `$spectra-verify <change-name>` and `$spectra-review <change-name>` before archiving with `$spectra-archive`."
+   Completion line, only when every checkbox is complete: "All tasks complete! Run `$spectra-verify <change-name>` and `$spectra-review <change-name>` before archiving with `$spectra-archive`."
 
-**Guardrails**: use CLI paths/totals, keep edits scoped, update checkboxes immediately after verification, and continue until done or blocked.
+**Guardrails**: use CLI paths/totals, keep edits scoped, update implementation checkboxes immediately after their completion checks, and continue authorized dependency-ready work until done, blocked or handed off to the owner.

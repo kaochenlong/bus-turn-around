@@ -42,6 +42,12 @@ RSpec.describe "Pages", type: :request do
     expect(selectors.map { page.css(it).size }).to eq([ 1, 1, 1, 4, 3 ])
   end
 
+  it "9001 的最新一天有達門檻的區時，不跑 script 的回應就有行政區選單與它的選項（沒有「全部」），每條設定的路線都有一張卡" do
+    create(:route_day, day: Date.new(2026, 10, 20), stop_districts_day: Date.new(2026, 10, 20)).then { create(:route_day_district, route_day: it) }
+    get root_path
+    expect([ page.css("select#district-filter option").map(&:text), page.css("[data-section=routes] li").size ]).to eq([ [ "測試區" ], RoutePage.route_ids.size ])
+  end
+
   it "照設定的順序：15373 沒有資料、不是連結，接著是連到路線頁的 9001" do
     allow(RoutePage).to receive(:route_ids).and_return([ 15373, 9001 ])
     store_days("2026-10-19", "2026-10-20")

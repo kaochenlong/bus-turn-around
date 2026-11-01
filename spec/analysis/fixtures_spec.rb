@@ -109,6 +109,20 @@ RSpec.describe "spec/fixtures/analysis" do
     end
   end
 
+  describe "external/stop-districts" do
+    let(:lines) { File.readlines(File.join(DuckdbHelpers::FIXTURE_DATA, "external/stop-districts/2026-10-19.csv"), chomp: true) }
+
+    it "2026-10-19 的快照表頭是 stop_location_id,county,town，有 15 列，站位 Id 嚴格遞增，沒有 85007" do
+      ids = lines.drop(1).map { Integer(it.split(",").first) }
+      expect([ lines.first, ids.size, ids == ids.sort.uniq, ids.include?(85007) ]).to eq([ "stop_location_id,county,town", 15, true, false ])
+    end
+
+    it "81000 到 81008、82000 到 82003 與 85002 是 臺北市 測試區，81009 是 新北市 甲區" do
+      rows = lines.drop(1).map { it.split(",") }.to_h { |id, county, town| [ Integer(id), "#{county} #{town}" ] }
+      expect([ rows.values_at(81000, 81008, 82000, 82003, 85002).uniq, rows[81009] ]).to eq([ [ "臺北市 測試區" ], "新北市 甲區" ])
+    end
+  end
+
   describe "external/public-toilets" do
     let(:path) { File.join(DuckdbHelpers::FIXTURE_DATA, "external/public-toilets/2026-10-19.csv") }
     let(:rows) { read_csv_rows(path) }

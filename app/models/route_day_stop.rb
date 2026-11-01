@@ -4,6 +4,7 @@
 # Table name: route_day_stops
 #
 #  id                  :bigint           not null, primary key
+#  district            :string
 #  go_back             :integer          not null
 #  latitude            :float
 #  longitude           :float

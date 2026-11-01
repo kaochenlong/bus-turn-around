@@ -69,6 +69,10 @@ gem "json", "< 3"
 # csv 從 Ruby 3.4 起是 bundled gem，bundler 底下沒列在這裡就載不到；公廁快照用它檢查與寫出 CSV
 gem "csv"
 
+# Reads the township boundary archive in bin/rails external:stop_districts. It
+# was already in the bundle through selenium-webdriver, which only the tests load.
+gem "rubyzip"
+
 group :development, :test do
   gem "rspec-rails"
   gem "factory_bot_rails"

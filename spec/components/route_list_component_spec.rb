@@ -22,6 +22,14 @@ RSpec.describe RouteListComponent, type: :component do
     end
   end
 
+  # A stored day of the route with its snapshot day set and the given
+  # qualifying districts, each [county, town].
+  def store_district_day(day, districts, route_id: 9001)
+    create(:route_day, route_id:, day: Date.iso8601(day), stop_districts_day: Date.iso8601(day)).tap do |route_day|
+      districts.each { |county, town| create(:route_day_district, route_day:, county:, town:) }
+    end
+  end
+
   # The nature of the end where direction 0 trips end and of the one where
   # direction 1 trips end.
   def route_ends(outbound, inbound) = RoutePage::Ends.from_config({ 0 => outbound, 1 => inbound }, route_id: 9001)
@@ -97,6 +105,47 @@ RSpec.describe RouteListComponent, type: :component do
     list, summary = %w[route_list_component route_summary_component].map { YAML.load_file(Rails.root.join("app/components/#{it}.yml"), aliases: true) }
                                                                      .map { |file| %w[tw en].map { file.fetch(it).values_at(*keys) } }
     expect([ list, summary.flatten.compact.size ]).to eq([ summary, 6 ])
+  end
+
+  describe "9001 與 15373 都有達門檻的區時" do
+    before do
+      allow(RoutePage).to receive(:route_ids).and_return([ 15373, 9001 ])
+      store_district_day("2026-10-21", [ [ "臺北市", "士林區" ] ], route_id: 15373)
+      store_district_day("2026-10-20", [ [ "新北市", "甲區" ], [ "臺北市", "測試區" ] ])
+    end
+
+    it "選單在標題列：沒有「全部」，臺北市的區在前、再其他縣市的區，值與文字都是名稱；沒有中山區時選著第一個" do
+      options = render_list.css("select#district-filter[name=district][data-district-filter] option").map { [ it["value"], it.text, it.has_attribute?("selected") ] }
+      expect(options).to eq([ [ "士林區", "士林區", true ], [ "測試區", "測試區", false ], [ "新北市甲區", "新北市甲區", false ] ])
+    end
+
+    it "每張有資料的卡帶 data-districts、名稱用空白隔開，不在預設那一區的卡先藏著；筆數那一行寫著預設的區，帶兩個文案樣板與還沒有行政區的條數 0" do
+      rendered = render_list
+      line = rendered.at_css("[data-district-count]")
+      expect([ rendered.css("li[data-districts]").map { [ it["data-districts"], it.has_attribute?("hidden") ] }, line.text, line["data-count-template"], line["data-unknown-template"], line["data-unknown"] ])
+        .to eq([ [ [ "士林區", false ], [ "測試區 新北市甲區", true ] ], "士林區：1 條", "{district}：{count} 條", "，另有 {count} 條的資料還沒有行政區", "0" ])
+    end
+  end
+
+  it "選項裡有中山區時預設選它：9001 的卡顯示，15373 士林區的卡藏著" do
+    allow(RoutePage).to receive(:route_ids).and_return([ 15373, 9001 ])
+    store_district_day("2026-10-21", [ [ "臺北市", "士林區" ] ], route_id: 15373).then { store_district_day("2026-10-20", [ [ "臺北市", "中山區" ] ]) }
+    rendered = render_list
+    expect([ rendered.at_css("select#district-filter option[selected]")&.text, rendered.css("li[data-districts]").map { it.has_attribute?("hidden") } ]).to eq([ "中山區", [ true, false ] ])
+  end
+
+  it "沒有任何最新一天有行政區快照日：標題列是那句話，沒有選單也沒有筆數那一行" do
+    store_days("2026-10-20")
+    rendered = render_list
+    expect([ rendered.at_css("[data-no-districts]")&.text, rendered.css("select#district-filter, [data-district-count]").size ]).to eq([ "這幾天的資料還沒有行政區", 0 ])
+  end
+
+  it "一條有行政區、一條沒有：選單照放，筆數那一行寫預設的區並接著「另有 1 條」，沒有行政區的卡 data-districts 是空字串、藏著" do
+    allow(RoutePage).to receive(:route_ids).and_return([ 15373, 9001 ])
+    store_days("2026-10-20").then { store_district_day("2026-10-21", [ [ "臺北市", "士林區" ] ], route_id: 15373) }
+    rendered = render_list
+    card = rendered.at_css("[data-route='9001']").parent
+    expect([ rendered.css("select#district-filter").size, rendered.at_css("[data-district-count]").text, card["data-districts"], card.has_attribute?("hidden") ]).to eq([ 1, "士林區：1 條，另有 1 條的資料還沒有行政區", "", true ])
   end
 
   it "沒有資料的卡沒有數字那一塊" do

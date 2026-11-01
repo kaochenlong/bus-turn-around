@@ -8,8 +8,9 @@ require "tmpdir"
 # snapshot, analysis/gps_reports.sql, analysis/turnaround_facilities.sql with
 # the newest public toilet snapshot and the configured nature of the route's
 # ends, analysis/route_shape.sql with the route shapes file of the day's static
-# snapshot, analysis/depots.sql with its operators file, analysis/stop_speeds.sql
-# and analysis/derived_export.sql into CSV files; then, in one transaction, the
+# snapshot, analysis/depots.sql with its operators file, analysis/stop_speeds.sql,
+# analysis/stop_districts.sql with the newest stop district snapshot and
+# analysis/derived_export.sql into CSV files; then, in one transaction, the
 # stored day is deleted and the files are copied in, together with the day
 # type of the newest office calendar snapshot of the day's year. A failure
 # anywhere leaves the stored day as it was, and loading the same input again
@@ -22,10 +23,10 @@ class RouteDayLoader
   # Staging table columns, in the column order of each CSV file.
   STAGING = {
     "route_day" => "route_id integer, day date, route_name text, departure text, destination text, static_day date, " \
-                   "mrt_exits_day date, public_toilets_day date, member_names jsonb",
+                   "mrt_exits_day date, public_toilets_day date, stop_districts_day date, member_names jsonb",
     "stops" => "go_back integer, seq integer, stop_name text, latitude double precision, longitude double precision, " \
                "nearest_exit_name text, nearest_exit_meters double precision, route_id integer, stop_location_id integer, " \
-               "shape_meters double precision",
+               "district text, shape_meters double precision",
     "trips" => "bus_id text, path_attribute_id integer, go_back integer, band text, start_time timestamptz, " \
                "end_time timestamptz, first_seq integer, last_seq integer, n_events integer, n_stops_observed integer, " \
                "completeness text, start_from_arrival boolean, end_from_departure boolean, route_id integer",
@@ -40,7 +41,8 @@ class RouteDayLoader
     "end_cells" => "go_back integer, cell_latitude double precision, cell_longitude double precision, n_records integer, " \
                    "n_buses integer, n_layovers integer",
     "shapes" => "go_back integer, shape_updated_at timestamptz, points jsonb, issue text",
-    "depots" => "station_id integer, provider_name text, station_name text, n_buses integer, n_trips integer"
+    "depots" => "station_id integer, provider_name text, station_name text, n_buses integer, n_trips integer",
+    "districts" => "county text, town text, n_locations integer, share double precision, qualifies boolean"
   }.freeze
 
   # The staging table of each file, written out so that no table name is
@@ -50,7 +52,7 @@ class RouteDayLoader
     "layovers" => "staging_layovers", "trip_stop_counts" => "staging_trip_stop_counts",
     "stop_speeds" => "staging_stop_speeds", "ends" => "staging_ends",
     "end_toilets" => "staging_end_toilets", "end_cells" => "staging_end_cells", "shapes" => "staging_shapes",
-    "depots" => "staging_depots"
+    "depots" => "staging_depots", "districts" => "staging_districts"
   }.freeze
 
   # The line printed for each issue analysis/route_shape.sql gives a
@@ -70,7 +72,7 @@ class RouteDayLoader
   # route day is written.
   def self.summary(counts)
     "寫入：趟次 #{counts[:trips]}、折返停留 #{counts[:layovers]}、趟次站 #{counts[:trip_stop_counts]}、" \
-      "兩端公廁 #{counts[:end_toilets]} 間、靜止格 #{counts[:end_cells]} 格"
+      "兩端公廁 #{counts[:end_toilets]} 間、靜止格 #{counts[:end_cells]} 格、行政區 #{counts[:districts]} 區"
   end
 
   def initialize(route_id:, day:, data_root:, duckdb:, out: $stdout, member_route_ids: RoutePage.member_route_ids(route_id))
@@ -83,10 +85,11 @@ class RouteDayLoader
   end
 
   # Returns the numbers of trips, layovers, trip stop counts, trip stop speeds,
-  # ends, end toilets, end cells, route shapes and depots written.
+  # ends, end toilets, end cells, route shapes, depots and districts written.
   def call
     mrt_exits = newest_snapshot(MrtExitsSnapshot::DIRECTORY, "捷運出入口", "bin/rails external:mrt_exits")
     public_toilets = newest_snapshot(PublicToiletsSnapshot::DIRECTORY, "公廁", "bin/rails external:public_toilets")
+    stop_districts = newest_snapshot(StopDistrictsSnapshot::DIRECTORY, "站位行政區", "bin/rails external:stop_districts")
     calendar = office_calendar_entry
     natures = end_natures
     bus_shapes = static_file_path("GetBusShape.gz")
@@ -94,7 +97,7 @@ class RouteDayLoader
     providers = static_file_path("GetProvider.gz")
     @out.puts("#{@day.iso8601}：靜態快照沒有 GetProvider.gz，路線 #{@route_id} 這一天的調度站沒有名稱") unless providers
     Dir.mktmpdir("route-day") do |dir|
-      export(dir, mrt_exits:, public_toilets:, natures:, bus_shapes: bus_shapes || empty_array_file(dir),
+      export(dir, mrt_exits:, public_toilets:, stop_districts:, natures:, bus_shapes: bus_shapes || empty_array_file(dir),
                   providers: providers || empty_providers_file(dir))
       # A missing file was told about once, not once per direction.
       notes = bus_shapes ? shape_notes(dir) : []
@@ -106,13 +109,15 @@ class RouteDayLoader
 
   private
 
-  def export(dir, mrt_exits:, public_toilets:, natures:, bus_shapes:, providers:)
+  def export(dir, mrt_exits:, public_toilets:, stop_districts:, natures:, bus_shapes:, providers:)
     variables = { data_root: @data_root, route_id: @route_id, member_route_ids: @member_route_ids, day: @day, static_day: @day,
                   inspect_dir: dir, derived_dir: dir,
                   mrt_exits_path: mrt_exits.path, mrt_exits_day: mrt_exits.day,
                   public_toilets_path: public_toilets.path, public_toilets_day: public_toilets.day,
+                  stop_districts_path: stop_districts.path, stop_districts_day: stop_districts.day,
                   end_nature_0: natures.fetch(0), end_nature_1: natures.fetch(1), bus_shape_path: bus_shapes, provider_path: providers }
-    AnalysisRun.run(@duckdb, variables, extra_files: %w[mrt_overlap.sql gps_reports.sql turnaround_facilities.sql route_shape.sql depots.sql stop_speeds.sql derived_export.sql])
+    AnalysisRun.run(@duckdb, variables, extra_files: %w[mrt_overlap.sql gps_reports.sql turnaround_facilities.sql route_shape.sql depots.sql stop_speeds.sql
+                                                       stop_districts.sql derived_export.sql])
   rescue AnalysisRun::Error => e
     raise Error, e.message
   end
@@ -146,8 +151,8 @@ class RouteDayLoader
 
   # The snapshot in `directory` with the latest date in its file name; which
   # one was used is stored with the route day. The entrance snapshot is looked
-  # up before the toilet snapshot, so a data root missing both is told about
-  # the entrance snapshot.
+  # up before the toilet snapshot and that before the stop district snapshot,
+  # so a data root missing several is told about the first of them.
   def newest_snapshot(directory, label, task)
     NewestSnapshot.find(data_root: @data_root, directory:, label:, task:)
   rescue NewestSnapshot::Missing => e
@@ -189,7 +194,7 @@ class RouteDayLoader
       trip_stop_counts: insert_trip_stop_counts(route_day_id), trip_stop_speeds: insert_trip_stop_speeds(route_day_id),
       ends: insert_ends(route_day_id),
       end_toilets: insert_end_toilets(route_day_id), end_cells: insert_end_cells(route_day_id),
-      shapes: insert_shapes(route_day_id), depots: insert_depots(route_day_id) }
+      shapes: insert_shapes(route_day_id), depots: insert_depots(route_day_id), districts: insert_districts(route_day_id) }
   end
 
   # A temporary table per file, emptied for each load because the
@@ -206,9 +211,9 @@ class RouteDayLoader
   def insert_route_day(calendar)
     connection.select_value(RouteDay.sanitize_sql_array([ <<~SQL, calendar.to_h ]))
       INSERT INTO route_days (route_id, day, route_name, departure, destination, static_day, mrt_exits_day,
-                              public_toilets_day, member_names, day_type, day_note, office_calendar_day, loaded_at)
+                              public_toilets_day, stop_districts_day, member_names, day_type, day_note, office_calendar_day, loaded_at)
       SELECT route_id, day, route_name, departure, destination, static_day, mrt_exits_day, public_toilets_day,
-             member_names, :day_type, :note, CAST(:snapshot_day AS date), now()
+             stop_districts_day, member_names, :day_type, :note, CAST(:snapshot_day AS date), now()
       FROM staging_route_day
       RETURNING id
     SQL
@@ -217,9 +222,9 @@ class RouteDayLoader
   def insert_stops(route_day_id)
     insert("route_day_stops", "stops", route_day_id, <<~SQL)
       INSERT INTO route_day_stops (route_day_id, go_back, seq, stop_name, latitude, longitude, nearest_exit_name,
-                                   nearest_exit_meters, route_id, stop_location_id, shape_meters)
+                                   nearest_exit_meters, route_id, stop_location_id, district, shape_meters)
       SELECT :route_day_id, go_back, seq, stop_name, latitude, longitude, nearest_exit_name, nearest_exit_meters,
-             route_id, stop_location_id, shape_meters
+             route_id, stop_location_id, district, shape_meters
       FROM staging_stops
     SQL
   end
@@ -309,6 +314,18 @@ class RouteDayLoader
     insert("route_day_depots", "depots", route_day_id, <<~SQL)
       INSERT INTO route_day_depots (route_day_id, station_id, provider_name, station_name, n_buses, n_trips)
       SELECT :route_day_id, station_id, provider_name, station_name, n_buses, n_trips FROM staging_depots
+    SQL
+  end
+
+  # A district is keyed by county and town; a file naming one twice is
+  # refused before the unique index would, so the message names the table.
+  def insert_districts(route_day_id)
+    duplicates = connection.select_value("SELECT count(*) FROM (SELECT 1 FROM staging_districts GROUP BY county, town HAVING count(*) > 1) d")
+    raise Error, "route_day_districts 有同一個縣市與區的列重複 #{duplicates} 組" unless duplicates.zero?
+
+    insert("route_day_districts", "districts", route_day_id, <<~SQL)
+      INSERT INTO route_day_districts (route_day_id, county, town, n_locations, share, qualifies)
+      SELECT :route_day_id, county, town, n_locations, share, qualifies FROM staging_districts
     SQL
   end
 
