@@ -21,6 +21,12 @@ RSpec.describe RoutePage::LayoverDistribution, type: :model do
     expect(direction.counts).to eq([ 1, 1, 1, 1, 0, 1 ])
   end
 
+  it "涵蓋日子已經排序（RoutePage::Coverage 給的就是這樣）時，站名仍取最新一天" do
+    route_day(Date.new(2026, 10, 19), [ 10 ])
+    route_day(Date.new(2026, 10, 20), [ 30 ]).stops.find_by!(go_back: 0, seq: 4).update!(stop_name: "新末站")
+    expect(described_class.new(RouteDay.order(:day)).directions.first.last_stop).to eq("新末站")
+  end
+
   it "每個方向標出自己的末站，以及下一趟出發的另一個方向的起站" do
     result = directions(route_day(Date.new(2026, 10, 19), [ 10 ]))
     expect(result.map { [ it.go_back, it.last_stop, it.next_first_stop ] }).to eq([ [ 0, "戊站", "己站" ], [ 1, "甲站", "甲站" ] ])

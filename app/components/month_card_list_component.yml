@@ -1,0 +1,32 @@
+---
+tw: &tw
+  eyebrow: 健檢卡
+  # 名稱列的連結與這一頁的詞是第一次出現在網站上，所以開頭要說這是什麼
+  intro: 每條路線每月一份，彙整折返停留、連續行駛與班表對照。
+  month: "%{year} 年 %{month} 月"
+  first_month: 第一份是 %{first}，%{printed_month} 月初印出來。
+  covered: "%{weekdays} 個平日、%{holidays} 個假日"
+  covered_with_missing: "%{covered}，少 %{missing}"
+  separator: 、
+  stretch: "%{from} 到 %{to}"
+  partial: 部分月份
+  size: "%{megabytes} MB"
+  download: 下載 PDF（%{size}）
+  earlier: 舊版 v%{version}（%{size}）
+  reason: 更正原因：%{reason}
+zh-TW:
+  <<: *tw
+en:
+  eyebrow: Health card
+  intro: One per route per month, covering layovers, continuous driving and the published schedule.
+  month: "%{year}-%{month}"
+  first_month: The first one is %{first}, printed early in month %{printed_month}.
+  covered: "%{weekdays} weekdays, %{holidays} holidays"
+  covered_with_missing: "%{covered}, without %{missing}"
+  separator: ", "
+  stretch: "%{from} to %{to}"
+  partial: Partial month
+  size: "%{megabytes} MB"
+  download: Download PDF (%{size})
+  earlier: Earlier v%{version} (%{size})
+  reason: "Corrected because: %{reason}"

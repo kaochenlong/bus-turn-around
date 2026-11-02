@@ -12,8 +12,15 @@
 --   rest_runs             complete trips grouped into runs of consecutive
 --                         complete trips of one vehicle, cut where it ran
 --                         another route in between
---   rest_windows          per trip of a run, the shortest window reaching the
---                         rest window length, its rest credit and flag
+--   vehicle_daily_driving the run times of each vehicle's trips of the day added up
+--   rule_windows          per rest rule and trip of a run, the shortest window
+--                         reaching the rule's length, its rest credit, longest
+--                         layover and flag, and whether the vehicle drove over
+--                         the daily limit that day
+--   rest_windows          the windows of the four-hour rule
+--   long_rest_windows     the windows of the six-hour exception
+--   driving_stretches     trips of a run joined where no layover between them
+--                         reaches the minimum rest
 --   chains                flagged windows of a vehicle merged where they
 --                         share a trip; carries bus_id for chains.csv only
 --   chain_report          the chains for the card, without any vehicle field
@@ -130,33 +137,51 @@ SELECT trip_id, bus_id, route_id, start_time, end_time, run_no,
 FROM numbered
 WHERE completeness = 'complete';
 
--- For each trip i of a run, the earliest trip j of the same run (j may be i)
--- whose end is at least the rest window after i's start. The credit sums the
--- layovers after trips i through j-1 that reach the minimum rest; layovers
--- after j are outside the window.
-CREATE OR REPLACE VIEW rest_windows AS
-WITH reach AS (
-    SELECT i.bus_id, i.run_no, i.position AS first_position, min(j.position) AS last_position
-    FROM rest_runs i
+-- Every trip of the vehicle counts, whether or not it is complete: an incomplete
+-- trip was driven too. Only the routes of this run are in trips, so this is a
+-- lower bound on what the vehicle drove.
+CREATE OR REPLACE VIEW vehicle_daily_driving AS
+SELECT bus_id, sum(minutes_between(start_time, end_time)) AS driving_minutes
+FROM trips
+GROUP BY bus_id;
+
+-- For each rule and each trip i of a run, the earliest trip j of the same run
+-- (j may be i) whose end is at least the rule's length after i's start. The
+-- credit sums the layovers after trips i through j-1 that reach the minimum
+-- rest, and the longest is the longest of those layovers; layovers after j are
+-- outside the window. The four-hour rule flags a window without enough credit,
+-- the six-hour exception one without a single long enough rest.
+CREATE OR REPLACE VIEW rule_windows AS
+WITH rules (rule, window_length) AS (
+    VALUES ('four_hours', getvariable('rest_window_minutes')),
+           ('six_hours', getvariable('long_rest_window_minutes'))
+),
+reach AS (
+    SELECT r.rule, i.bus_id, i.run_no, i.position AS first_position, min(j.position) AS last_position
+    FROM rules r
+    CROSS JOIN rest_runs i
     JOIN rest_runs j
       ON j.bus_id = i.bus_id AND j.run_no = i.run_no AND j.position >= i.position
-     AND minutes_between(i.start_time, j.end_time) >= getvariable('rest_window_minutes')
-    GROUP BY i.bus_id, i.run_no, i.position
+     AND minutes_between(i.start_time, j.end_time) >= r.window_length
+    GROUP BY r.rule, i.bus_id, i.run_no, i.position
 ),
-credited AS (
-    SELECT r.bus_id,
+rested AS (
+    SELECT r.rule,
+           r.bus_id,
            r.run_no,
            r.first_position,
            r.last_position,
-           coalesce(sum(l.minutes) FILTER (WHERE l.minutes >= getvariable('rest_min_minutes')), 0) AS credit_minutes
+           coalesce(sum(l.minutes) FILTER (WHERE l.minutes >= getvariable('rest_min_minutes')), 0) AS credit_minutes,
+           coalesce(max(l.minutes), 0) AS longest_layover_minutes
     FROM reach r
     LEFT JOIN rest_runs t
       ON t.bus_id = r.bus_id AND t.run_no = r.run_no
      AND t.position >= r.first_position AND t.position < r.last_position
     LEFT JOIN layovers l ON l.trip_id = t.trip_id
-    GROUP BY r.bus_id, r.run_no, r.first_position, r.last_position
+    GROUP BY r.rule, r.bus_id, r.run_no, r.first_position, r.last_position
 )
-SELECT c.bus_id,
+SELECT c.rule,
+       c.bus_id,
        c.run_no,
        c.first_position,
        c.last_position,
@@ -164,12 +189,49 @@ SELECT c.bus_id,
        e.trip_id AS last_trip_id,
        f.start_time,
        e.end_time,
+       c.last_position - c.first_position + 1 AS n_trips,
        minutes_between(f.start_time, e.end_time) AS window_minutes,
        CAST(c.credit_minutes AS DOUBLE) AS credit_minutes,
-       c.credit_minutes < getvariable('rest_credit_minutes') AS flagged
-FROM credited c
+       CAST(c.longest_layover_minutes AS DOUBLE) AS longest_layover_minutes,
+       CASE c.rule
+           WHEN 'four_hours' THEN c.credit_minutes < getvariable('rest_credit_minutes')
+           ELSE c.longest_layover_minutes < getvariable('long_rest_min_minutes')
+       END AS flagged,
+       d.driving_minutes > getvariable('daily_driving_limit_minutes') AS over_daily_driving
+FROM rested c
 JOIN rest_runs f ON f.bus_id = c.bus_id AND f.run_no = c.run_no AND f.position = c.first_position
-JOIN rest_runs e ON e.bus_id = c.bus_id AND e.run_no = c.run_no AND e.position = c.last_position;
+JOIN rest_runs e ON e.bus_id = c.bus_id AND e.run_no = c.run_no AND e.position = c.last_position
+JOIN vehicle_daily_driving d ON d.bus_id = c.bus_id;
+
+CREATE OR REPLACE VIEW rest_windows AS
+SELECT * EXCLUDE (rule) FROM rule_windows WHERE rule = 'four_hours';
+
+CREATE OR REPLACE VIEW long_rest_windows AS
+SELECT * EXCLUDE (rule) FROM rule_windows WHERE rule = 'six_hours';
+
+-- The first trip of a run starts a stretch, and so does a trip after a layover
+-- that reaches the minimum rest. A shorter layover stays inside the stretch,
+-- and so does a pair whose times overlap, which has no layover at all.
+CREATE OR REPLACE VIEW driving_stretches AS
+WITH marked AS (
+    SELECT t.bus_id,
+           t.run_no,
+           t.position,
+           t.start_time,
+           t.end_time,
+           lag(l.minutes) OVER (PARTITION BY t.bus_id, t.run_no ORDER BY t.position) AS layover_before
+    FROM rest_runs t
+    LEFT JOIN layovers l ON l.trip_id = t.trip_id
+),
+numbered AS (
+    SELECT *,
+           count(*) FILTER (WHERE position = 1 OR layover_before >= getvariable('rest_min_minutes'))
+               OVER (PARTITION BY bus_id, run_no ORDER BY position ROWS UNBOUNDED PRECEDING) AS stretch_no
+    FROM marked
+)
+SELECT bus_id, min(start_time) AS start_time, max(end_time) AS end_time, count(*) AS n_trips
+FROM numbered
+GROUP BY bus_id, run_no, stretch_no;
 
 -- Flagged windows of one run merge when they share a trip: a window starts a
 -- new chain only when it begins after every earlier window has ended.

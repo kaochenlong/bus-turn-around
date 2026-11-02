@@ -19,5 +19,19 @@ module RoutePage
 
     # A share as a percentage to one decimal, or a dash without a value.
     def share(value) = value.nil? ? NONE : format("%.1f%%", value * 100)
+
+    # A share as a whole percentage, or a dash without a value.
+    def whole_share(value) = value.nil? ? NONE : format("%d%%", (value * 100).round)
+
+    # A minute of the day as a clock; the end of the day is 24:00.
+    def clock(minute) = format("%02d:%02d", minute / 60, minute % 60)
+
+    # A range of whole numbers, one number when both ends are the same, or a dash
+    # when either end is missing.
+    def span(low, high)
+      return NONE if low.nil? || high.nil?
+
+      low == high ? low.to_s : "#{low}–#{high}"
+    end
   end
 end

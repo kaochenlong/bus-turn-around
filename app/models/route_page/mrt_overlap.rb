@@ -16,7 +16,7 @@ module RoutePage
 
     def initialize(route_days)
       @ids = route_days.ids
-      @latest = route_days.order(day: :desc).first
+      @latest = route_days.reorder(day: :desc).first
     end
 
     def mrt_exits_day = @latest&.mrt_exits_day

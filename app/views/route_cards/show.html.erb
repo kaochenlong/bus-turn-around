@@ -1,0 +1,27 @@
+<% content_for :title, t(".title", route_name: @month_card.route_name, year: @month_card.month.year, month: @month_card.month.month, site_name: t("site.name")) %>
+<% content_for :head do %>
+  <meta name="robots" content="noindex">
+  <%# 印製前讀這三個：確認頁面是那一份，並存下印出來那一份的程式版本與數字 %>
+  <meta name="turnaround-card" content="<%= @month_card.route_card.identity %>">
+  <meta name="turnaround-program-version" content="<%= ProgramVersion.current %>">
+  <meta name="turnaround-card-summary" content="<%= @month_card.summary.to_json %>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <%= render MonthCardMarginComponent.new(month_card: @month_card) %>
+<% end %>
+
+<main data-month-card>
+  <% if @month_card.needs_reload? %>
+    <p data-card-incomplete><%= t(".needs_reload") %></p>
+  <% end %>
+  <%= render MonthCardSummaryComponent.new(month_card: @month_card) %>
+  <%= render MonthCardLayoversComponent.new(month_card: @month_card) %>
+  <%= render MonthCardDrivingComponent.new(month_card: @month_card) %>
+  <%= render MonthCardScheduleComponent.new(month_card: @month_card) %>
+  <%= render MonthCardCyclesComponent.new(month_card: @month_card) %>
+  <%= render MonthCardRunTimesComponent.new(month_card: @month_card) %>
+  <%= render MonthCardBufferComponent.new(month_card: @month_card) %>
+  <%= render MonthCardHistoryComponent.new(month_card: @month_card) %>
+  <%= render MonthCardAttributionComponent.new %>
+</main>

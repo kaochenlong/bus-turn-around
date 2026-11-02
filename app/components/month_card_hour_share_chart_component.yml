@@ -1,0 +1,13 @@
+---
+tw: &tw
+  aria: 依車回到停車端的小時，折返停留不到 15 分鐘的比例，每小時的比例與筆數印在柱子下面
+  hour: 時
+  share: 比例 %
+  count: 筆數
+zh-TW:
+  <<: *tw
+en:
+  aria: The share of layovers under 15 minutes at the stopping end by the hour the vehicle came back, with each hour's share and count printed under its column
+  hour: Hour
+  share: Share %
+  count: Count

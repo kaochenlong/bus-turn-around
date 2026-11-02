@@ -1,0 +1,47 @@
+---
+tw: &tw
+  title: 行駛時間
+  lead: 起站離站到末站到站。只算完整趟次；起點只有到站時刻、或終點只有離站時刻的趟次不算（去程 %{outbound} 趟、返程 %{inbound} 趟）
+  fewer: ，所以%{direction}的筆數比較少
+  small_sample_note: 。灰字是筆數不到 5。
+  outbound: 去程行駛時間
+  inbound: 返程行駛時間
+  round_trip: 來回一趟
+  cycle: 週期
+  hour: 發車時
+  trips: 趟
+  count: 筆
+  whole_day: 全天
+  slow_legs: 站間車速最慢的幾段（平日尖峰，兩站相距 200 公尺以上）
+  between: 兩站之間
+  band: 時段
+  meters: 距離（公尺）
+  kmh: 時速（公里）
+  bands:
+    morning_peak: 早尖峰
+    evening_peak: 晚尖峰
+  speed_note: 站間車速不含進出站與上下客，只看兩站之間開車的那一段。它只比同一個方向，不同方向、不同路線不能比。
+zh-TW:
+  <<: *tw
+en:
+  title: Run times
+  lead: "From leaving the first stop to reaching the last. Only complete trips count; trips whose start comes only from an arrival or whose end comes only from a departure do not (%{outbound} outbound, %{inbound} inbound)"
+  fewer: ", so %{direction} has fewer"
+  small_sample_note: ". Grey figures come from fewer than 5."
+  outbound: Outbound run time
+  inbound: Inbound run time
+  round_trip: Round trip
+  cycle: Cycle
+  hour: Start hour
+  trips: Trips
+  count: "n"
+  whole_day: All day
+  slow_legs: Slowest stretches between stops (weekday peaks, at least 200 metres)
+  between: Between
+  band: Time
+  meters: Metres
+  kmh: km/h
+  bands:
+    morning_peak: Morning peak
+    evening_peak: Evening peak
+  speed_note: Stop-to-stop speed leaves out entering and leaving stops and boarding; it is only the driving between two stops. Compare it within a direction, not across directions or routes.

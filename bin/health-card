@@ -203,7 +203,7 @@ module HealthCard
     ATTRIBUTION = <<~MARKDOWN.chomp.freeze
       ## 資料來源與授權
 
-      臺北市公共運輸處 2026 臺北市公車開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent）、路線（GetRoute）、站牌（GetStop）、附屬路線與路線對應（GetPathDetail）、公車路線軌跡（GetBusShape）、業者營運基本資料（GetProvider），見 Data.Taipei 平台 API 說明文件 V6.3
+      臺北市公共運輸處 2026 臺北市公車開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent）、路線（GetRoute）、站牌（GetStop）、附屬路線與路線對應（GetPathDetail）、公車路線軌跡（GetBusShape）、業者營運基本資料（GetProvider）、機動班次時刻表（GetSemiTimeTable）、預定班表資訊（GetTimeTable），見 Data.Taipei 平台 API 說明文件 V6.3
 
       此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。
 
@@ -359,7 +359,7 @@ module HealthCard
     def chains_text(chains)
       summary = chains.fetch("summary")
       report = Array(chains["report"])
-      text = [ "班次串對照汽車運輸業管理規則第 19 條之 2，只要任何連續 #{chains['rest_window_minutes']} 分鐘內，每段至少 #{chains['rest_min_minutes']} 分鐘的折返停留累計不到 #{chains['rest_credit_minutes']} 分鐘，就標為不合規，同一車牌重疊的不合規視窗併成一串。只用相鄰的完整趟次接成序列，遇到不完整的趟次，或是兩趟之間跑了別的路線，就切斷。",
+      text = [ "班次串對照汽車運輸業管理規則第 19 條之 2，只要任何連續 #{chains['rest_window_minutes']} 分鐘內，每段至少 #{chains['rest_min_minutes']} 分鐘的折返停留累計不到 #{chains['rest_credit_minutes']} 分鐘，就標出來，同一車牌重疊的視窗併成一串。只用相鄰的完整趟次接成序列，遇到不完整的趟次，或是兩趟之間跑了別的路線，就切斷。",
                "- 班次串：#{count(summary['n_chains'])} 串，涉及 #{count(summary['n_vehicles'])} 台車" ]
       return text.join("\n\n") if report.empty?
 

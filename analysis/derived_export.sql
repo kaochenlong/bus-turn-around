@@ -1,16 +1,19 @@
 -- Derived export: the per-trip results of one route and one Taipei day, for
 -- the PostgreSQL derived tables. It runs after params.sql, every numbered
 -- stage, mrt_overlap.sql, gps_reports.sql, turnaround_facilities.sql,
--- route_shape.sql, depots.sql, stop_speeds.sql and stop_districts.sql; its
--- name does not start with a digit, so bin/health-card never runs it.
+-- route_shape.sql, depots.sql, stop_speeds.sql, stop_districts.sql and
+-- published_schedule.sql; its name does not start with a digit, so
+-- bin/health-card never runs it.
 --
--- Reads routes and stops from stage 10, trips from stage 20, layovers from
--- stage 30, trip_bands and trip_stop_counts from stage 40, stop_mrt_distances
+-- Reads routes and stops from stage 10, trips from stage 20, layovers,
+-- rule_windows and driving_stretches from stage 30, trip_bands and
+-- trip_stop_counts from stage 40, stop_mrt_distances
 -- from mrt_overlap.sql, turnaround_ends, end_toilets and standstill_cells from
 -- turnaround_facilities.sql, route_shapes from route_shape.sql,
 -- route_day_depots from depots.sql, stop_positions and trip_stop_speeds from
 -- stop_speeds.sql, stop_district_names and route_day_districts from
--- stop_districts.sql, and the variables route_id, day, static_day,
+-- stop_districts.sql, published_headways and published_departures from
+-- published_schedule.sql, and the variables route_id, day, static_day,
 -- mrt_exits_day, public_toilets_day, stop_districts_day and derived_dir.
 -- Writes to derived_dir:
 --   route_day.csv         the page route's name and terminals and its member
@@ -29,6 +32,10 @@
 --   depots.csv            the depots of the day's trips, with their vehicles and trips
 --   stop_speeds.csv       the metres and seconds of each trip between two placed stops
 --   districts.csv         the districts of the page route's stop locations
+--   rest_windows.csv      every window of the two rest rules
+--   driving_stretches.csv every continuous driving stretch
+--   published_headways.csv   the published periods of every route Id of the run
+--   published_departures.csv the scheduled departures of every route Id of the run
 -- Timestamps carry the Taipei offset, and every file has a fixed column order
 -- and row order, so two runs over the same input give the same bytes.
 
@@ -146,3 +153,33 @@ COPY (
     FROM trip_stop_speeds s
     ORDER BY s.bus_id, s.start_time, s.seq
 ) TO (getvariable('derived_dir') || '/stop_speeds.csv') (HEADER);
+
+-- The windows of both rest rules. A window is named by its rule, its vehicle
+-- and the start of its first trip, the key the loader stores it under.
+COPY (
+    SELECT w.bus_id, w.rule, taipei_text(w.start_time) AS start_time, taipei_text(w.end_time) AS end_time, w.n_trips,
+           round(w.credit_minutes, 1) AS credit_minutes, round(w.longest_layover_minutes, 1) AS longest_layover_minutes,
+           w.flagged, w.over_daily_driving
+    FROM rule_windows w
+    ORDER BY w.rule, w.bus_id, w.start_time
+) TO (getvariable('derived_dir') || '/rest_windows.csv') (HEADER);
+
+COPY (
+    SELECT s.bus_id, taipei_text(s.start_time) AS start_time, taipei_text(s.end_time) AS end_time, s.n_trips
+    FROM driving_stretches s
+    ORDER BY s.bus_id, s.start_time
+) TO (getvariable('derived_dir') || '/driving_stretches.csv') (HEADER);
+
+-- Every date value of the snapshot is written, so which one a day uses can be
+-- decided when it is read, and so are the repeats across a route's sub-routes.
+COPY (
+    SELECT route_id, path_attribute_id, date_value, start_minute, end_minute, low_minutes, high_minutes
+    FROM published_headways
+    ORDER BY ALL
+) TO (getvariable('derived_dir') || '/published_headways.csv') (HEADER);
+
+COPY (
+    SELECT route_id, path_attribute_id, date_value, minute
+    FROM published_departures
+    ORDER BY ALL
+) TO (getvariable('derived_dir') || '/published_departures.csv') (HEADER);

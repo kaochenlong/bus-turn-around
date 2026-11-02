@@ -98,4 +98,103 @@ RSpec.describe "analysis/30_layovers.sql 的班次串" do
       )
     end
   end
+
+  describe "4 小時的視窗" do
+    it "帶趟數與最長一次停留：06:00 到 08:30、08:40 到 11:10，2 趟，最長 10.0 分鐘" do
+      rows = from_trips([ %w[06:00 08:30], %w[08:40 11:10] ], "SELECT n_trips, longest_layover_minutes FROM rest_windows ORDER BY start_time")
+      expect(rows.first).to eq("n_trips" => 2, "longest_layover_minutes" => 10.0)
+    end
+  end
+
+  describe "連續 6 小時的視窗" do
+    let(:long_query) do
+      "SELECT strftime(start_time, '%H:%M') AS start, window_minutes, longest_layover_minutes, flagged FROM long_rest_windows ORDER BY start_time"
+    end
+
+    it "三趟之間都只停 10 分鐘：一個視窗從 06:00 起、530 分鐘、最長 10.0 分鐘，被標" do
+      rows = from_trips([ %w[06:00 08:50], %w[09:00 11:50], %w[12:00 14:50] ], long_query)
+      expect(rows).to eq([ { "start" => "06:00", "window_minutes" => 530.0, "longest_layover_minutes" => 10.0, "flagged" => true } ])
+    end
+
+    it "有一次停滿剛好 45 分鐘：不被標" do
+      rows = from_trips([ %w[06:00 08:50], %w[09:35 12:25], %w[12:35 15:25] ], long_query)
+      expect(rows.first).to include("start" => "06:00", "longest_layover_minutes" => 45.0, "flagged" => false)
+    end
+
+    it "最長只有 44 分鐘：被標" do
+      rows = from_trips([ %w[06:00 08:50], %w[09:34 12:24], %w[12:34 15:24] ], long_query)
+      expect(rows.first).to include("longest_layover_minutes" => 44.0, "flagged" => true)
+    end
+
+    it "序列不滿 6 小時：沒有視窗" do
+      expect(from_trips([ %w[06:00 08:50], %w[09:00 11:50] ], long_query)).to eq([])
+    end
+
+    it "6 小時被標、4 小時沒被標：不併成串，班次串照舊是空的" do
+      expect(from_trips([ %w[06:00 09:00], %w[09:40 12:40] ], "SELECT (SELECT count(*) FROM long_rest_windows WHERE flagged) AS six, (SELECT count(*) FROM chain_report) AS chains").first)
+        .to eq("six" => 1, "chains" => 0)
+    end
+
+    it "fixture 的 2026-10-19：7 個視窗都沒被標，第一個是 TEST-0001 的 06:00 到 13:14、6 趟、最長 56.0 分鐘" do
+      rows = chain_rows("SELECT bus_id, strftime(start_time, '%H:%M') AS start, strftime(end_time, '%H:%M') AS finish, n_trips, longest_layover_minutes, flagged " \
+                        "FROM long_rest_windows ORDER BY bus_id, start_time")
+      expect([ rows.size, rows.count { it["flagged"] }, rows.first.values ]).to eq([ 7, 0, [ "TEST-0001", "06:00", "13:14", 6, 56.0, false ] ])
+    end
+  end
+
+  describe "當天行駛超過 10 小時的標記" do
+    let(:query) { "SELECT bus_id, over_daily_driving FROM rest_windows ORDER BY bus_id" }
+
+    it "加總 601 分鐘的車是 true，剛好 600 分鐘的車是 false" do
+      rows = from_trips([ %w[06:00 16:01], %w[06:00 16:00] ], query, 1 => { bus_id: "TEST-0002" })
+      expect(rows.map(&:values)).to eq([ [ "TEST-0001", true ], [ "TEST-0002", false ] ])
+    end
+
+    it "不完整的趟次也算行駛：300 分鐘的完整趟次加 301 分鐘的不完整趟次是 true" do
+      rows = from_trips([ %w[06:00 11:00], %w[11:10 16:11] ], query, 1 => { completeness: "missing_end" })
+      expect(rows.map(&:values)).to eq([ [ "TEST-0001", true ] ])
+    end
+
+    it "6 小時的視窗也帶這個標記" do
+      rows = from_trips([ %w[06:00 16:01] ], "SELECT over_daily_driving FROM long_rest_windows")
+      expect(rows).to eq([ { "over_daily_driving" => true } ])
+    end
+  end
+
+  describe "連續行駛段" do
+    let(:query) do
+      "SELECT strftime(start_time, '%H:%M') AS start, strftime(end_time, '%H:%M') AS finish, n_trips FROM driving_stretches ORDER BY start_time"
+    end
+
+    it "只隔 10 分鐘：接成一段，06:00 到 11:10，2 趟" do
+      rows = from_trips([ %w[06:00 08:30], %w[08:40 11:10] ], query)
+      expect(rows).to eq([ { "start" => "06:00", "finish" => "11:10", "n_trips" => 2 } ])
+    end
+
+    it "剛好隔 15 分鐘：切成兩段" do
+      rows = from_trips([ %w[06:00 08:30], %w[08:45 11:15] ], query)
+      expect(rows.map(&:values)).to eq([ [ "06:00", "08:30", 1 ], [ "08:45", "11:15", 1 ] ])
+    end
+
+    it "兩趟之間跑了別的路線：切開，10:20 到 12:08 兩趟，17:10 到 17:58 一趟" do
+      records = %w[14:10 14:20 14:30].each_with_index.map { |at, index| [ "TEST-0001", at, 92000 + index ] }
+      rows = from_trips([ %w[10:20 11:08], %w[11:20 12:08], %w[17:10 17:58] ], query, records:)
+      expect(rows.map(&:values)).to eq([ [ "10:20", "12:08", 2 ], [ "17:10", "17:58", 1 ] ])
+    end
+
+    it "中間夾一趟不完整的：切開，不完整的那趟不在任何一段裡" do
+      rows = from_trips([ %w[06:00 08:00], %w[08:05 10:05], %w[10:10 12:10] ], query, 1 => { completeness: "missing_start" })
+      expect(rows.map(&:values)).to eq([ [ "06:00", "08:00", 1 ], [ "10:10", "12:10", 1 ] ])
+    end
+
+    it "時間重疊的兩趟沒有折返停留，跟視窗一樣留在同一段" do
+      rows = from_trips([ %w[06:00 08:30], %w[08:28 11:00] ], query)
+      expect(rows.map(&:values)).to eq([ [ "06:00", "11:00", 2 ] ])
+    end
+
+    it "fixture 的 2026-10-19：15 段，最長是 06:00 到 11:30、5 趟" do
+      rows = chain_rows("#{query.sub('ORDER BY start_time', '')} ORDER BY end_time - start_time DESC")
+      expect([ rows.size, rows.first.values ]).to eq([ 15, [ "06:00", "11:30", 5 ] ])
+    end
+  end
 end

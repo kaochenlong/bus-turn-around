@@ -1,0 +1,22 @@
+<section data-card-section="buffer">
+  <h2><%= t(".title") %></h2>
+  <p data-buffer-lead class="lead"><%= t(".lead", days: base.n_days, trips: n_trips, layovers: base.n_stopping_layovers) %></p>
+  <table>
+    <thead>
+      <tr>
+        <th class="l"><%= t(".hold") %></th><th><%= t(".achieved") %></th><th><%= t(".lower_html") %></th><th><%= t(".upper_html") %></th><th><%= t(".peak") %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% trades.each do |trade| %>
+        <tr data-hold="<%= trade.minutes %>">
+          <td class="l"><%= t(".minutes", minutes: trade.minutes) %></td>
+          <td><%= whole_share(trade.achieved_share) %></td>
+          <td class="strong"><%= decimal(trade.vehicle_hours&.lower) %></td>
+          <td class="strong"><%= decimal(trade.vehicle_hours&.upper) %></td>
+          <td><%= peak_text(trade.peak) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

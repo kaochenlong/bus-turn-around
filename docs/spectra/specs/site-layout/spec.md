@@ -92,6 +92,8 @@ Every HTML page SHALL end with one footer that carries, verbatim, the three-line
 | `GetPathDetail.gz` | GetPathDetail |
 | `GetBusShape.gz` | GetBusShape |
 | `GetProvider.gz` | GetProvider |
+| `GetSemiTimeTable.gz` | GetSemiTimeTable |
+| `GetTimeTable.gz` | GetTimeTable |
 
 #### Scenario: Office calendar line in the footer
 
@@ -120,72 +122,158 @@ Every HTML page SHALL end with one footer that carries, verbatim, the three-line
 
 
 <!-- @trace
-source: home-district-filter
+source: 02-published-schedule
 updated: 2026-11-02
 code:
-  - app/components/route_list_component.rb
-  - app/components/attribution_component.html.erb
-  - app/frontend/route_list/district_filter.js
-  - app/components/route_list_component.html.erb
-  - Gemfile.lock
-  - spec/factories/route_day_districts.rb
-  - analysis/derived_export.sql
-  - spec/factories/route_days.rb
-  - db/schema.rb
-  - spec/fixtures/analysis/external/stop-districts/2026-10-19.csv
-  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.shp
-  - app/frontend/entrypoints/application.js
-  - app/models/home_page/route_districts.rb
-  - app/models/route_day_district.rb
-  - analysis/stop_district_snapshot.sql
+  - app/components/month_card_run_times_component.yml
+  - app/models/route_page/month_card.rb
+  - analysis/30_layovers.sql
+  - app/components/month_card_cycles_component.html.erb
+  - app/views/route_cards/show.html.erb
+  - app/components/month_card_attribution_component.rb
+  - app/components/month_card_buffer_component.rb
+  - spec/factories/layovers.rb
+  - spec/factories/route_cards.rb
   - spec/fixtures/analysis/README.md
-  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.prj
-  - app/components/attribution_component.yml
-  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.dbf
-  - README.md
-  - analysis/README.md
-  - app/models/home_page/route_list.rb
-  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.cpg
+  - app/models/route_day_published_departure.rb
+  - app/models/route_page/month_days.rb
+  - config/routes.rb
+  - app/frontend/stylesheets/application.css
+  - db/migrate/20261102030000_create_route_cards.rb
+  - spec/factories/route_day_published_departures.rb
+  - app/models/route_page/mrt_overlap.rb
+  - spec/factories/route_day_rest_windows.rb
+  - app/models/route_page/layover_hours.rb
+  - analysis/published_schedule.sql
+  - spec/factories/trips.rb
+  - spec/factories/route_day_driving_stretches.rb
+  - app/components/month_card_schedule_component.html.erb
+  - app/models/route_page/format.rb
+  - db/migrate/20261102011500_create_route_day_published_schedule.rb
+  - app/models/route_page/load_profile.rb
+  - bin/health-card
+  - app/components/month_card_summary_component.yml
+  - app/models/route_page/card_trend.rb
+  - app/models/route_day_published_headway.rb
+  - app/components/month_card_run_times_component.html.erb
+  - app/models/route_card.rb
+  - config/locales/tw.yml
+  - app/components/month_card_run_times_component.rb
+  - analysis/derived_export.sql
+  - app/components/month_card_cycles_component.yml
+  - app/components/month_card_hour_share_chart_component.yml
   - .agents/skills/spectra-apply/SKILL.md
-  - app/models/route_day_loader.rb
-  - .github/skills/spectra-apply/SKILL.md
-  - app/models/stop_districts_snapshot.rb
-  - config/route_page.yml
-  - analysis/stop_districts.sql
-  - spec/fixtures/analysis/external/town-boundaries/TOWN_MOI_TEST.shx
+  - app/controllers/route_cards_controller.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetSemiTimeTable.gz
+  - app/components/month_card_hour_share_chart_component.html.erb
+  - app/components/month_card_hour_chart_component.rb
+  - app/components/month_card_driving_component.yml
+  - app/components/month_card_hour_share_chart_component.rb
+  - app/models/route_page/rest_windows.rb
+  - app/models/route_page/layover_distribution.rb
   - docs/data-sources.md
-  - analysis/params.sql
-  - db/migrate/20261101172102_create_route_day_districts.rb
-  - app/models/route_day_stop.rb
-  - Gemfile
-  - lib/tasks/external.rake
+  - app/components/month_card_margin_component.html.erb
+  - app/components/attribution_component.yml
+  - app/models/route_page/layover_stats.rb
+  - app/models/route_day_driving_stretch.rb
+  - app/components/month_card_attribution_component.yml
+  - app/models/route_day_rest_window.rb
+  - app/models/route_page/snapshot_changes.rb
+  - app/components/month_card_schedule_component.rb
+  - app/components/month_card_history_component.yml
+  - app/components/month_card_schedule_component.yml
+  - app/models/program_version.rb
+  - app/models/route_page/month_findings.rb
+  - app/components/month_card_layovers_component.html.erb
+  - app/components/month_card_summary_component.html.erb
+  - db/schema.rb
+  - spec/factories/route_days.rb
+  - app/components/month_card_chart_component.rb
+  - app/components/month_card_hour_chart_component.html.erb
+  - config/locales/en.yml
+  - spec/fixtures/analysis/static/2026-10-23/GetSemiTimeTable.gz
+  - analysis/README.md
+  - app/components/month_card_driving_component.html.erb
+  - app/components/month_card_margin_component.yml
+  - app/components/month_card_component.rb
+  - app/components/month_card_buffer_component.html.erb
+  - lib/tasks/cards.rake
+  - app/models/route_page/slow_legs.rb
+  - app/components/month_card_buffer_component.yml
+  - app/components/month_card_history_component.html.erb
+  - app/components/month_card_summary_component.rb
+  - app/components/month_card_distribution_chart_component.yml
   - app/models/route_day.rb
-  - app/components/route_list_component.yml
+  - app/components/month_card_distribution_chart_component.html.erb
+  - app/components/month_card_layovers_component.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetTimeTable.gz
+  - .github/skills/spectra-apply/SKILL.md
+  - app/components/month_card_history_component.rb
+  - app/components/month_card_cycles_component.rb
+  - app/components/month_card_layovers_component.yml
+  - app/models/route_page/schedule_comparison.rb
+  - app/components/month_card_distribution_chart_component.rb
+  - app/models/route_card_coverage.rb
+  - app/components/month_card_attribution_component.html.erb
+  - app/models/route_day_loader.rb
+  - app/components/month_card_margin_component.rb
+  - app/models/route_card_prepare_command.rb
+  - db/migrate/20261101220000_create_route_day_rest_windows.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetTimeTable.gz
+  - app/components/month_card_driving_component.rb
+  - spec/factories/route_day_published_headways.rb
+  - analysis/params.sql
 tests:
-  - spec/models/derived_load_command_spec.rb
-  - spec/components/route_list_component_spec.rb
-  - spec/analysis/fixtures_spec.rb
-  - spec/analysis/stop_district_snapshot_spec.rb
+  - spec/models/route_day_driving_stretch_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
+  - spec/components/month_card_history_component_spec.rb
+  - spec/components/month_card_summary_component_spec.rb
+  - spec/models/route_page/month_findings_spec.rb
+  - spec/system/month_card_print_spec.rb
+  - spec/models/route_day_published_headway_spec.rb
   - spec/analysis/params_spec.rb
+  - spec/models/route_day_rest_window_spec.rb
   - spec/models/derived_push_command_spec.rb
-  - spec/models/stop_districts_snapshot_spec.rb
-  - spec/analysis/derived_export_spec.rb
-  - spec/models/home_page/route_districts_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/components/month_card_buffer_component_spec.rb
+  - spec/components/month_card_attribution_component_spec.rb
   - spec/models/route_day_spec.rb
-  - spec/models/nightly_load_command_spec.rb
+  - spec/models/route_page/slow_legs_spec.rb
+  - spec/models/route_page/layover_hours_spec.rb
+  - spec/requests/route_cards_spec.rb
+  - spec/models/route_card_coverage_spec.rb
+  - spec/models/route_page/month_card_spec.rb
+  - spec/analysis/chains_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/components/month_card_run_times_component_spec.rb
+  - spec/components/month_card_margin_component_spec.rb
+  - spec/models/program_version_spec.rb
+  - spec/models/route_page/snapshot_changes_spec.rb
   - spec/models/route_day_loader_spec.rb
-  - app/frontend/route_list/district_filter.test.js
-  - spec/analysis/stop_districts_spec.rb
-  - spec/models/home_page/route_list_spec.rb
-  - spec/system/home_district_filter_spec.rb
-  - spec/requests/pages_spec.rb
-  - spec/models/route_page/ends_spec.rb
+  - spec/models/route_page/rest_windows_spec.rb
+  - spec/components/month_card_schedule_component_spec.rb
+  - spec/models/route_page/card_consistency_spec.rb
+  - spec/models/route_card_prepare_command_spec.rb
+  - spec/analysis/published_schedule_spec.rb
+  - spec/components/month_card_cycles_component_spec.rb
+  - spec/components/month_card_driving_component_spec.rb
+  - spec/models/route_card_spec.rb
+  - spec/models/route_page/layover_distribution_spec.rb
+  - spec/components/month_card_layovers_component_spec.rb
+  - spec/models/route_page/month_days_spec.rb
+  - spec/models/route_page/schedule_comparison_spec.rb
+  - spec/models/route_day_published_departure_spec.rb
+  - spec/models/route_page/layover_stats_spec.rb
+  - spec/components/month_card_hour_chart_component_spec.rb
+  - spec/models/route_page/card_trend_spec.rb
+  - spec/analysis/attribution_spec.rb
 -->
 
 ---
 ### Requirement: Site name bar on every page
 
-Every HTML page SHALL begin, before the page's own content, with one bar that carries, in this order: first the site name from the locale file as a link to `/`; then, only on a route page, a timetable page as defined by `timetable` and a day dispatch page as defined by `day-dispatch`, a link whose text comes from the locale file (班表 in `tw`) to that route's timetable page without parameters, carrying `aria-current="page"` on the timetable page itself, followed by a link whose text comes from the locale file (當天調度 in `tw`) to that route's day dispatch page `/routes/<Id>/dispatch`, carrying `aria-current="page"` on the day dispatch page itself; then a link to the site's source repository, `https://github.com/kaochenlong/bus-turn-around`, shown as the GitHub mark, whose text comes from the locale file (GitHub in `tw`) and is read by assistive technology only; then a link to the article that introduces the site, `https://kaochenlong.com/bus-turn-around`, whose text comes from the locale file (關於這個網站 in `tw`). The repository link and the article link SHALL sit together at the right end of the bar, apart from the site name and the route links. At every screen width the article link SHALL show only the first part of its text (關於 in `tw`) while its text stays whole for assistive technology. On a screen narrower than 640 px the repository link SHALL NOT be displayed. The home page SHALL carry exactly three links; a route page, a timetable page and a day dispatch page exactly five. The repository link and the article link SHALL open in a new tab: each SHALL carry `target="_blank"` and `rel="noopener"` and SHALL be described to assistive technology as opening in a new tab, in words from the locale file (另開新分頁 in `tw`). The bar SHALL be marked with `data-site-bar` and SHALL NOT carry or contain a `data-section` attribute, so that the block order of every page is unchanged. The static error pages under `public/`, such as the page of `not-found-page`, are outside this requirement: they are served without the shared layout and carry no bar.
+Every HTML page SHALL begin, before the page's own content, with one bar that carries, in this order: first the site name from the locale file as a link to `/`; then, only on a route page, a timetable page as defined by `timetable`, a day dispatch page as defined by `day-dispatch`, a month card page as defined by `monthly-card` and a month card list as defined by `monthly-card-pdf`, a link whose text comes from the locale file (班表 in `tw`) to that route's timetable page without parameters, carrying `aria-current="page"` on the timetable page itself, followed by a link whose text comes from the locale file (當天調度 in `tw`) to that route's day dispatch page `/routes/<Id>/dispatch`, carrying `aria-current="page"` on the day dispatch page itself, followed by a link whose text comes from the locale file (健檢卡 in `tw`) to that route's month card list `/routes/<Id>/cards`, carrying `aria-current="page"` on the month card list and on a month card page; then a link to the site's source repository, `https://github.com/kaochenlong/bus-turn-around`, shown as the GitHub mark, whose text comes from the locale file (GitHub in `tw`) and is read by assistive technology only; then a link to the article that introduces the site, `https://kaochenlong.com/bus-turn-around`, whose text comes from the locale file (關於這個網站 in `tw`). The repository link and the article link SHALL sit together at the right end of the bar, apart from the site name and the route links. At every screen width the article link SHALL show only the first part of its text (關於 in `tw`) while its text stays whole for assistive technology. On a screen narrower than 640 px the repository link SHALL NOT be displayed. The home page SHALL carry exactly three links; a route page, a timetable page, a day dispatch page, a month card page and a month card list exactly six. On a screen 360 px wide the bar SHALL fit without horizontal scrolling. The repository link and the article link SHALL open in a new tab: each SHALL carry `target="_blank"` and `rel="noopener"` and SHALL be described to assistive technology as opening in a new tab, in words from the locale file (另開新分頁 in `tw`). The bar SHALL be marked with `data-site-bar` and SHALL NOT carry or contain a `data-section` attribute, so that the block order of every page is unchanged. The static error pages under `public/`, such as the page of `not-found-page`, are outside this requirement: they are served without the shared layout and carry no bar.
 
 #### Scenario: Bar on the home page
 
@@ -195,17 +283,32 @@ Every HTML page SHALL begin, before the page's own content, with one bar that ca
 #### Scenario: Bar on a route page
 
 - **WHEN** `/routes/9001` is requested and 9001 has no stored days
-- **THEN** the response is 200, exactly one `[data-site-bar]` is present, it contains exactly five links, the second points to `/routes/9001/timetable` with the text 班表 and no `aria-current` attribute, the third points to `/routes/9001/dispatch` with the text 當天調度 and no `aria-current` attribute, the fourth points to `https://github.com/kaochenlong/bus-turn-around` with the text GitHub, the fifth points to `https://kaochenlong.com/bus-turn-around` with the text 關於這個網站, and no element with `data-section` is the bar or inside it
+- **THEN** the response is 200, exactly one `[data-site-bar]` is present, it contains exactly six links, the second points to `/routes/9001/timetable` with the text 班表 and no `aria-current` attribute, the third points to `/routes/9001/dispatch` with the text 當天調度 and no `aria-current` attribute, the fourth points to `/routes/9001/cards` with the text 健檢卡 and no `aria-current` attribute, the fifth points to `https://github.com/kaochenlong/bus-turn-around` with the text GitHub, the sixth points to `https://kaochenlong.com/bus-turn-around` with the text 關於這個網站, and no element with `data-section` is the bar or inside it
 
 #### Scenario: Bar on a timetable page
 
 - **WHEN** `/routes/9001/timetable` is requested
-- **THEN** the bar contains exactly five links, its second link points to `/routes/9001/timetable` with `aria-current="page"`, and its third link points to `/routes/9001/dispatch` without `aria-current`
+- **THEN** the bar contains exactly six links, its second link points to `/routes/9001/timetable` with `aria-current="page"`, its third link points to `/routes/9001/dispatch` without `aria-current`, and its fourth link points to `/routes/9001/cards` without `aria-current`
 
 #### Scenario: Bar on a day dispatch page
 
 - **WHEN** `/routes/9001/dispatch` is requested
-- **THEN** the bar contains exactly five links, its second link points to `/routes/9001/timetable` without `aria-current`, and its third link points to `/routes/9001/dispatch` with `aria-current="page"`
+- **THEN** the bar contains exactly six links, its second link points to `/routes/9001/timetable` without `aria-current`, its third link points to `/routes/9001/dispatch` with `aria-current="page"`, and its fourth link points to `/routes/9001/cards` without `aria-current`
+
+#### Scenario: Bar on a month card list
+
+- **WHEN** `/routes/9001/cards` is requested
+- **THEN** the bar contains exactly six links and its fourth link points to `/routes/9001/cards` with `aria-current="page"`
+
+#### Scenario: Bar on a month card page
+
+- **WHEN** `/routes/9001/cards/2026-10` is requested and the route card exists
+- **THEN** the bar contains exactly six links and its fourth link points to `/routes/9001/cards` with `aria-current="page"`
+
+#### Scenario: Bar on small phones
+
+- **WHEN** a route page is shown on a phone screen 390 px wide, and again on one 360 px wide
+- **THEN** the page has no horizontal scrolling and all four route links and the article link are displayed
 
 #### Scenario: Repository link on a phone
 
@@ -214,24 +317,181 @@ Every HTML page SHALL begin, before the page's own content, with one bar that ca
 
 
 <!-- @trace
-source: site-bar-github-about
-updated: 2026-10-27
+source: 04-monthly-card-pdf
+updated: 2026-11-02
 code:
-  - app/frontend/timetable/day_page.js
-  - app/frontend/timetable/day_view.js
-  - app/frontend/timetable/day_timeline_view.js
-  - app/components/site_bar_component.rb
-  - app/components/day_timeline_component.rb
-  - app/components/site_bar_component.yml
-  - app/components/day_timeline_component.html.erb
-  - app/frontend/timetable/minute_clock.js
+  - app/models/route_day_driving_stretch.rb
+  - app/components/month_card_history_component.rb
+  - app/models/route_page/layover_hours.rb
+  - .agents/skills/spectra-apply/SKILL.md
+  - AGENTS.md
+  - app/components/month_card_layovers_component.html.erb
+  - spec/fixtures/analysis/static/2026-10-23/GetTimeTable.gz
+  - app/models/route_page/month_card.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetSemiTimeTable.gz
+  - spec/factories/route_days.rb
+  - spec/factories/route_cards.rb
+  - app/components/month_card_layovers_component.yml
+  - app/models/route_card_local_copy.rb
+  - app/components/month_card_hour_share_chart_component.yml
+  - app/models/monthly_cards_command.rb
+  - app/models/route_day_loader.rb
+  - app/models/route_page/rest_windows.rb
+  - app/models/route_day_published_departure.rb
+  - app/models/route_page/layover_stats.rb
+  - app/components/month_card_schedule_component.html.erb
+  - app/components/month_card_history_component.yml
+  - app/components/month_card_buffer_component.rb
+  - app/frontend/stylesheets/application.css
+  - app/components/month_card_layovers_component.rb
+  - app/models/route_day_published_headway.rb
+  - app/views/route_cards/index.html.erb
+  - app/components/month_card_list_component.html.erb
+  - app/components/month_card_schedule_component.yml
+  - app/components/month_card_margin_component.rb
   - app/components/site_bar_component.html.erb
+  - analysis/derived_export.sql
+  - app/components/month_card_component.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetSemiTimeTable.gz
+  - app/models/route_page/slow_legs.rb
+  - app/components/month_card_cycles_component.html.erb
+  - app/components/month_card_summary_component.yml
+  - spec/fixtures/analysis/static/2026-10-19/GetTimeTable.gz
+  - app/models/route_card_prepare_command.rb
+  - app/models/route_page/schedule_comparison.rb
+  - app/components/month_card_list_component.yml
+  - app/components/month_card_hour_share_chart_component.html.erb
+  - app/models/nightly_load_command.rb
+  - app/models/route_page/load_profile.rb
+  - app/components/month_card_driving_component.html.erb
+  - app/components/month_card_distribution_chart_component.rb
+  - app/models/route_page/month_days.rb
+  - spec/fixtures/analysis/README.md
+  - app/components/month_card_run_times_component.rb
+  - config/locales/en.yml
+  - db/migrate/20261102011500_create_route_day_published_schedule.rb
+  - app/components/month_card_schedule_component.rb
+  - app/components/month_card_margin_component.html.erb
+  - spec/factories/route_day_published_departures.rb
+  - app/models/card_months.rb
+  - spec/factories/route_day_rest_windows.rb
+  - app/components/month_card_attribution_component.rb
+  - app/components/month_card_history_component.html.erb
+  - app/components/attribution_component.yml
+  - app/components/month_card_chart_component.rb
+  - app/models/route_page/month_findings.rb
+  - app/components/month_card_driving_component.yml
+  - config/routes.rb
+  - app/components/month_card_run_times_component.yml
+  - app/components/month_card_driving_component.rb
+  - app/components/month_card_run_times_component.html.erb
+  - app/components/month_card_buffer_component.html.erb
+  - app/models/route_page/snapshot_changes.rb
+  - db/migrate/20261102054500_add_printed_card_to_route_cards.rb
+  - app/components/month_card_cycles_component.rb
+  - spec/factories/trips.rb
+  - app/components/month_card_cycles_component.yml
+  - app/components/month_card_hour_chart_component.rb
+  - app/models/route_card_coverage.rb
+  - docs/data-sources.md
+  - db/migrate/20261102030000_create_route_cards.rb
+  - app/components/site_bar_component.rb
+  - app/views/layouts/application.html.erb
+  - db/migrate/20261101220000_create_route_day_rest_windows.rb
+  - app/components/site_bar_component.yml
+  - app/models/route_page/mrt_overlap.rb
+  - app/components/month_card_attribution_component.html.erb
+  - app/components/month_card_summary_component.rb
+  - app/components/month_card_margin_component.yml
+  - docs/decisions.md
+  - app/models/route_card_pdf.rb
+  - app/models/production_session.rb
+  - analysis/30_layovers.sql
+  - app/components/month_card_hour_chart_component.html.erb
+  - app/models/program_version.rb
+  - .github/skills/spectra-apply/SKILL.md
+  - spec/factories/route_day_published_headways.rb
+  - app/models/route_page/format.rb
+  - app/components/month_card_attribution_component.yml
+  - app/models/route_page/card_trend.rb
+  - app/models/route_page/layover_distribution.rb
+  - app/views/route_cards/show.html.erb
+  - spec/factories/route_day_driving_stretches.rb
+  - db/schema.rb
+  - bin/health-card
+  - analysis/README.md
+  - app/components/month_card_buffer_component.yml
+  - app/components/month_card_distribution_chart_component.html.erb
+  - app/components/month_card_distribution_chart_component.yml
+  - app/models/route_card.rb
+  - analysis/published_schedule.sql
+  - app/components/month_card_summary_component.html.erb
+  - app/models/route_day.rb
+  - app/models/route_day_rest_window.rb
+  - config/locales/tw.yml
+  - app/components/month_card_hour_share_chart_component.rb
+  - lib/tasks/cards.rake
+  - config/route_cards.yml
+  - spec/factories/layovers.rb
+  - analysis/params.sql
+  - app/models/card_printer.rb
+  - bin/monthly-cards
+  - app/components/month_card_list_component.rb
+  - app/controllers/route_cards_controller.rb
 tests:
-  - spec/system/timetable_day_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/models/route_card_prepare_command_spec.rb
   - spec/system/route_page_mobile_spec.rb
-  - spec/system/timetable_day_timeline_spec.rb
+  - spec/models/route_page/month_days_spec.rb
   - spec/requests/site_layout_spec.rb
-  - app/frontend/timetable/minute_clock.test.js
+  - spec/models/route_day_rest_window_spec.rb
+  - spec/analysis/chains_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/components/month_card_buffer_component_spec.rb
+  - spec/models/route_day_published_headway_spec.rb
+  - spec/models/derived_push_command_spec.rb
+  - spec/models/route_page/slow_legs_spec.rb
+  - spec/system/month_card_print_spec.rb
+  - spec/models/production_session_spec.rb
+  - spec/models/route_page/month_findings_spec.rb
+  - spec/components/month_card_margin_component_spec.rb
+  - spec/components/month_card_hour_chart_component_spec.rb
+  - spec/models/nightly_load_command_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
+  - spec/models/route_page/rest_windows_spec.rb
+  - spec/components/month_card_summary_component_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/components/month_card_driving_component_spec.rb
+  - spec/models/route_page/month_card_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/models/card_printer_spec.rb
+  - spec/models/route_card_local_copy_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/models/route_page/schedule_comparison_spec.rb
+  - spec/models/program_version_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/route_day_published_departure_spec.rb
+  - spec/models/route_day_driving_stretch_spec.rb
+  - spec/analysis/published_schedule_spec.rb
+  - spec/models/route_page/layover_distribution_spec.rb
+  - spec/requests/route_cards_spec.rb
+  - spec/components/month_card_layovers_component_spec.rb
+  - spec/models/monthly_cards_command_spec.rb
+  - spec/components/month_card_run_times_component_spec.rb
+  - spec/models/route_card_coverage_spec.rb
+  - spec/models/route_page/layover_stats_spec.rb
+  - spec/models/route_page/snapshot_changes_spec.rb
+  - spec/components/month_card_cycles_component_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/components/month_card_history_component_spec.rb
+  - spec/models/card_months_spec.rb
+  - spec/components/month_card_attribution_component_spec.rb
+  - spec/components/month_card_schedule_component_spec.rb
+  - spec/models/route_card_spec.rb
+  - spec/models/route_page/card_trend_spec.rb
+  - spec/components/month_card_list_component_spec.rb
+  - spec/models/route_page/layover_hours_spec.rb
+  - spec/models/route_page/card_consistency_spec.rb
 -->
 
 ---

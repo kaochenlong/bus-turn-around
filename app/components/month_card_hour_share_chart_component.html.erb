@@ -1,0 +1,19 @@
+<svg data-hour-chart="<%= go_back %>" viewBox="0 0 <%= WIDTH %> <%= height %>" class="chart" role="img" aria-label="<%= t(".aria") %>">
+  <% TICKS.each do |tick| %>
+    <line x1="<%= LEFT %>" x2="<%= WIDTH - RIGHT %>" y1="<%= tick_y(tick) %>" y2="<%= tick_y(tick) %>" stroke="<%= GRID %>" stroke-width="1"/>
+    <text x="<%= LEFT - 5 %>" y="<%= tick_y(tick) + 3.5 %>" text-anchor="end" class="tick"><%= tick %>%</text>
+  <% end %>
+  <% row_labels.each_with_index do |label, index| %>
+    <text x="0" y="<%= base + (LINE * (index + 1)) %>" class="tick"><%= label %></text>
+  <% end %>
+  <% rows.each_with_index do |row, index| %>
+    <g data-hour-bar="<%= row.hour %>" <%= "data-few-layovers=true" if few?(row) %>>
+      <% if row.short_share.positive? %>
+        <path d="<%= column_path(row, index) %>" fill="<%= column_fill(row) %>"/>
+      <% end %>
+      <text x="<%= center(index) %>" y="<%= base + LINE %>" text-anchor="middle" class="tick"><%= format("%02d", row.hour) %></text>
+      <text x="<%= center(index) %>" y="<%= base + (LINE * 2) %>" text-anchor="middle" class="cell"><%= percent(row) %></text>
+      <text x="<%= center(index) %>" y="<%= base + (LINE * 3) %>" text-anchor="middle" class="count"><%= row.n_layovers %></text>
+    </g>
+  <% end %>
+</svg>

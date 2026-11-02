@@ -1,0 +1,13 @@
+<svg viewBox="0 0 <%= WIDTH %> <%= height %>" class="chart" role="img" aria-label="<%= aria_label %>">
+  <% bins.each do |bin| %>
+    <g data-bin="<%= bin.lower %>" data-count="<%= bin.count %>" <%= "data-short=true" if bin.short? %>>
+      <text x="<%= LEFT - 8 %>" y="<%= bin.y + 12 %>" text-anchor="end" class="tick"><%= bin.label %></text>
+      <% if bin.count.positive? %>
+        <path d="<%= bar_path(bin) %>" fill="<%= bin_fill(bin) %>"/>
+      <% end %>
+      <text x="<%= LEFT + bin.width + 5 %>" y="<%= bin.y + 12 %>" class="value"><%= bin.count %></text>
+    </g>
+  <% end %>
+  <line data-short-boundary x1="0" x2="<%= WIDTH %>" y1="<%= boundary_y %>" y2="<%= boundary_y %>" stroke="<%= BOUNDARY %>" stroke-width="1"/>
+  <text x="<%= WIDTH %>" y="<%= boundary_label_y %>" text-anchor="end" class="tick"><%= boundary_label %></text>
+</svg>

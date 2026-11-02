@@ -18,12 +18,11 @@
 # and the next one is loaded, because nobody watches the schedule and one
 # route's bad data must not keep the other routes out of production.
 #
-# One run at a time: the lock on tmp/nightly-load.lock is taken before the
-# forward and held to the end, because a manual --recompute can run for half
-# an hour while the schedule starts the next run, and both would write the
-# same route day. Before anything is read or written, the migration versions
-# of production must be those of this checkout, which may be an hour behind
-# or ahead of the deployed image.
+# One run at a time: the lock is taken before the forward and held to the end,
+# because a manual --recompute can run for half an hour while the schedule
+# starts the next run, and both would write the same route day. Before anything
+# is read or written, the migration versions of production must be those of
+# this checkout. ProductionSession does both, for bin/monthly-cards too.
 class NightlyLoadCommand
   USAGE = <<~TEXT.freeze
     用法：bin/nightly-load                       印出要寫進正式站的路線日，不動正式站
@@ -32,7 +31,6 @@ class NightlyLoadCommand
     原始檔的資料根目錄由環境變數 TURNAROUND_DATA 給，正式站的資料庫密碼由 WEBSITE_DATABASE_PASSWORD 給。
   TEXT
   ROUTE_ID = /\A[1-9]\d*\z/
-  PORT = /\A[1-9]\d{0,4}\z/
 
   # A reason that stops the command; the message is what to print.
   class Failure < StandardError; end
@@ -60,10 +58,7 @@ class NightlyLoadCommand
     @route_ids = route_ids
     @days = days
     @loader = loader
-    @tunnel = tunnel
-    @lock_path = lock_path.to_s
-    @checkout_versions = checkout_versions
-    @deploy = deploy
+    @session = ProductionSession.new(action: "載入", out:, tunnel:, lock_path:, checkout_versions:, deploy:)
   end
 
   # Returns the exit status: 0 when every route day loaded was written and no
@@ -71,16 +66,13 @@ class NightlyLoadCommand
   def run
     load, recompute = parse
     route_id = route_filter(recompute)
-    with_lock do
+    @session.with_lock do
       candidates = derived_days.candidates(now: @now)
       local_port, duckdb = check_environment
-      @tunnel.open(host: ssh_host, user: ssh_user, local_port:) { plan_and_load(candidates, route_id, recompute:, load:, duckdb:) }
+      @session.open(local_port:) { plan_and_load(candidates, route_id, recompute:, load:, duckdb:) }
     end
-  rescue Failure => e
+  rescue Failure, ProductionSession::Failure => e
     @out.puts(e.message)
-    1
-  rescue ProductionTunnel::Error => e
-    @out.puts("開不了到正式站的轉送：#{e.message}")
     1
   end
 
@@ -126,51 +118,22 @@ class NightlyLoadCommand
   def check_environment
     usage!("沒有 TURNAROUND_DATA") if @env["TURNAROUND_DATA"].to_s.empty?
     usage!("沒有 WEBSITE_DATABASE_PASSWORD") if @env["WEBSITE_DATABASE_PASSWORD"].to_s.empty?
-    port = @env["DB_PORT"].to_s
-    usage!("TUNNEL_PORT（DB_PORT）不是埠號：#{port}") unless PORT.match?(port) && Integer(port) <= 65_535
+    port = ProductionSession.local_port(@env["DB_PORT"]) || usage!("TUNNEL_PORT（DB_PORT）不是埠號：#{@env['DB_PORT']}")
     duckdb = AnalysisRun.find_duckdb(@env["PATH"]) or raise Failure, "需要 DuckDB CLI，安裝：brew install duckdb"
 
-    [ Integer(port), duckdb ]
+    [ port, duckdb ]
   end
 
   def usage!(reason) = raise(Failure, "#{reason}\n\n#{USAGE}")
 
-  # Runs the block holding the lock, released when the file is closed; does
-  # nothing and returns 0 when another run holds it.
-  def with_lock
-    FileUtils.mkdir_p(File.dirname(@lock_path))
-    File.open(@lock_path, File::RDWR | File::CREAT, 0o644) do |lock|
-      unless lock.flock(File::LOCK_EX | File::LOCK_NB)
-        @out.puts("另一個 bin/nightly-load 還在跑，這次不做")
-        return 0
-      end
-
-      yield
-    end
-  end
-
   # Everything that reads or writes production, inside the forward. Returns
   # the exit status.
   def plan_and_load(candidates, route_id, recompute:, load:, duckdb:)
-    check_migration_versions
     plan = plan(candidates, route_id ? [ route_id ] : @route_ids, recompute:)
     print_plan(plan, route_id:, recompute:, load:)
     failed = load ? load_route_days(plan.to_load, duckdb) : 0
     @out.puts("載入 #{plan.to_load.size - failed} 個路線日、失敗 #{failed} 個、原始檔不齊 #{plan.incomplete.size} 天") if load
     failed.zero? && plan.incomplete.empty? ? 0 : 1
-  end
-
-  # Prints the target with whether the migration versions agree; stops when
-  # they do not, because the loader writes the columns of this checkout.
-  def check_migration_versions
-    target = "正式站：#{ssh_user}@#{ssh_host} 的 #{ActiveRecord::Base.connection_db_config.database}"
-    database = ActiveRecord::Base.connection_pool.migration_context.get_all_versions
-    only_database, only_checkout = (database - @checkout_versions).sort, (@checkout_versions - database).sort
-    return @out.puts("#{target}，migration 版本一致") if only_database.empty? && only_checkout.empty?
-
-    lines = [ ("  只在正式站：#{only_database.join('、')}" if only_database.any?), ("  只在這份 checkout：#{only_checkout.join('、')}" if only_checkout.any?) ]
-    raise Failure, [ "#{target}，migration 版本不一致，這次不載入：", *lines.compact,
-                     "正式站多的要等這份 checkout 跟上 origin/main，checkout 多的要等正式站 deploy；兩邊一樣才載入。" ].join("\n")
   end
 
   def plan(candidates, route_ids, recompute:)
@@ -234,11 +197,5 @@ class NightlyLoadCommand
 
     @out.puts(heading)
     lines.each { @out.puts("  #{it}") }
-  end
-
-  def ssh_user = @deploy.dig("ssh", "user") || "root"
-
-  def ssh_host
-    @deploy.dig("accessories", "db", "host") or raise Failure, "config/deploy.yml 沒有 accessories 的 db.host"
   end
 end

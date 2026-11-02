@@ -22,6 +22,12 @@ RSpec.describe RoutePage::LoadProfile, type: :model do
     expect([ profile.stops.map(&:stop_name), profile.rows.map { [ it.seq, it.stop_name, it.n_trips ] } ]).to eq([ [ "丙站" ], [ [ 2, "丙站", 1 ] ] ])
   end
 
+  it "涵蓋日子已經排序（RoutePage::Coverage 給的就是這樣）時，站序仍取最新一天" do
+    route_day(Date.new(2026, 10, 19), [ 0, 0 ] => "舊站")
+    route_day(Date.new(2026, 10, 20), [ 0, 0 ] => "新站")
+    expect(described_class.new(RouteDay.order(:day)).stops.map(&:stop_name)).to eq([ "新站" ])
+  end
+
   it "站序取最新那一天的站牌，依方向與站序排" do
     days = [ route_day(Date.new(2026, 10, 19), [ 0, 0 ] => "舊站"),
              route_day(Date.new(2026, 10, 20), [ 1, 2 ] => "丙站", [ 0, 1 ] => "乙站", [ 0, 0 ] => "甲站") ]

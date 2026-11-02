@@ -1,0 +1,39 @@
+<section data-card-section="summary">
+  <div class="masthead">
+    <%= image_tag "turnaround-logo.webp", alt: t("site.name"), width: 640, height: 219 %>
+    <span><%= t(".card_name") %></span>
+  </div>
+  <h1><%= month_card.route_name %></h1>
+  <p data-route-line class="sub"><%= route_line %></p>
+  <p data-month class="month"><%= month_label %></p>
+  <p data-coverage class="coverage"><%= coverage_sentence %></p>
+
+  <table class="kpi">
+    <thead>
+      <tr><th></th><th><%= t(".weekdays") %></th><th><%= t(".holidays") %></th><th><%= t(".last_month") %></th></tr>
+    </thead>
+    <tbody>
+      <% groups.each do |group| %>
+        <tr class="group"><th colspan="4" data-group="<%= group.key %>"><%= group.title %></th></tr>
+        <% group.rows.each do |row| %>
+          <tr data-row="<%= row.key %>">
+            <th><%= row.label %></th>
+            <td data-set="weekday" class="strong"><%= row.values[0] %></td>
+            <td data-set="holiday"><%= row.values[1] %></td>
+            <td data-set="previous" class="muted"><%= row.values[2] %></td>
+          </tr>
+        <% end %>
+      <% end %>
+    </tbody>
+  </table>
+
+  <% if findings.any? %>
+    <h3><%= t(".findings") %></h3>
+    <ol data-findings class="findings">
+      <% findings.each do |sentence| %>
+        <li><%= sentence %></li>
+      <% end %>
+    </ol>
+  <% end %>
+  <p class="note"><%= t(".reading_note") %></p>
+</section>

@@ -1,0 +1,19 @@
+---
+tw: &tw
+  title: 來回一趟與週期
+  lead: 來回一趟是從%{first}發車，到回到%{last}為止，中間含另一端的停留。週期是這台車回到%{last}，到下一次再回到這一站，中間的休息都算在內。週期是業者實際維持的節奏。週期最緊的一成跟來回一趟的中位數差不多長的時段，車回到停車端幾乎沒有多餘的時間。
+  caption: 依前段發車的小時（平日，只畫筆數 5 以上的小時；單位：分鐘）
+  aria: 依前段發車的小時，來回一趟 p50 與週期 p10 兩條線，兩者差不到 4 分鐘的小時是淺灰底；數字在行駛時間那一節的表
+  round_trip_legend: 來回一趟 p50
+  cycle_legend: 週期 p10（最緊的一成）
+  tight_legend: 兩者差不到 4 分鐘的小時
+zh-TW:
+  <<: *tw
+en:
+  title: Round trips and cycles
+  lead: A round trip runs from leaving %{first} to getting back to %{last}, including the stop at the other end. A cycle runs from a vehicle's return to %{last} to its next return there, with every rest in it, and is the rhythm the operator actually keeps. Where the tightest tenth of cycles is about as long as the median round trip, a vehicle gets back to the stopping end with almost no time to spare.
+  caption: By the hour the first trip left (weekdays, hours with at least 5 values; minutes)
+  aria: Round trip p50 and cycle p10 by the hour the first trip left, with hours where they differ by under 4 minutes shaded; the figures are in the run times table
+  round_trip_legend: Round trip p50
+  cycle_legend: Cycle p10 (the tightest tenth)
+  tight_legend: Hours where they differ by under 4 minutes

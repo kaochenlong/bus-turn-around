@@ -7,24 +7,28 @@ require_relative "../../lib/analysis_run"
 
 RSpec.describe "analysis/derived_export.sql" do
   # Runs every stage, mrt_overlap.sql, gps_reports.sql, turnaround_facilities.sql,
-  # route_shape.sql, depots.sql, stop_speeds.sql, stop_districts.sql and
-  # derived_export.sql on the fixture day with
+  # route_shape.sql, depots.sql, stop_speeds.sql, stop_districts.sql,
+  # published_schedule.sql and derived_export.sql on the fixture day with
   # both ends stopping, returns the derived CSV files as { name => bytes }.
   # `public_toilets_path` replaces the fixture's toilet snapshot,
-  # `bus_shape_path` its route shapes file and `provider_path` its operators
-  # and stations file.
+  # `bus_shape_path` its route shapes file, `provider_path` its operators and
+  # stations file, and `semi_time_table_path` and `time_table_path` its
+  # published schedule files.
   def export(public_toilets_path: fixture_path("external/public-toilets/2026-10-19.csv"),
              bus_shape_path: fixture_path("static/2026-10-19/GetBusShape.gz"),
              provider_path: fixture_path("static/2026-10-19/GetProvider.gz"),
-             stop_districts_path: fixture_path("external/stop-districts/2026-10-19.csv"), **variables)
+             stop_districts_path: fixture_path("external/stop-districts/2026-10-19.csv"),
+             semi_time_table_path: fixture_path("static/2026-10-19/GetSemiTimeTable.gz"),
+             time_table_path: fixture_path("static/2026-10-19/GetTimeTable.gz"), **variables)
     Dir.mktmpdir("derived-export") do |dir|
       derived_dir = File.join(dir, "derived").tap { FileUtils.mkdir_p(it) }
       variables = DuckdbHelpers::FIXTURE_VARIABLES.merge(
         inspect_dir: dir, derived_dir:, mrt_exits_path: fixture_path("external/taipei-mrt-exits/2026-10-19.csv"), mrt_exits_day: Date.new(2026, 10, 19),
         public_toilets_path:, public_toilets_day: Date.new(2026, 10, 19), end_nature_0: "stop", end_nature_1: "stop", bus_shape_path:, provider_path:,
-        stop_districts_path:, stop_districts_day: Date.new(2026, 10, 19)
+        stop_districts_path:, stop_districts_day: Date.new(2026, 10, 19), semi_time_table_path:, time_table_path:
       ).merge(variables)
-      AnalysisRun.run("duckdb", variables, extra_files: %w[mrt_overlap.sql gps_reports.sql turnaround_facilities.sql route_shape.sql depots.sql stop_speeds.sql stop_districts.sql derived_export.sql])
+      AnalysisRun.run("duckdb", variables, extra_files: %w[mrt_overlap.sql gps_reports.sql turnaround_facilities.sql route_shape.sql depots.sql stop_speeds.sql stop_districts.sql
+                                                           published_schedule.sql derived_export.sql])
       Dir.children(derived_dir).sort.to_h { [ it, File.binread(File.join(derived_dir, it)) ] }
     end
   end
@@ -35,11 +39,15 @@ RSpec.describe "analysis/derived_export.sql" do
   let(:expected_headers) do
     { "depots.csv" => "station_id,provider_name,station_name,n_buses,n_trips",
       "districts.csv" => "county,town,n_locations,share,qualifies",
+      "driving_stretches.csv" => "bus_id,start_time,end_time,n_trips",
       "end_cells.csv" => "go_back,cell_latitude,cell_longitude,n_records,n_buses,n_layovers",
       "end_toilets.csv" => "go_back,name,category,address,latitude,longitude,meters",
       "ends.csv" => "go_back,end_seq,end_stop_name,end_latitude,end_longitude,location_source,latitude,longitude," \
                     "n_layovers,n_located_layovers,n_standstill_records,end_stop_meters",
       "layovers.csv" => "bus_id,go_back,end_time,next_start_time",
+      "published_departures.csv" => "route_id,path_attribute_id,date_value,minute",
+      "published_headways.csv" => "route_id,path_attribute_id,date_value,start_minute,end_minute,low_minutes,high_minutes",
+      "rest_windows.csv" => "bus_id,rule,start_time,end_time,n_trips,credit_minutes,longest_layover_minutes,flagged,over_daily_driving",
       "route_day.csv" => "route_id,day,route_name,departure,destination,static_day,mrt_exits_day,public_toilets_day,stop_districts_day,member_names",
       "shapes.csv" => "go_back,shape_updated_at,points,issue",
       "stop_speeds.csv" => "bus_id,start_time,seq,band,meters,seconds",
@@ -53,12 +61,15 @@ RSpec.describe "analysis/derived_export.sql" do
 
   def rows(name, from = files) = from.fetch(name).dup.force_encoding(Encoding::UTF_8).lines.drop(1).map(&:chomp)
 
+  # The rows of a file as hashes keyed by column name, every value a string.
+  def table(name) = CSV.parse(files.fetch(name).dup.force_encoding(Encoding::UTF_8), headers: true).map(&:to_h)
+
   it "analysis/ 裡只有 gps_reports.sql 把 bus_data 傳給 day_files" do
     readers = Dir[File.join(DuckdbHelpers::ANALYSIS_DIR, "*.sql")].select { File.read(it).match?(/day_files\(\s*'bus_data'/) }
     expect(readers.map { File.basename(it) }).to eq(%w[gps_reports.sql])
   end
 
-  it "寫出十二個檔，欄位名照固定順序" do
+  it "寫出十六個檔，欄位名照固定順序" do
     expect(files.transform_values { it.lines.first.chomp }).to eq(expected_headers)
   end
 
@@ -87,6 +98,71 @@ RSpec.describe "analysis/derived_export.sql" do
 
   it "行政區兩列，站位多的在前：臺北市 測試區 9 個站位、占比 0.9、達門檻，新北市 甲區 1 個站位、0.1、剛好在門檻上也達" do
     expect(rows("districts.csv")).to eq([ "臺北市,測試區,9,0.9,true", "新北市,甲區,1,0.1,true" ])
+  end
+
+  describe "連續 4／6 小時的視窗" do
+    let(:windows) { table("rest_windows.csv") }
+
+    it "4 小時 9 列、6 小時 7 列，照規則、車牌與起點排序，時刻帶 +08:00" do
+      expect([ windows.map { it["rule"] }.tally, windows.first.values_at("rule", "bus_id", "start_time") ]).to eq(
+        [ { "four_hours" => 9, "six_hours" => 7 }, [ "four_hours", "TEST-0001", "2026-10-19 06:00:00+08:00" ] ]
+      )
+    end
+
+    it "被標的只有 TEST-0001 從 06:00 與 07:00 起的 4 小時視窗" do
+      flagged = windows.select { it["flagged"] == "true" }.map { it.values_at("rule", "bus_id", "start_time") }
+      expect(flagged).to eq([ [ "four_hours", "TEST-0001", "2026-10-19 06:00:00+08:00" ], [ "four_hours", "TEST-0001", "2026-10-19 07:00:00+08:00" ] ])
+    end
+
+    it "6 小時的第一列：到 13:14、6 趟、額度與最長一次都是 56.0 分鐘，沒超過當天行駛上限" do
+      row = windows.find { it["rule"] == "six_hours" }
+      expect(row.values_at("end_time", "n_trips", "credit_minutes", "longest_layover_minutes", "flagged", "over_daily_driving"))
+        .to eq([ "2026-10-19 13:14:00+08:00", "6", "56.0", "56.0", "false", "false" ])
+    end
+
+    it "這一天沒有車超過當天行駛上限" do
+      expect(windows.map { it["over_daily_driving"] }.uniq).to eq(%w[false])
+    end
+  end
+
+  it "連續行駛段 15 列，照車牌與起點排序：第一列是 TEST-0001 06:00 到 11:30、5 趟" do
+    stretches = table("driving_stretches.csv")
+    expect([ stretches.size, stretches.first ]).to eq(
+      [ 15, { "bus_id" => "TEST-0001", "start_time" => "2026-10-19 06:00:00+08:00", "end_time" => "2026-10-19 11:30:00+08:00", "n_trips" => "5" } ]
+    )
+  end
+
+  describe "公告班距與定時班次，2026-10-19 掛成員路線 9050" do
+    let(:files) { export(member_route_ids: [ 9001, 9050 ]) }
+
+    it "班距 18 列、定時班次 6 列" do
+      expect([ rows("published_headways.csv").size, rows("published_departures.csv").size ]).to eq([ 18, 6 ])
+    end
+
+    it "班距照所有欄位排序：第一列是 9001 的 DateValue 1，最後一列是 9002 的 DateValue 2" do
+      headways = rows("published_headways.csv")
+      expect(headways.values_at(0, 1, -1)).to eq(%w[9001,9001,1,360,1320,20,30 9001,9001,2,360,480,5,10 9001,9002,2,360,480,5,10])
+    end
+
+    it "1700 到 0000 寫成 1020 到 1440" do
+      expect(rows("published_headways.csv")).to include("9001,9001,2,1020,1440,30,30")
+    end
+
+    it "定時班次照所有欄位排序" do
+      expect(rows("published_departures.csv")).to eq(%w[9001,9001,2,1350 9050,9050,1,540 9050,9050,2,420 9050,9050,2,510 9050,9050,6,420 9050,9050,6,510])
+    end
+  end
+
+  it "沒掛成員路線：定時班次只有 9001 的 1 列，班距照樣 18 列" do
+    expect([ rows("published_headways.csv").size, rows("published_departures.csv") ]).to eq([ 18, %w[9001,9001,2,1350] ])
+  end
+
+  it "兩支檔的替代檔 BusInfo 是空的：兩個檔只有表頭" do
+    stored = Dir.mktmpdir do |dir|
+      empty = File.join(dir, "no_rows.json").tap { File.write(it, '{"BusInfo":[]}') }
+      export(semi_time_table_path: empty, time_table_path: empty)
+    end
+    expect([ rows("published_headways.csv", stored), rows("published_departures.csv", stored) ]).to eq([ [], [] ])
   end
 
   it "站間車速一列：TEST-0001 06:00 那趟的 leg 1，其餘時段，200.0 公尺 40 秒" do
@@ -177,7 +253,7 @@ RSpec.describe "analysis/derived_export.sql" do
     expect(stored).to eq([ "0,,,no_row", "1,,,no_row" ])
   end
 
-  it "連跑兩次，十二個檔位元組相同" do
+  it "連跑兩次，十六個檔位元組相同" do
     expect(export).to eq(files)
   end
 end

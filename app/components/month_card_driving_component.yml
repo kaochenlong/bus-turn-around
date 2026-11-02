@@ -1,0 +1,29 @@
+---
+tw: &tw
+  title: 連續行駛
+  lead: 汽車運輸業管理規則第 19 條之 2：連續駕車 4 小時至少休息 30 分鐘，分次休息每次不少於 15 分鐘；工作具連續性或交通壅塞時可以另外調配，但連續駕車不得超過 6 小時，且要一次休滿 45 分鐘。這裡把規定套在同一台車相鄰的完整趟次上，一個視窗從某一趟發車算起、到第一個滿 4（或 6）小時的趟次為止，不完整的趟次會切斷序列，所以分母只算能判斷的視窗。只報數字，不做判定：資料看得到車，看不到是誰在開。
+  condition: 條件
+  windows: 能判斷的視窗
+  flagged: 符合條件的視窗
+  share: 比例
+  day_range: 逐日範圍
+  conditions:
+    four_hours: 連續 4 小時停留累計不到 30 分鐘
+    six_hours: 連續 6 小時沒有一次停滿 45 分鐘
+  over_daily: 平日的連續 4 小時視窗有 %{count} 個（%{share}）落在當天行駛超過 10 小時的車上，這種車若守每日駕車 10 小時的規定就換過人；其餘的車有可能一人開完，也可能兩人開。
+  stretches: 平日沒有一次 15 分鐘以上停留的連續行駛：中位數 %{p50} 分鐘，最長一成 %{p90} 分鐘以上，共 %{total} 段，其中超過 4 小時 %{over_four} 段、超過 6 小時 %{over_six} 段。
+zh-TW:
+  <<: *tw
+en:
+  title: Continuous driving
+  lead: "Article 19-2 of the Regulations for Motor Vehicle Transport: after 4 hours of continuous driving, rest at least 30 minutes, each break at least 15 minutes. Where the work is continuous or traffic is congested it may be arranged otherwise, but continuous driving may not exceed 6 hours, followed by one rest of 45 minutes. Here the rule is applied to a vehicle's adjacent complete trips. A window runs from the start of a trip to the first trip that completes 4 (or 6) hours, and an incomplete trip cuts the sequence, so the denominator is only the windows that can be judged. These are numbers only, without a verdict: the data sees vehicles, not who drives them."
+  condition: Condition
+  windows: Windows that can be judged
+  flagged: Windows meeting the condition
+  share: Share
+  day_range: Daily range
+  conditions:
+    four_hours: Four hours with under 30 minutes of layovers in total
+    six_hours: Six hours with no single layover of 45 minutes
+  over_daily: "%{count} weekday four-hour windows (%{share}) are on vehicles that drove over 10 hours that day. Such a vehicle changed drivers if the 10-hour daily limit was kept; the others may have had one driver or two. "
+  stretches: "Weekday driving without a layover of 15 minutes: median %{p50} minutes, the longest tenth %{p90} minutes or more, %{total} stretches, %{over_four} over 4 hours and %{over_six} over 6 hours."

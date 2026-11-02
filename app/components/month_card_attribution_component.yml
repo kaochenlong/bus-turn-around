@@ -1,0 +1,21 @@
+---
+# The licence lines repeat docs/data-sources.md word for word, as the footer's do
+# (attribution_component.yml); the first line names the feeds this card uses.
+tw: &tw
+  title: 資料來源與顯名聲明
+  feeds: 臺北市公共運輸處 2026 臺北市公車開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、路線（GetRoute）、站牌（GetStop）、附屬路線與路線對應（GetPathDetail）、公車路線軌跡（GetBusShape）、業者營運基本資料（GetProvider）、機動班次時刻表（GetSemiTimeTable）、預定班表資訊（GetTimeTable），見 Data.Taipei 平台 API 說明文件 V6.3
+  licence: 此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。
+  licence_url: 政府資料開放授權條款：https://data.gov.tw/license
+  office_calendar: 行政院人事行政總處 中華民國政府行政機關辦公日曆表（data.gov.tw/dataset/14718），依政府資料開放授權條款第 1 版釋出
+  regulation: 法規：全國法規資料庫 汽車運輸業管理規則。
+  no_endorsement: 提供資料不代表該機關推薦、同意或核准本專案。
+  program: 分析程式與定義：%{repository}（commit %{version}）。
+zh-TW:
+  <<: *tw
+# The licence's required wording stays untranslated, as in the footer.
+en:
+  <<: *tw
+  title: Data sources and attribution
+  regulation: "Regulation: Laws & Regulations Database, 汽車運輸業管理規則."
+  no_endorsement: Providing the data does not mean the agency recommends, agrees with or approves this project.
+  program: "Program and definitions: %{repository} (commit %{version})."

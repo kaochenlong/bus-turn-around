@@ -43,6 +43,12 @@ en:
     description: "%{span}, %{coverage}: %{ends}. %{bound}"
     bound: "A layover is an upper bound on the driver's rest, not working time."
     span: "%{departure}–%{destination}"
+  route_cards:
+    index:
+      title: "%{route_name} health card | %{site_name}"
+    show:
+      title: "%{route_name} health card %{year}-%{month} | %{site_name}"
+      needs_reload: Some days of this month have not been recomputed, so the continuous driving or published schedule figures are incomplete.
   day_types:
     weekday: weekday
     holiday: holiday

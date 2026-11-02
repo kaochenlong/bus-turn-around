@@ -77,7 +77,7 @@ RSpec.describe DerivedLoadCommand, :duckdb, type: :model do
     # Like data_root, with a static snapshot of 2026-10-19 that has every fixture file but GetProvider.gz.
     def data_root_without_providers(dir)
       static = File.join(data_root(dir, feeds: %w[bus_event bus_seat_event bus_data]), "static/2026-10-19").tap { FileUtils.mkdir_p(it) }
-      %w[GetRoute.gz GetStop.gz GetPathDetail.gz GetBusShape.gz].each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, "static/2026-10-19", it), File.join(static, it)) }
+      %w[GetRoute.gz GetStop.gz GetPathDetail.gz GetBusShape.gz GetSemiTimeTable.gz GetTimeTable.gz].each { File.symlink(File.join(DuckdbHelpers::FIXTURE_DATA, "static/2026-10-19", it), File.join(static, it)) }
       dir
     end
 

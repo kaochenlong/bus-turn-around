@@ -1,0 +1,66 @@
+<section data-card-section="run-times">
+  <h2><%= t(".title") %></h2>
+  <p data-run-times-lead class="lead"><%= t(".lead", outbound: outbound_excluded, inbound: inbound_excluded) %><% if fewer_direction %><%= t(".fewer", direction: fewer_direction) %><% end %><%= t(".small_sample_note") %></p>
+  <table class="hours">
+    <thead>
+      <tr>
+        <th></th>
+        <th colspan="3" class="start"><%= t(".outbound") %></th><th colspan="3" class="start"><%= t(".inbound") %></th>
+        <th colspan="3" class="start"><%= t(".round_trip") %></th><th colspan="3" class="start"><%= t(".cycle") %></th>
+      </tr>
+      <tr>
+        <th class="l"><%= t(".hour") %></th>
+        <th class="start"><%= t(".trips") %></th><th>p50</th><th>p85</th>
+        <th class="start"><%= t(".trips") %></th><th>p50</th><th>p85</th>
+        <th class="start"><%= t(".count") %></th><th>p50</th><th>p85</th>
+        <th class="start"><%= t(".count") %></th><th>p10</th><th>p50</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% hours.each do |row| %>
+        <tr data-hour="<%= row.hour %>">
+          <td class="l"><%= format("%02d", row.hour) %></td>
+          <% [ row.outbound, row.inbound, row.round_trip, row.cycle ].each do |group| %>
+            <% small = group.small? ? "smallsample" : nil %>
+            <td class="<%= class_names("start n", small) %>"><%= group.count %></td>
+            <td class="<%= small %>"><%= group.first %></td>
+            <td class="<%= small %>"><%= group.second %></td>
+          <% end %>
+        </tr>
+      <% end %>
+      <tr data-total class="total">
+        <td class="l"><%= t(".whole_day") %></td>
+        <td colspan="6" class="start n"></td>
+        <% [ total_round_trip, total_cycle ].each do |group| %>
+          <td class="start n"><%= group.count %></td>
+          <td><%= group.first %></td>
+          <td><%= group.second %></td>
+        <% end %>
+      </tr>
+    </tbody>
+  </table>
+
+  <% if slow_legs.any? %>
+    <div class="keep-together">
+    <h3><%= t(".slow_legs") %></h3>
+    <table data-slow-legs>
+      <thead>
+        <tr><th class="l"></th><th class="l"><%= t(".between") %></th><th class="l"><%= t(".band") %></th><th><%= t(".meters") %></th><th><%= t(".trips") %></th><th><%= t(".kmh") %></th></tr>
+      </thead>
+      <tbody>
+        <% slow_legs.each do |leg| %>
+          <tr data-slow-leg>
+            <td class="l"><%= direction_name(leg.go_back) %></td>
+            <td class="l"><%= leg.from_name %> → <%= leg.to_name %></td>
+            <td class="l"><%= t(".bands.#{leg.band}") %></td>
+            <td><%= whole(leg.meters) %></td>
+            <td><%= leg.n_trips %></td>
+            <td class="strong"><%= decimal(leg.kmh) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <p class="note"><%= t(".speed_note") %></p>
+    </div>
+  <% end %>
+</section>

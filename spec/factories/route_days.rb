@@ -2,21 +2,23 @@
 #
 # Table name: route_days
 #
-#  id                  :bigint           not null, primary key
-#  day                 :date             not null
-#  day_note            :string
-#  day_type            :string           not null
-#  departure           :string           not null
-#  destination         :string           not null
-#  loaded_at           :timestamptz      not null
-#  member_names        :jsonb            not null
-#  mrt_exits_day       :date
-#  office_calendar_day :date             not null
-#  public_toilets_day  :date
-#  route_name          :string           not null
-#  static_day          :date             not null
-#  stop_districts_day  :date
-#  route_id            :integer          not null
+#  id                     :bigint           not null, primary key
+#  day                    :date             not null
+#  day_note               :string
+#  day_type               :string           not null
+#  departure              :string           not null
+#  destination            :string           not null
+#  loaded_at              :timestamptz      not null
+#  member_names           :jsonb            not null
+#  mrt_exits_day          :date
+#  office_calendar_day    :date             not null
+#  public_toilets_day     :date
+#  published_schedule_day :date
+#  rest_windows_loaded    :boolean          default(FALSE), not null
+#  route_name             :string           not null
+#  static_day             :date             not null
+#  stop_districts_day     :date
+#  route_id               :integer          not null
 #
 # Indexes
 #

@@ -9,6 +9,7 @@ tw: &tw
   new_tab: 另開新分頁
   timetable: 班表
   day_dispatch: 當天調度
+  month_cards: 健檢卡
 zh-TW:
   <<: *tw
 en:
@@ -18,3 +19,4 @@ en:
   new_tab: opens in a new tab
   timetable: Timetable
   day_dispatch: Day dispatch
+  month_cards: Health cards

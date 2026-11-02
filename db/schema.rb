@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_01_172102) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_02_054500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -21,6 +21,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_172102) do
     t.timestamptz "end_time", null: false
     t.timestamptz "next_start_time", null: false
     t.index ["route_day_id"], name: "index_layovers_on_route_day_id"
+  end
+
+  create_table "route_card_pdfs", force: :cascade do |t|
+    t.bigint "route_card_id", null: false
+    t.binary "pdf", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["route_card_id"], name: "index_route_card_pdfs_on_route_card_id", unique: true
+  end
+
+  create_table "route_cards", force: :cascade do |t|
+    t.integer "route_id", null: false
+    t.date "month", null: false
+    t.integer "version", default: 1, null: false
+    t.jsonb "coverage", null: false
+    t.jsonb "summary"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "pdf_sha256"
+    t.integer "pdf_bytes"
+    t.string "program_version"
+    t.datetime "printed_at"
+    t.text "revision_reason"
+    t.index ["route_id", "month", "version"], name: "index_route_cards_on_route_id_and_month_and_version", unique: true
+    t.check_constraint "(num_nonnulls(pdf_sha256, pdf_bytes, program_version, printed_at) = ANY (ARRAY[0, 4])) AND (printed_at IS NULL OR summary IS NOT NULL)", name: "route_cards_printed_complete"
+    t.check_constraint "EXTRACT(day FROM month) = 1::numeric", name: "route_cards_month_first_day"
   end
 
   create_table "route_day_depots", force: :cascade do |t|
@@ -41,6 +67,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_172102) do
     t.float "share", null: false
     t.boolean "qualifies", null: false
     t.index ["route_day_id", "county", "town"], name: "index_route_day_districts_on_route_day_id_and_county_and_town", unique: true
+  end
+
+  create_table "route_day_driving_stretches", force: :cascade do |t|
+    t.bigint "route_day_id", null: false
+    t.string "bus_id", null: false
+    t.timestamptz "start_time", null: false
+    t.timestamptz "end_time", null: false
+    t.integer "n_trips", null: false
+    t.index ["route_day_id", "bus_id", "start_time"], name: "index_route_day_driving_stretches_on_day_bus_start", unique: true
   end
 
   create_table "route_day_end_cells", force: :cascade do |t|
@@ -79,6 +114,42 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_172102) do
     t.integer "n_standstill_records", null: false
     t.float "end_stop_meters"
     t.index ["route_day_id", "go_back"], name: "index_route_day_ends_on_route_day_id_and_go_back", unique: true
+  end
+
+  create_table "route_day_published_departures", force: :cascade do |t|
+    t.bigint "route_day_id", null: false
+    t.integer "route_id", null: false
+    t.integer "path_attribute_id", null: false
+    t.integer "date_value", null: false
+    t.integer "minute", null: false
+    t.index ["route_day_id", "route_id", "date_value"], name: "index_route_day_published_departures_on_day_route_value"
+  end
+
+  create_table "route_day_published_headways", force: :cascade do |t|
+    t.bigint "route_day_id", null: false
+    t.integer "route_id", null: false
+    t.integer "path_attribute_id", null: false
+    t.integer "date_value", null: false
+    t.integer "start_minute", null: false
+    t.integer "end_minute", null: false
+    t.integer "low_minutes", null: false
+    t.integer "high_minutes", null: false
+    t.index ["route_day_id", "route_id", "date_value"], name: "index_route_day_published_headways_on_day_route_value"
+  end
+
+  create_table "route_day_rest_windows", force: :cascade do |t|
+    t.bigint "route_day_id", null: false
+    t.string "bus_id", null: false
+    t.string "rule", null: false
+    t.timestamptz "start_time", null: false
+    t.timestamptz "end_time", null: false
+    t.integer "n_trips", null: false
+    t.float "credit_minutes", null: false
+    t.float "longest_layover_minutes", null: false
+    t.boolean "flagged", null: false
+    t.boolean "over_daily_driving", null: false
+    t.index ["route_day_id", "rule", "bus_id", "start_time"], name: "index_route_day_rest_windows_on_day_rule_bus_start", unique: true
+    t.check_constraint "rule::text = ANY (ARRAY['four_hours'::character varying, 'six_hours'::character varying]::text[])", name: "route_day_rest_windows_rule"
   end
 
   create_table "route_day_shapes", force: :cascade do |t|
@@ -120,6 +191,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_172102) do
     t.date "public_toilets_day"
     t.jsonb "member_names", default: {}, null: false
     t.date "stop_districts_day"
+    t.boolean "rest_windows_loaded", default: false, null: false
+    t.date "published_schedule_day"
     t.index ["route_id", "day"], name: "index_route_days_on_route_id_and_day", unique: true
   end
 
@@ -159,11 +232,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_172102) do
   end
 
   add_foreign_key "layovers", "route_days", on_delete: :cascade
+  add_foreign_key "route_card_pdfs", "route_cards"
   add_foreign_key "route_day_depots", "route_days", on_delete: :cascade
   add_foreign_key "route_day_districts", "route_days", on_delete: :cascade
+  add_foreign_key "route_day_driving_stretches", "route_days", on_delete: :cascade
   add_foreign_key "route_day_end_cells", "route_day_ends", on_delete: :cascade
   add_foreign_key "route_day_end_toilets", "route_day_ends", on_delete: :cascade
   add_foreign_key "route_day_ends", "route_days", on_delete: :cascade
+  add_foreign_key "route_day_published_departures", "route_days", on_delete: :cascade
+  add_foreign_key "route_day_published_headways", "route_days", on_delete: :cascade
+  add_foreign_key "route_day_rest_windows", "route_days", on_delete: :cascade
   add_foreign_key "route_day_shapes", "route_days", on_delete: :cascade
   add_foreign_key "route_day_stops", "route_days", on_delete: :cascade
   add_foreign_key "trip_stop_counts", "trips", on_delete: :cascade

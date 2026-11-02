@@ -44,9 +44,20 @@ RSpec.describe DerivedPushCommand, type: :model do
     create(:route_day_depot, route_day:)
   end
 
-  it "衍生表是 route_days 加上沿外鍵連到它的每一張表，目前十二張，route_day_districts 在直接參照 route_days 的那一群" do
-    expect(described_class.derived_tables).to eq(%w[route_days layovers route_day_depots route_day_districts route_day_ends route_day_shapes
+  it "衍生表是 route_days 加上沿外鍵連到它的每一張表，目前十六張，公告班距與定時班次在直接參照 route_days 的那一群" do
+    expect(described_class.derived_tables).to eq(%w[route_days layovers route_day_depots route_day_districts route_day_driving_stretches route_day_ends
+                                                     route_day_published_departures route_day_published_headways route_day_rest_windows route_day_shapes
                                                      route_day_stops trips route_day_end_cells route_day_end_toilets trip_stop_counts trip_stop_speeds])
+  end
+
+  it "route_cards 不是衍生表：它不參照 route_days，整份換掉時帶不走定稿的月卡" do
+    create(:route_card)
+    expect(described_class.derived_tables).not_to include("route_cards")
+  end
+
+  it "route_card_pdfs 也不是衍生表：它只連到 route_cards" do
+    create(:route_card, :printed)
+    expect(described_class.derived_tables).not_to include("route_card_pdfs")
   end
 
   it "沒加 --push：印出目標、每張表的列數與每條路線的日子，不跑任何指令，結束碼 0" do

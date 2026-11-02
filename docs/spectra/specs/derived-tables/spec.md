@@ -1502,3 +1502,372 @@ tests:
   - spec/requests/pages_spec.rb
   - spec/models/route_page/ends_spec.rb
 -->
+
+---
+### Requirement: Rest window rows stored with the route day
+
+The derived export SHALL also write `rest_windows.csv` with the columns `bus_id, rule, start_time, end_time, n_trips, credit_minutes, longest_layover_minutes, flagged, over_daily_driving`, one row per window as defined by the requirements "Rest-rule windows and chains" (rule `four_hours`) and "Six-hour rest windows" (rule `six_hours`) of `layover-metrics`, ordered by `rule`, `bus_id` and `start_time`, and `driving_stretches.csv` with the columns `bus_id, start_time, end_time, n_trips`, one row per stretch as defined by "Continuous driving stretches", ordered by `bus_id` and `start_time`. `over_daily_driving` SHALL be true when the run times of all the vehicle's trips of the day, of any completeness and of every route `Id` of the run, add up to more than the constant `daily_driving_limit_minutes` of `analysis/params.sql`, which is 600. The loader SHALL store the rows in `route_day_rest_windows`, keyed uniquely by route day, `rule`, `bus_id` and `start_time`, and in `route_day_driving_stretches`, keyed uniquely by route day, `bus_id` and `start_time`, both deleted with the route day and written inside the same transaction as the other tables, and SHALL set `rest_windows_loaded` of the route day to true. A route day stored before this requirement SHALL read `rest_windows_loaded` false until it is loaded again. `bin/push-derived` SHALL carry both tables with the other derived tables.
+
+#### Scenario: Fixture day rows stored
+
+- **WHEN** `derived:load ROUTE=9001 DAY=2026-10-19` runs
+- **THEN** `route_day_rest_windows` has 9 `four_hours` rows of which 2 are flagged, the ones of TEST-0001 starting 06:00 and 07:00, and 7 `six_hours` rows of which none is flagged; `route_day_driving_stretches` has 15 rows; every row has `over_daily_driving` false, the most any vehicle drove being 483.0 minutes; and the route day has `rest_windows_loaded` true
+
+#### Scenario: Rows replaced with the day
+
+- **WHEN** the same route day is loaded again
+- **THEN** both tables have the same number of rows for that route day as after the first load, and the counts of trips, layovers and trip stop counts are unchanged
+
+##### Example: reload of the fixture day
+
+- **GIVEN** route 9001's 2026-10-19 is stored with 16 rows in `route_day_rest_windows` and 15 rows in `route_day_driving_stretches`
+- **WHEN** `derived:load ROUTE=9001 DAY=2026-10-19` runs again
+- **THEN** the two tables still have 16 and 15 rows for that route day
+
+#### Scenario: Same bytes on two runs
+
+- **WHEN** the fixture day 2026-10-19 of route 9001 is exported twice
+- **THEN** both runs write `rest_windows.csv` and `driving_stretches.csv` with identical bytes
+
+#### Scenario: Over the daily driving limit
+
+- **WHEN** a vehicle's trips of the day add up to 601 minutes, and another vehicle's add up to exactly 600 minutes
+- **THEN** the first vehicle's windows have `over_daily_driving` true and the second vehicle's have it false
+
+#### Scenario: Day stored before this requirement
+
+- **WHEN** a route day exists that has not been loaded since the column was added
+- **THEN** it has `rest_windows_loaded` false and no rows in either table
+
+#### Scenario: Derived tables pushed
+
+- **WHEN** `bin/push-derived` lists the derived tables
+- **THEN** `route_day_rest_windows` and `route_day_driving_stretches` are listed among the tables that reference `route_days`
+
+<!-- @trace
+source: 01-rest-windows
+updated: 2026-11-02
+code:
+  - db/migrate/20261101220000_create_route_day_rest_windows.rb
+  - docs/data-sources.md
+  - analysis/derived_export.sql
+  - config/locales/tw.yml
+  - .agents/skills/spectra-apply/SKILL.md
+  - app/models/route_day.rb
+  - spec/factories/layovers.rb
+  - app/components/month_card_attribution_component.html.erb
+  - app/models/program_version.rb
+  - app/models/route_page/month_days.rb
+  - app/models/route_card.rb
+  - app/models/route_page/schedule_comparison.rb
+  - app/components/month_card_cycles_component.rb
+  - app/components/month_card_hour_chart_component.html.erb
+  - app/models/route_page/layover_distribution.rb
+  - spec/factories/route_days.rb
+  - analysis/30_layovers.sql
+  - app/components/month_card_cycles_component.html.erb
+  - app/components/month_card_component.rb
+  - .github/skills/spectra-apply/SKILL.md
+  - analysis/README.md
+  - app/models/route_page/month_card.rb
+  - app/components/month_card_history_component.yml
+  - app/models/route_page/layover_stats.rb
+  - app/models/route_page/card_trend.rb
+  - app/components/month_card_chart_component.rb
+  - app/components/month_card_distribution_chart_component.html.erb
+  - app/components/month_card_history_component.rb
+  - spec/factories/route_day_published_departures.rb
+  - app/models/route_day_published_headway.rb
+  - app/components/month_card_buffer_component.rb
+  - app/components/month_card_hour_chart_component.rb
+  - app/components/month_card_summary_component.html.erb
+  - app/models/route_page/month_findings.rb
+  - app/models/route_page/rest_windows.rb
+  - spec/factories/route_day_rest_windows.rb
+  - spec/factories/trips.rb
+  - app/components/month_card_driving_component.yml
+  - config/routes.rb
+  - app/models/route_page/load_profile.rb
+  - analysis/params.sql
+  - app/components/month_card_margin_component.rb
+  - app/models/route_page/format.rb
+  - config/locales/en.yml
+  - spec/factories/route_cards.rb
+  - app/components/month_card_layovers_component.html.erb
+  - app/components/month_card_schedule_component.html.erb
+  - app/components/month_card_buffer_component.yml
+  - db/migrate/20261102011500_create_route_day_published_schedule.rb
+  - db/migrate/20261102030000_create_route_cards.rb
+  - app/components/month_card_driving_component.rb
+  - app/components/attribution_component.yml
+  - app/models/route_card_prepare_command.rb
+  - app/components/month_card_margin_component.yml
+  - spec/factories/route_day_driving_stretches.rb
+  - app/components/month_card_hour_share_chart_component.html.erb
+  - spec/factories/route_day_published_headways.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetTimeTable.gz
+  - app/models/route_day_published_departure.rb
+  - app/components/month_card_layovers_component.yml
+  - app/components/month_card_attribution_component.rb
+  - app/models/route_day_rest_window.rb
+  - app/models/route_page/slow_legs.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetTimeTable.gz
+  - app/components/month_card_hour_share_chart_component.rb
+  - app/components/month_card_schedule_component.rb
+  - app/components/month_card_run_times_component.rb
+  - app/views/route_cards/show.html.erb
+  - app/components/month_card_margin_component.html.erb
+  - app/components/month_card_attribution_component.yml
+  - spec/fixtures/analysis/static/2026-10-23/GetSemiTimeTable.gz
+  - app/models/route_page/snapshot_changes.rb
+  - app/models/route_day_driving_stretch.rb
+  - app/components/month_card_run_times_component.yml
+  - app/components/month_card_summary_component.yml
+  - spec/fixtures/analysis/README.md
+  - lib/tasks/cards.rake
+  - app/frontend/stylesheets/application.css
+  - db/schema.rb
+  - analysis/published_schedule.sql
+  - app/components/month_card_buffer_component.html.erb
+  - app/models/route_page/layover_hours.rb
+  - app/components/month_card_history_component.html.erb
+  - app/controllers/route_cards_controller.rb
+  - app/components/month_card_driving_component.html.erb
+  - app/models/route_day_loader.rb
+  - app/components/month_card_run_times_component.html.erb
+  - app/components/month_card_distribution_chart_component.yml
+  - app/components/month_card_hour_share_chart_component.yml
+  - app/models/route_card_coverage.rb
+  - bin/health-card
+  - app/components/month_card_distribution_chart_component.rb
+  - app/components/month_card_cycles_component.yml
+  - spec/fixtures/analysis/static/2026-10-19/GetSemiTimeTable.gz
+  - app/components/month_card_schedule_component.yml
+  - app/components/month_card_layovers_component.rb
+  - app/components/month_card_summary_component.rb
+  - app/models/route_page/mrt_overlap.rb
+tests:
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/route_day_published_departure_spec.rb
+  - spec/models/route_page/layover_stats_spec.rb
+  - spec/models/route_day_published_headway_spec.rb
+  - spec/models/route_card_prepare_command_spec.rb
+  - spec/analysis/chains_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
+  - spec/models/route_page/layover_distribution_spec.rb
+  - spec/models/program_version_spec.rb
+  - spec/models/route_page/schedule_comparison_spec.rb
+  - spec/models/route_page/card_consistency_spec.rb
+  - spec/models/route_card_spec.rb
+  - spec/models/route_page/layover_hours_spec.rb
+  - spec/models/route_page/month_card_spec.rb
+  - spec/components/month_card_run_times_component_spec.rb
+  - spec/components/month_card_margin_component_spec.rb
+  - spec/components/month_card_layovers_component_spec.rb
+  - spec/models/derived_push_command_spec.rb
+  - spec/components/month_card_buffer_component_spec.rb
+  - spec/components/month_card_cycles_component_spec.rb
+  - spec/models/route_day_driving_stretch_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/system/month_card_print_spec.rb
+  - spec/components/month_card_hour_chart_component_spec.rb
+  - spec/components/month_card_summary_component_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/models/route_day_rest_window_spec.rb
+  - spec/models/route_page/month_days_spec.rb
+  - spec/models/route_page/month_findings_spec.rb
+  - spec/components/month_card_attribution_component_spec.rb
+  - spec/models/route_page/slow_legs_spec.rb
+  - spec/requests/route_cards_spec.rb
+  - spec/components/month_card_history_component_spec.rb
+  - spec/components/month_card_driving_component_spec.rb
+  - spec/models/route_page/rest_windows_spec.rb
+  - spec/models/route_page/card_trend_spec.rb
+  - spec/components/month_card_schedule_component_spec.rb
+  - spec/analysis/published_schedule_spec.rb
+  - spec/analysis/attribution_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/models/route_page/snapshot_changes_spec.rb
+  - spec/models/route_card_coverage_spec.rb
+  - spec/models/derived_load_command_spec.rb
+-->
+
+---
+### Requirement: Published schedule rows stored with the route day
+
+The derived export SHALL run `analysis/published_schedule.sql` before `analysis/derived_export.sql` and SHALL also write `published_headways.csv` with the columns `route_id, path_attribute_id, date_value, start_minute, end_minute, low_minutes, high_minutes` and `published_departures.csv` with the columns `route_id, path_attribute_id, date_value, minute`, each ordered by all its columns, as defined by the requirement "Published schedule read from the static snapshot" of `published-schedule`. The loader SHALL store the rows in `route_day_published_headways` and `route_day_published_departures`, deleted with the route day and written inside the same transaction as the other tables, and SHALL store on the route day `published_schedule_day`, the day of the static snapshot read. `GetSemiTimeTable.gz` and `GetTimeTable.gz` SHALL NOT be required for a day to be eligible: a snapshot without one of them SHALL print a line naming the file, the route and the day, and leave that file's rows empty; when both are missing `published_schedule_day` SHALL be empty. `bin/push-derived` SHALL carry both tables with the other derived tables.
+
+#### Scenario: Fixture day rows stored
+
+- **WHEN** `derived:load ROUTE=9001 DAY=2026-10-19` runs
+- **THEN** `route_day_published_headways` has 18 rows for that route day, `route_day_published_departures` has 6 rows, and the route day's `published_schedule_day` is 2026-10-19
+
+#### Scenario: Rows replaced with the day
+
+- **WHEN** the same route day is loaded again
+- **THEN** both tables still have 18 and 6 rows for that route day, and the counts of trips, layovers and trip stop counts are unchanged
+
+#### Scenario: Same bytes on two runs
+
+- **WHEN** the fixture day 2026-10-19 of route 9001 is exported twice
+- **THEN** both runs write `published_headways.csv` and `published_departures.csv` with identical bytes
+
+#### Scenario: Snapshot without the files
+
+- **WHEN** the day's static snapshot holds `GetRoute.gz`, `GetStop.gz` and `GetPathDetail.gz` but neither `GetSemiTimeTable.gz` nor `GetTimeTable.gz`
+- **THEN** the day is loaded, two lines name the missing files, both tables have no rows for that route day and its `published_schedule_day` is empty
+
+#### Scenario: Derived tables pushed
+
+- **WHEN** `bin/push-derived` lists the derived tables
+- **THEN** `route_day_published_headways` and `route_day_published_departures` are listed among the tables that reference `route_days`
+
+<!-- @trace
+source: 02-published-schedule
+updated: 2026-11-02
+code:
+  - app/components/month_card_run_times_component.yml
+  - app/models/route_page/month_card.rb
+  - analysis/30_layovers.sql
+  - app/components/month_card_cycles_component.html.erb
+  - app/views/route_cards/show.html.erb
+  - app/components/month_card_attribution_component.rb
+  - app/components/month_card_buffer_component.rb
+  - spec/factories/layovers.rb
+  - spec/factories/route_cards.rb
+  - spec/fixtures/analysis/README.md
+  - app/models/route_day_published_departure.rb
+  - app/models/route_page/month_days.rb
+  - config/routes.rb
+  - app/frontend/stylesheets/application.css
+  - db/migrate/20261102030000_create_route_cards.rb
+  - spec/factories/route_day_published_departures.rb
+  - app/models/route_page/mrt_overlap.rb
+  - spec/factories/route_day_rest_windows.rb
+  - app/models/route_page/layover_hours.rb
+  - analysis/published_schedule.sql
+  - spec/factories/trips.rb
+  - spec/factories/route_day_driving_stretches.rb
+  - app/components/month_card_schedule_component.html.erb
+  - app/models/route_page/format.rb
+  - db/migrate/20261102011500_create_route_day_published_schedule.rb
+  - app/models/route_page/load_profile.rb
+  - bin/health-card
+  - app/components/month_card_summary_component.yml
+  - app/models/route_page/card_trend.rb
+  - app/models/route_day_published_headway.rb
+  - app/components/month_card_run_times_component.html.erb
+  - app/models/route_card.rb
+  - config/locales/tw.yml
+  - app/components/month_card_run_times_component.rb
+  - analysis/derived_export.sql
+  - app/components/month_card_cycles_component.yml
+  - app/components/month_card_hour_share_chart_component.yml
+  - .agents/skills/spectra-apply/SKILL.md
+  - app/controllers/route_cards_controller.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetSemiTimeTable.gz
+  - app/components/month_card_hour_share_chart_component.html.erb
+  - app/components/month_card_hour_chart_component.rb
+  - app/components/month_card_driving_component.yml
+  - app/components/month_card_hour_share_chart_component.rb
+  - app/models/route_page/rest_windows.rb
+  - app/models/route_page/layover_distribution.rb
+  - docs/data-sources.md
+  - app/components/month_card_margin_component.html.erb
+  - app/components/attribution_component.yml
+  - app/models/route_page/layover_stats.rb
+  - app/models/route_day_driving_stretch.rb
+  - app/components/month_card_attribution_component.yml
+  - app/models/route_day_rest_window.rb
+  - app/models/route_page/snapshot_changes.rb
+  - app/components/month_card_schedule_component.rb
+  - app/components/month_card_history_component.yml
+  - app/components/month_card_schedule_component.yml
+  - app/models/program_version.rb
+  - app/models/route_page/month_findings.rb
+  - app/components/month_card_layovers_component.html.erb
+  - app/components/month_card_summary_component.html.erb
+  - db/schema.rb
+  - spec/factories/route_days.rb
+  - app/components/month_card_chart_component.rb
+  - app/components/month_card_hour_chart_component.html.erb
+  - config/locales/en.yml
+  - spec/fixtures/analysis/static/2026-10-23/GetSemiTimeTable.gz
+  - analysis/README.md
+  - app/components/month_card_driving_component.html.erb
+  - app/components/month_card_margin_component.yml
+  - app/components/month_card_component.rb
+  - app/components/month_card_buffer_component.html.erb
+  - lib/tasks/cards.rake
+  - app/models/route_page/slow_legs.rb
+  - app/components/month_card_buffer_component.yml
+  - app/components/month_card_history_component.html.erb
+  - app/components/month_card_summary_component.rb
+  - app/components/month_card_distribution_chart_component.yml
+  - app/models/route_day.rb
+  - app/components/month_card_distribution_chart_component.html.erb
+  - app/components/month_card_layovers_component.rb
+  - spec/fixtures/analysis/static/2026-10-23/GetTimeTable.gz
+  - .github/skills/spectra-apply/SKILL.md
+  - app/components/month_card_history_component.rb
+  - app/components/month_card_cycles_component.rb
+  - app/components/month_card_layovers_component.yml
+  - app/models/route_page/schedule_comparison.rb
+  - app/components/month_card_distribution_chart_component.rb
+  - app/models/route_card_coverage.rb
+  - app/components/month_card_attribution_component.html.erb
+  - app/models/route_day_loader.rb
+  - app/components/month_card_margin_component.rb
+  - app/models/route_card_prepare_command.rb
+  - db/migrate/20261101220000_create_route_day_rest_windows.rb
+  - spec/fixtures/analysis/static/2026-10-19/GetTimeTable.gz
+  - app/components/month_card_driving_component.rb
+  - spec/factories/route_day_published_headways.rb
+  - analysis/params.sql
+tests:
+  - spec/models/route_day_driving_stretch_spec.rb
+  - spec/models/route_page/mrt_overlap_spec.rb
+  - spec/components/month_card_history_component_spec.rb
+  - spec/components/month_card_summary_component_spec.rb
+  - spec/models/route_page/month_findings_spec.rb
+  - spec/system/month_card_print_spec.rb
+  - spec/models/route_day_published_headway_spec.rb
+  - spec/analysis/params_spec.rb
+  - spec/models/route_day_rest_window_spec.rb
+  - spec/models/derived_push_command_spec.rb
+  - spec/models/route_page/load_profile_spec.rb
+  - spec/components/month_card_buffer_component_spec.rb
+  - spec/components/month_card_attribution_component_spec.rb
+  - spec/models/route_day_spec.rb
+  - spec/models/route_page/slow_legs_spec.rb
+  - spec/models/route_page/layover_hours_spec.rb
+  - spec/requests/route_cards_spec.rb
+  - spec/models/route_card_coverage_spec.rb
+  - spec/models/route_page/month_card_spec.rb
+  - spec/analysis/chains_spec.rb
+  - spec/analysis/derived_export_spec.rb
+  - spec/models/derived_load_command_spec.rb
+  - spec/components/month_card_run_times_component_spec.rb
+  - spec/components/month_card_margin_component_spec.rb
+  - spec/models/program_version_spec.rb
+  - spec/models/route_page/snapshot_changes_spec.rb
+  - spec/models/route_day_loader_spec.rb
+  - spec/models/route_page/rest_windows_spec.rb
+  - spec/components/month_card_schedule_component_spec.rb
+  - spec/models/route_page/card_consistency_spec.rb
+  - spec/models/route_card_prepare_command_spec.rb
+  - spec/analysis/published_schedule_spec.rb
+  - spec/components/month_card_cycles_component_spec.rb
+  - spec/components/month_card_driving_component_spec.rb
+  - spec/models/route_card_spec.rb
+  - spec/models/route_page/layover_distribution_spec.rb
+  - spec/components/month_card_layovers_component_spec.rb
+  - spec/models/route_page/month_days_spec.rb
+  - spec/models/route_page/schedule_comparison_spec.rb
+  - spec/models/route_day_published_departure_spec.rb
+  - spec/models/route_page/layover_stats_spec.rb
+  - spec/components/month_card_hour_chart_component_spec.rb
+  - spec/models/route_page/card_trend_spec.rb
+  - spec/analysis/attribution_spec.rb
+-->

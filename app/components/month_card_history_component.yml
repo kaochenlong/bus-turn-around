@@ -1,0 +1,75 @@
+---
+tw: &tw
+  title: 歷史
+  lead: 公運處的動態資料約十分鐘後就消失，這些數字是自己每 10 秒收下來、留著才有的。每個月的數字會接在這張表上，班表或路線調整前後的差異也看這張。
+  first_card: 這是第一份，還沒有上個月可以比。
+  month: 月份
+  weekdays: 平日天數
+  stopping_end: 停車端
+  short: 不到 15 分鐘
+  short_range: 逐日範圍
+  p10: 停車端 p10
+  four_hours: 連續 4 小時
+  six_hours: 連續 6 小時
+  morning_on_road: 早尖峰路上的車
+  partial_month: "%{month}（部分月份）"
+  month_name: "%{year} 年 %{month} 月"
+  vehicles: "%{count} 台"
+  minutes: "%{minutes} 分"
+  differing: "%{months} 的數字跟當時印的那份不同，定義或資料重算過。"
+  snapshots: 這個月靜態快照改了什麼
+  unchanged: "%{first} 到 %{last} 涵蓋的 %{count} 天：公告班距、定時班表、站序都沒有改。"
+  change: "%{day}：%{kinds}"
+  kinds:
+    published_schedule: 公告班距或定時班次
+    stops: 站序
+    shape: 路線軌跡
+  shape_day: 路線軌跡的更新日是 %{day}。
+  days: 逐日
+  date: 日期
+  day_type: 日型別
+  trips: 趟次
+  complete: 完整趟次
+  missing_stops: 漏站率
+  vehicles_column: 車數
+  end_layovers: 停車端筆數
+  end_layovers_named: "%{name}筆數"
+  day_type_noted: "%{name}（%{note}）"
+zh-TW:
+  <<: *tw
+en:
+  title: History
+  lead: The Department's live data disappears after about ten minutes. These figures exist because they were collected every 10 seconds and kept. Each month's figures join this table, which also shows what changes around a schedule or route change.
+  first_card: This is the first card, so there is no earlier month to compare.
+  month: Month
+  weekdays: Weekdays
+  stopping_end: Stopping end
+  short: Under 15 min
+  short_range: Daily range
+  p10: Stopping end p10
+  four_hours: Four hours
+  six_hours: Six hours
+  morning_on_road: Vehicles on the road, morning peak
+  partial_month: "%{month} (partial month)"
+  month_name: "%{year}-%{month}"
+  vehicles: "%{count} vehicles"
+  minutes: "%{minutes} min"
+  differing: The figures of %{months} differ from the printed card; the definitions or the data were recomputed.
+  snapshots: What changed in the static snapshots this month
+  unchanged: "%{first} to %{last}, %{count} days covered: published headways, scheduled departures and stops did not change."
+  change: "%{day}: %{kinds}"
+  kinds:
+    published_schedule: published headways or scheduled departures
+    stops: stops
+    shape: route shape
+  shape_day: The route shape was last updated on %{day}.
+  days: Day by day
+  date: Date
+  day_type: Day type
+  trips: Trips
+  complete: Complete
+  missing_stops: Missing stops
+  vehicles_column: Vehicles
+  end_layovers: Stopping-end layovers
+  end_layovers_named: "%{name}: layovers"
+  day_type_noted: "%{name} (%{note})"

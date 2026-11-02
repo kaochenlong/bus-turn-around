@@ -9,13 +9,15 @@ require "tmpdir"
 # the newest public toilet snapshot and the configured nature of the route's
 # ends, analysis/route_shape.sql with the route shapes file of the day's static
 # snapshot, analysis/depots.sql with its operators file, analysis/stop_speeds.sql,
-# analysis/stop_districts.sql with the newest stop district snapshot and
+# analysis/stop_districts.sql with the newest stop district snapshot,
+# analysis/published_schedule.sql with its two published schedule files and
 # analysis/derived_export.sql into CSV files; then, in one transaction, the
 # stored day is deleted and the files are copied in, together with the day
 # type of the newest office calendar snapshot of the day's year. A failure
 # anywhere leaves the stored day as it was, and loading the same input again
 # leaves the same rows. A direction without a route shape, or a snapshot
-# without the operators file, does not stop the day: it is printed instead.
+# without the operators file or a published schedule file, does not stop the
+# day: it is printed instead.
 class RouteDayLoader
   # The day could not be written; the message says why.
   class Error < StandardError; end
@@ -42,7 +44,14 @@ class RouteDayLoader
                    "n_buses integer, n_layovers integer",
     "shapes" => "go_back integer, shape_updated_at timestamptz, points jsonb, issue text",
     "depots" => "station_id integer, provider_name text, station_name text, n_buses integer, n_trips integer",
-    "districts" => "county text, town text, n_locations integer, share double precision, qualifies boolean"
+    "districts" => "county text, town text, n_locations integer, share double precision, qualifies boolean",
+    "rest_windows" => "bus_id text, rule text, start_time timestamptz, end_time timestamptz, n_trips integer, " \
+                      "credit_minutes double precision, longest_layover_minutes double precision, flagged boolean, " \
+                      "over_daily_driving boolean",
+    "driving_stretches" => "bus_id text, start_time timestamptz, end_time timestamptz, n_trips integer",
+    "published_headways" => "route_id integer, path_attribute_id integer, date_value integer, start_minute integer, end_minute integer, " \
+                            "low_minutes integer, high_minutes integer",
+    "published_departures" => "route_id integer, path_attribute_id integer, date_value integer, minute integer"
   }.freeze
 
   # The staging table of each file, written out so that no table name is
@@ -52,7 +61,9 @@ class RouteDayLoader
     "layovers" => "staging_layovers", "trip_stop_counts" => "staging_trip_stop_counts",
     "stop_speeds" => "staging_stop_speeds", "ends" => "staging_ends",
     "end_toilets" => "staging_end_toilets", "end_cells" => "staging_end_cells", "shapes" => "staging_shapes",
-    "depots" => "staging_depots", "districts" => "staging_districts"
+    "depots" => "staging_depots", "districts" => "staging_districts", "rest_windows" => "staging_rest_windows",
+    "driving_stretches" => "staging_driving_stretches", "published_headways" => "staging_published_headways",
+    "published_departures" => "staging_published_departures"
   }.freeze
 
   # The line printed for each issue analysis/route_shape.sql gives a
@@ -85,7 +96,8 @@ class RouteDayLoader
   end
 
   # Returns the numbers of trips, layovers, trip stop counts, trip stop speeds,
-  # ends, end toilets, end cells, route shapes, depots and districts written.
+  # ends, end toilets, end cells, route shapes, depots, districts, rest windows,
+  # driving stretches, published headways and published departures written.
   def call
     mrt_exits = newest_snapshot(MrtExitsSnapshot::DIRECTORY, "捷運出入口", "bin/rails external:mrt_exits")
     public_toilets = newest_snapshot(PublicToiletsSnapshot::DIRECTORY, "公廁", "bin/rails external:public_toilets")
@@ -96,12 +108,18 @@ class RouteDayLoader
     @out.puts("#{@day.iso8601}：靜態快照沒有 GetBusShape.gz，路線 #{@route_id} 這一天沒有路線軌跡") unless bus_shapes
     providers = static_file_path("GetProvider.gz")
     @out.puts("#{@day.iso8601}：靜態快照沒有 GetProvider.gz，路線 #{@route_id} 這一天的調度站沒有名稱") unless providers
+    semi_time_table = static_file_path("GetSemiTimeTable.gz")
+    @out.puts("#{@day.iso8601}：靜態快照沒有 GetSemiTimeTable.gz，路線 #{@route_id} 這一天沒有公告班距") unless semi_time_table
+    time_table = static_file_path("GetTimeTable.gz")
+    @out.puts("#{@day.iso8601}：靜態快照沒有 GetTimeTable.gz，路線 #{@route_id} 這一天沒有定時班次") unless time_table
     Dir.mktmpdir("route-day") do |dir|
       export(dir, mrt_exits:, public_toilets:, stop_districts:, natures:, bus_shapes: bus_shapes || empty_array_file(dir),
-                  providers: providers || empty_providers_file(dir))
+                  providers: providers || empty_bus_info_file(dir), semi_time_table: semi_time_table || empty_bus_info_file(dir),
+                  time_table: time_table || empty_bus_info_file(dir))
       # A missing file was told about once, not once per direction.
       notes = bus_shapes ? shape_notes(dir) : []
-      counts = RouteDay.transaction(requires_new: true) { replace(dir, calendar) }
+      published_schedule_day = @day if semi_time_table || time_table
+      counts = RouteDay.transaction(requires_new: true) { replace(dir, calendar, published_schedule_day) }
       notes.each { @out.puts(it) }
       counts
     end
@@ -109,15 +127,16 @@ class RouteDayLoader
 
   private
 
-  def export(dir, mrt_exits:, public_toilets:, stop_districts:, natures:, bus_shapes:, providers:)
+  def export(dir, mrt_exits:, public_toilets:, stop_districts:, natures:, bus_shapes:, providers:, semi_time_table:, time_table:)
     variables = { data_root: @data_root, route_id: @route_id, member_route_ids: @member_route_ids, day: @day, static_day: @day,
                   inspect_dir: dir, derived_dir: dir,
                   mrt_exits_path: mrt_exits.path, mrt_exits_day: mrt_exits.day,
                   public_toilets_path: public_toilets.path, public_toilets_day: public_toilets.day,
                   stop_districts_path: stop_districts.path, stop_districts_day: stop_districts.day,
-                  end_nature_0: natures.fetch(0), end_nature_1: natures.fetch(1), bus_shape_path: bus_shapes, provider_path: providers }
+                  end_nature_0: natures.fetch(0), end_nature_1: natures.fetch(1), bus_shape_path: bus_shapes, provider_path: providers,
+                  semi_time_table_path: semi_time_table, time_table_path: time_table }
     AnalysisRun.run(@duckdb, variables, extra_files: %w[mrt_overlap.sql gps_reports.sql turnaround_facilities.sql route_shape.sql depots.sql stop_speeds.sql
-                                                       stop_districts.sql derived_export.sql])
+                                                       stop_districts.sql published_schedule.sql derived_export.sql])
   rescue AnalysisRun::Error => e
     raise Error, e.message
   end
@@ -133,9 +152,10 @@ class RouteDayLoader
   # file: an array without rows, so both directions are left without a shape.
   def empty_array_file(dir) = File.join(dir, "no_bus_shapes.json").tap { File.write(it, "[]") }
 
-  # What analysis/depots.sql reads in place of a missing operators file: an
-  # object without rows, so every depot is left without names.
-  def empty_providers_file(dir) = File.join(dir, "no_providers.json").tap { File.write(it, '{"BusInfo":[]}') }
+  # What analysis/depots.sql and analysis/published_schedule.sql read in place of
+  # a missing file: an object without rows, so every depot is left without names
+  # and the route without published rows.
+  def empty_bus_info_file(dir) = File.join(dir, "no_rows.json").tap { File.write(it, '{"BusInfo":[]}') }
 
   # A line for every direction of shapes.csv that has an issue. They are worded
   # before anything is written, so an issue without wording stops the day.
@@ -184,17 +204,19 @@ class RouteDayLoader
     raise Error, e.message
   end
 
-  def replace(dir, calendar)
+  def replace(dir, calendar, published_schedule_day)
     RouteDay.where(route_id: @route_id, day: @day).delete_all
     STAGING.each_key { stage(it, File.join(dir, "#{it}.csv")) }
-    route_day_id = insert_route_day(calendar)
+    route_day_id = insert_route_day(calendar, published_schedule_day)
     insert_stops(route_day_id)
     # The ends go in before their toilets and cells, which find their end by direction.
     { trips: insert_trips(route_day_id), layovers: insert_layovers(route_day_id),
       trip_stop_counts: insert_trip_stop_counts(route_day_id), trip_stop_speeds: insert_trip_stop_speeds(route_day_id),
       ends: insert_ends(route_day_id),
       end_toilets: insert_end_toilets(route_day_id), end_cells: insert_end_cells(route_day_id),
-      shapes: insert_shapes(route_day_id), depots: insert_depots(route_day_id), districts: insert_districts(route_day_id) }
+      shapes: insert_shapes(route_day_id), depots: insert_depots(route_day_id), districts: insert_districts(route_day_id),
+      rest_windows: insert_rest_windows(route_day_id), driving_stretches: insert_driving_stretches(route_day_id),
+      published_headways: insert_published_headways(route_day_id), published_departures: insert_published_departures(route_day_id) }
   end
 
   # A temporary table per file, emptied for each load because the
@@ -208,12 +230,14 @@ class RouteDayLoader
     end
   end
 
-  def insert_route_day(calendar)
-    connection.select_value(RouteDay.sanitize_sql_array([ <<~SQL, calendar.to_h ]))
+  def insert_route_day(calendar, published_schedule_day)
+    connection.select_value(RouteDay.sanitize_sql_array([ <<~SQL, calendar.to_h.merge(published_schedule_day:) ]))
       INSERT INTO route_days (route_id, day, route_name, departure, destination, static_day, mrt_exits_day,
-                              public_toilets_day, stop_districts_day, member_names, day_type, day_note, office_calendar_day, loaded_at)
+                              public_toilets_day, stop_districts_day, member_names, day_type, day_note, office_calendar_day,
+                              loaded_at, rest_windows_loaded, published_schedule_day)
       SELECT route_id, day, route_name, departure, destination, static_day, mrt_exits_day, public_toilets_day,
-             stop_districts_day, member_names, :day_type, :note, CAST(:snapshot_day AS date), now()
+             stop_districts_day, member_names, :day_type, :note, CAST(:snapshot_day AS date), now(), true,
+             CAST(:published_schedule_day AS date)
       FROM staging_route_day
       RETURNING id
     SQL
@@ -326,6 +350,39 @@ class RouteDayLoader
     insert("route_day_districts", "districts", route_day_id, <<~SQL)
       INSERT INTO route_day_districts (route_day_id, county, town, n_locations, share, qualifies)
       SELECT :route_day_id, county, town, n_locations, share, qualifies FROM staging_districts
+    SQL
+  end
+
+  def insert_rest_windows(route_day_id)
+    insert("route_day_rest_windows", "rest_windows", route_day_id, <<~SQL)
+      INSERT INTO route_day_rest_windows (route_day_id, bus_id, rule, start_time, end_time, n_trips, credit_minutes,
+                                          longest_layover_minutes, flagged, over_daily_driving)
+      SELECT :route_day_id, bus_id, rule, start_time, end_time, n_trips, credit_minutes, longest_layover_minutes,
+             flagged, over_daily_driving
+      FROM staging_rest_windows
+    SQL
+  end
+
+  def insert_driving_stretches(route_day_id)
+    insert("route_day_driving_stretches", "driving_stretches", route_day_id, <<~SQL)
+      INSERT INTO route_day_driving_stretches (route_day_id, bus_id, start_time, end_time, n_trips)
+      SELECT :route_day_id, bus_id, start_time, end_time, n_trips FROM staging_driving_stretches
+    SQL
+  end
+
+  def insert_published_headways(route_day_id)
+    insert("route_day_published_headways", "published_headways", route_day_id, <<~SQL)
+      INSERT INTO route_day_published_headways (route_day_id, route_id, path_attribute_id, date_value, start_minute, end_minute,
+                                                low_minutes, high_minutes)
+      SELECT :route_day_id, route_id, path_attribute_id, date_value, start_minute, end_minute, low_minutes, high_minutes
+      FROM staging_published_headways
+    SQL
+  end
+
+  def insert_published_departures(route_day_id)
+    insert("route_day_published_departures", "published_departures", route_day_id, <<~SQL)
+      INSERT INTO route_day_published_departures (route_day_id, route_id, path_attribute_id, date_value, minute)
+      SELECT :route_day_id, route_id, path_attribute_id, date_value, minute FROM staging_published_departures
     SQL
   end
 

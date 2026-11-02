@@ -20,7 +20,7 @@
 
 路線（含核定總班次、往返里程、尖離峰班距、路線類別）、站牌與站序、站位、公車路線軌跡、預定班表、機動班次時刻表（分時段班距）、車輛基本資料（含所屬調度站）、業者與營業站、路線與營業站對應、附屬路線站序、預估到站、車機異常、智慧型站牌、票價、營運通阻、最新消息、特殊時刻表。`ngear feeds` 會列出全部 23 支。
 
-n-gear 每天 04:30 用 `ngear snapshot-static` 把這些檔整份複製一次，存在資料根目錄的 `static/<台北日>/<原始檔名>.gz`。衍生表與健檢卡讀其中三支：`GetRoute.gz`（路線名稱、起迄與附屬路線）、`GetStop.gz`（站牌與座標）、`GetPathDetail.gz`（附屬路線的站序），讀法在 `analysis/10_load.sql`。衍生表另外讀 `GetBusShape.gz`（公車路線軌跡，進 `route_day_shapes`，讀法在 `analysis/route_shape.sql`）與 `GetProvider.gz`（業者營運基本資料，給調度站的業者與營業站名稱，進 `route_day_depots`，讀法在 `analysis/depots.sql`），健檢卡都不讀。
+n-gear 每天 04:30 用 `ngear snapshot-static` 把這些檔整份複製一次，存在資料根目錄的 `static/<台北日>/<原始檔名>.gz`。衍生表與健檢卡讀其中三支：`GetRoute.gz`（路線名稱、起迄與附屬路線）、`GetStop.gz`（站牌與座標）、`GetPathDetail.gz`（附屬路線的站序），讀法在 `analysis/10_load.sql`。衍生表另外讀 `GetBusShape.gz`（公車路線軌跡，進 `route_day_shapes`，讀法在 `analysis/route_shape.sql`）與 `GetProvider.gz`（業者營運基本資料，給調度站的業者與營業站名稱，進 `route_day_depots`，讀法在 `analysis/depots.sql`），以及 `GetSemiTimeTable.gz`（機動班次時刻表，每個時段的班距，進 `route_day_published_headways`）與 `GetTimeTable.gz`（預定班表資訊，定時班次的發車時刻，進 `route_day_published_departures`），這兩支的讀法在 `analysis/published_schedule.sql`。這些健檢卡都不讀。
 
 data.gov.tw 的資料集頁面列的是 `TstRoute.json` 這類檔名，n-gear 照 API 說明文件 V6.3 抓的是 `GetRoute.gz`，兩者在同一個主機、同一個機關。動態那三支也是這樣，逐支的對照見授權一節。
 
@@ -36,7 +36,7 @@ data.gov.tw 的資料集頁面列的是 `TstRoute.json` 這類檔名，n-gear �
 
 ### 授權
 
-衍生表與健檢卡讀的八支 feed，在 data.gov.tw 各有一個資料集頁面：
+衍生表與健檢卡讀的十支 feed，在 data.gov.tw 各有一個資料集頁面：
 
 | feed | 資料集頁面 | 頁面列的 JSON | 查證日期 |
 |---|---|---|---|
@@ -48,14 +48,16 @@ data.gov.tw 的資料集頁面列的是 `TstRoute.json` 這類檔名，n-gear �
 | 附屬路線與路線對應（GetPathDetail） | [臺北市附屬路線與路線對應資訊](https://data.gov.tw/dataset/128741) | TstPathDetail.json | 2026-10-24 |
 | 公車路線軌跡（GetBusShape） | [臺北市公車路線軌跡](https://data.gov.tw/dataset/160167) | TstBusShape.json | 2026-10-24 |
 | 業者營運基本資料（GetProvider） | [臺北市業者營運基本資料](https://data.gov.tw/dataset/129032) | TstProvider.json | 2026-10-24 |
+| 機動班次時刻表（GetSemiTimeTable） | [臺北市機動班次時刻表](https://data.gov.tw/dataset/129027) | TstSemiTimeTable.json | 2026-11-02 |
+| 預定班表資訊（GetTimeTable） | [臺北市預定班表資訊](https://data.gov.tw/dataset/129028) | TstTimeTable.json | 2026-11-02 |
 
-八頁的提供機關都是臺北市公共運輸處，授權方式都是政府資料開放授權條款第 1 版。頁面列的 JSON 跟 n-gear 抓的檔名不同，但在同一個主機，而且每一頁的資料集說明都指向公運處的「臺北市 Data.Taipei 平台 API 說明文件」，這份文件 V6.3 的 API 總表列的正是 n-gear 抓的 `GetBusData.gz`、`GetBusEvent.gz`、`BusSeatEvent.gz`、`GetRoute.gz`、`GetStop.gz`、`GetPathDetail.gz`、`GetBusShape.gz`、`GetProvider.gz`。
+十頁的提供機關都是臺北市公共運輸處，授權方式都是政府資料開放授權條款第 1 版。頁面列的 JSON 跟 n-gear 抓的檔名不同，但在同一個主機，而且每一頁的資料集說明都指向公運處的「臺北市 Data.Taipei 平台 API 說明文件」，這份文件 V6.3 的 API 總表列的正是 n-gear 抓的 `GetBusData.gz`、`GetBusEvent.gz`、`BusSeatEvent.gz`、`GetRoute.gz`、`GetStop.gz`、`GetPathDetail.gz`、`GetBusShape.gz`、`GetProvider.gz`、`GetSemiTimeTable.gz`、`GetTimeTable.gz`。
 
 - 授權方式：政府資料開放授權條款第 1 版（SPDX：`OGDL-Taiwan-1.0`），不限目的、不可撤回、免授權金，可重製、散布、改作、開發衍生物、再轉授權，與 CC BY 4.0 相容。
 - 義務：顯名標示。條款第三條規定未盡顯名義務者，視為自始未取得授權。不得暗示機關推薦、同意或核准。
 - 凡是用這批檔案做出來的東西，包括再散布的 JSONL 或 Parquet，都要帶下面這段，格式照條款附件：
 
-> 臺北市公共運輸處 2026 臺北市公車開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent）、路線（GetRoute）、站牌（GetStop）、附屬路線與路線對應（GetPathDetail）、公車路線軌跡（GetBusShape）、業者營運基本資料（GetProvider），見 Data.Taipei 平台 API 說明文件 V6.3
+> 臺北市公共運輸處 2026 臺北市公車開放資料：定時車機資訊（GetBusData）、定點車機資訊（GetBusEvent）、公車車上擁擠度（BusSeatEvent）、路線（GetRoute）、站牌（GetStop）、附屬路線與路線對應（GetPathDetail）、公車路線軌跡（GetBusShape）、業者營運基本資料（GetProvider）、機動班次時刻表（GetSemiTimeTable）、預定班表資訊（GetTimeTable），見 Data.Taipei 平台 API 說明文件 V6.3
 > 此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。
 > 政府資料開放授權條款：https://data.gov.tw/license
 

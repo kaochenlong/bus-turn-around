@@ -1,0 +1,65 @@
+---
+tw: &tw
+  card_name: 路線健檢卡
+  month: "%{year} 年 %{month} 月"
+  route_ids: 路線 Id %{ids}
+  covered: 涵蓋 %{weekdays} 個平日（這個月有 %{calendar_weekdays} 個）、%{holidays} 個假日（這個月有 %{calendar_holidays} 個）。
+  missing: 少的日子：%{days}。
+  generated: 產出日期 %{day}，分析程式 %{version}。
+  weekdays: 平日
+  holidays: 假日
+  last_month: 上月平日
+  end_group: 折返停留：停車端
+  end_group_named: 折返停留：停車端（%{name}）
+  short_share: 不到 15 分鐘的比例
+  short_range: 逐日範圍
+  percentiles: p10／p50
+  minutes_pair: "%{first}／%{second} 分"
+  driving_group: 連續行駛：對照第 19 條之 2
+  four_hours: 連續 4 小時停留累計不到 30 分鐘
+  six_hours: 連續 6 小時沒有一次停滿 45 分鐘
+  rule_figure: "%{share}（%{flagged}／%{windows}）"
+  schedule_group: 班表：公告班距對量到的
+  peak_headway: 尖峰公告班距
+  headway: "%{headway} 分一班"
+  peak_departures: 每小時發車（去程／返程）
+  peak_road: 路上的車／照公告要幾台
+  morning: 早
+  evening: 晚
+  cycles_group: 來回一趟與週期
+  cycle: 來回一趟 p50／週期 p10
+  findings: 這個月看到的事
+  reading_note: p10 是一成的折返停不到這麼久，p50 是一半的折返停不到這麼久。這些都是車的數字，資料看不到是誰在開，折返停留也只是駕駛休息的上限。
+zh-TW:
+  <<: *tw
+en:
+  card_name: Route health card
+  month: "%{year}-%{month}"
+  route_ids: Route Id %{ids}
+  covered: "Covers %{weekdays} weekdays (of %{calendar_weekdays} this month) and %{holidays} holidays (of %{calendar_holidays}). "
+  missing: "Days missing: %{days}. "
+  generated: Generated %{day}, program %{version}.
+  weekdays: Weekdays
+  holidays: Holidays
+  last_month: Last month's weekdays
+  end_group: "Layovers: stopping end"
+  end_group_named: "Layovers: stopping end (%{name})"
+  short_share: Share under 15 minutes
+  short_range: Daily range
+  percentiles: p10 / p50
+  minutes_pair: "%{first} / %{second} min"
+  driving_group: "Continuous driving: against Article 19-2"
+  four_hours: Four hours with under 30 minutes of layovers in total
+  six_hours: Six hours with no single layover of 45 minutes
+  rule_figure: "%{share} (%{flagged} / %{windows})"
+  schedule_group: "Schedule: published headway against measured"
+  peak_headway: Peak published headway
+  headway: every %{headway} min
+  peak_departures: Departures per hour (outbound / inbound)
+  peak_road: Vehicles on the road / needed by the published headway
+  morning: AM
+  evening: PM
+  cycles_group: Round trips and cycles
+  cycle: Round trip p50 / cycle p10
+  findings: What this month shows
+  reading_note: p10 means one layover in ten is shorter than this, p50 that half of them are. These are figures about vehicles. The data cannot see who drives, and a layover is only an upper bound on a driver's rest.

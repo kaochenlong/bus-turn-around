@@ -1,0 +1,25 @@
+---
+tw: &tw
+  title: 換休息試算
+  lead: 假設班表讓車在停車那一端每次留到這麼久再開下一趟，算一天要多花幾車時、多派幾台車。1 車時就是一台車開一個小時。這裡算的是車，不是駕駛的工時。%{days} 個平日總共跑了 %{trips} 趟，在停車那一端量得到車停多久的有 %{layovers} 次；試算只用這些，量不到的不另外估，所以實際的車時不會比表上少。
+  hold: 每次要留
+  achieved: 現在已經停得到
+  lower_html: 不夠的補足<br>（車時／天）
+  upper_html: 每次都多留<br>（車時／天）
+  peak: 最忙的小時要多派
+  minutes: "%{minutes} 分鐘"
+  peak_same: "%{lower}–%{upper} 台（%{hour} 時）"
+  peak_apart: "%{lower} 台（%{lower_hour} 時）–%{upper} 台（%{upper_hour} 時）"
+zh-TW:
+  <<: *tw
+en:
+  title: Trading for rest
+  lead: Suppose the schedule holds a vehicle at the stopping end this long every time before its next trip. This is what it costs per day in vehicle-hours and added vehicles. One vehicle-hour is one vehicle for one hour. It counts vehicles, not drivers' hours. %{days} weekdays ran %{trips} trips, with %{layovers} measurable stops at the stopping end; only those are used and the others are not estimated, so the real vehicle-hours are no fewer than shown.
+  hold: Hold each time
+  achieved: Already reached
+  lower_html: Topping up<br>(vehicle-hours a day)
+  upper_html: Adding every time<br>(vehicle-hours a day)
+  peak: Added vehicles in the busiest hour
+  minutes: "%{minutes} min"
+  peak_same: "%{lower}–%{upper} vehicles (hour %{hour})"
+  peak_apart: "%{lower} vehicles (hour %{lower_hour})–%{upper} vehicles (hour %{upper_hour})"

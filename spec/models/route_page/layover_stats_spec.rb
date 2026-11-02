@@ -23,6 +23,12 @@ RSpec.describe RoutePage::LayoverStats, type: :model do
     expect(rows.map { [ it.go_back, it.stop_name, it.n_layovers ] }).to eq([ [ 0, "戊站", 3 ], [ 1, "甲站", 0 ] ])
   end
 
+  it "涵蓋日子已經排序（RoutePage::Coverage 給的就是這樣）時，末站站名仍取最新一天" do
+    route_day(Date.new(2026, 10, 19), [ 10 ])
+    route_day(Date.new(2026, 10, 20), [ 30 ]).stops.find_by!(go_back: 0).update!(stop_name: "新末站")
+    expect(described_class.new(RouteDay.order(:day)).rows.find { it.go_back.zero? }.stop_name).to eq("新末站")
+  end
+
   it "最新那一天另有成員路線 9050 的站序時不讀它：9050 的去程多一站己站，去程那一列的末站仍是 9001 的戊站" do
     day = route_day(Date.new(2026, 10, 20), [ 30 ])
     day.stops.create!(route_id: 9050, go_back: 0, seq: 5, stop_name: "己站")

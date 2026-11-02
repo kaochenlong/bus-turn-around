@@ -8,14 +8,14 @@ require_relative "../support/duckdb"
 RSpec.describe "路線頁的手機版", :duckdb, :js, type: :system do
   # Headless Chrome keeps its window at least 500 px wide, so the phone screen
   # is emulated. A mobile viewport's scrollbars take no width, as on a phone.
-  def phone = { width: 390, height: 844, deviceScaleFactor: 1, mobile: true }
+  def phone(width = 390) = { width:, height: 844, deviceScaleFactor: 1, mobile: true }
 
   # Opens the route page of the fixture day on a phone and returns what the
   # block returns. The browser is shared with the other examples, so the
   # emulation is cleared afterwards.
-  def on_phone
+  def on_phone(width: 390)
     browser = page.driver.browser
-    browser.execute_cdp("Emulation.setDeviceMetricsOverride", **phone)
+    browser.execute_cdp("Emulation.setDeviceMetricsOverride", **phone(width))
     visit route_path(9001, day: "2026-10-19")
     yield
   ensure
@@ -208,6 +208,21 @@ RSpec.describe "路線頁的手機版", :duckdb, :js, type: :system do
   it "手機上行駛時間的每一列只有數字，沒有橫條" do
     cells = on_phone { [ "[data-bar-from]", "td:first-child" ].map { displays("[data-section=run-times] [data-direction='0'] tbody #{it}").uniq } }
     expect(cells).to eq([ [ "none" ], [ "table-cell" ] ])
+  end
+
+  [ 390, 360 ].each do |width|
+    it "規格的小手機：#{width} 寬時整頁沒有橫向捲動，四個路線連結與關於都看得到" do
+      fits = on_phone(width:) do
+        [ page.evaluate_script("document.documentElement.scrollWidth <= window.innerWidth"), displayed_count("[data-site-bar] a"),
+          page.evaluate_script("[...document.querySelectorAll('[data-site-bar] a')].filter((node) => node.getClientRects().length > 0).every((node) => node.getBoundingClientRect().right <= window.innerWidth)") ]
+      end
+      expect(fits).to eq([ true, 5, true ])
+    end
+
+    it "#{width} 寬時名稱列的路線連結都是一行，沒有被擠得折行" do
+      heights = on_phone(width:) { page.evaluate_script("[...document.querySelectorAll('[data-site-bar] [data-timetable-link], [data-site-bar] [data-day-dispatch-link], [data-site-bar] [data-month-cards-link]')].map((node) => node.getBoundingClientRect().height)") }
+      expect(heights).to eq([ 44, 44, 44 ])
+    end
   end
 
   it "名稱列的 GitHub 連結在手機上不顯示，1400 寬時顯示" do

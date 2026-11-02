@@ -13,7 +13,7 @@ module RoutePage
 
     def initialize(route_days)
       @ids = route_days.ids
-      @latest_id, @route_id = route_days.order(day: :desc).pick(:id, :route_id)
+      @latest_id, @route_id = route_days.reorder(day: :desc).pick(:id, :route_id)
     end
 
     # The page route's stops of the latest of the days, in direction and sequence order.

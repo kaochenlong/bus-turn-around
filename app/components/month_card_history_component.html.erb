@@ -1,0 +1,94 @@
+<section data-card-section="history">
+  <h2><%= t(".title") %></h2>
+  <p data-history-lead class="lead"><%= t(".lead") %><% if first_card? %><%= t(".first_card") %><% end %></p>
+  <table data-months>
+    <thead>
+      <tr>
+        <th class="l"><%= t(".month") %></th><th><%= t(".weekdays") %></th>
+        <% if two_ends? %><th class="l"><%= t(".stopping_end") %></th><% end %>
+        <th><%= t(".short") %></th><th><%= t(".short_range") %></th><th><%= t(".p10") %></th><th><%= t(".four_hours") %></th><th><%= t(".six_hours") %></th><th><%= t(".morning_on_road") %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% month_ends.each do |entry| %>
+        <tr <%= tag.attributes(data: { month_row: (entry.row.month.strftime("%Y-%m") if entry.first) }) %>>
+          <% if entry.first %>
+            <td class="l" rowspan="<%= entry.span %>"><%= month_label(entry.row) %></td>
+            <td rowspan="<%= entry.span %>"><%= entry.row.weekdays %></td>
+          <% end %>
+          <% if two_ends? %><td class="l" data-end-name><%= entry.figures&.stop_name || NONE %></td><% end %>
+          <td class="strong"><%= share(entry.figures&.short_share) %></td>
+          <td><%= share_range(entry.figures&.day_low, entry.figures&.day_high) %></td>
+          <td><%= p10_text(entry.figures) %></td>
+          <% if entry.first %>
+            <td rowspan="<%= entry.span %>"><%= share(entry.row.four_hours_share) %></td>
+            <td rowspan="<%= entry.span %>"><%= share(entry.row.six_hours_share) %></td>
+            <td rowspan="<%= entry.span %>"><%= on_road_text(entry.row) %></td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if differing_months.any? %>
+    <p data-differing class="note"><%= t(".differing", months: differing_months.join("、")) %></p>
+  <% end %>
+
+  <% if snapshot_changes? %>
+    <h3><%= t(".snapshots") %></h3>
+    <div data-snapshot-changes class="note">
+      <% if snapshot_changes.changes.empty? %>
+        <p><%= unchanged_sentence %></p>
+      <% else %>
+        <ul>
+          <% snapshot_changes.changes.each do |change| %>
+            <li data-snapshot-change><%= change_text(change) %></li>
+          <% end %>
+        </ul>
+      <% end %>
+      <% if shape_day %>
+        <p><%= t(".shape_day", day: shape_day) %></p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if day_rows.any? %>
+    <h3><%= t(".days") %></h3>
+    <table data-days class="<%= "two-ends" if two_ends? %>">
+      <thead>
+        <tr>
+          <th class="l"><%= t(".date") %></th><th class="l"><%= t(".day_type") %></th><th><%= t(".trips") %></th><th><%= t(".complete") %></th><th><%= t(".missing_stops") %></th><th><%= t(".vehicles_column") %></th>
+          <% stop_go_backs.each do |go_back| %>
+            <th><%= two_ends? ? t(".end_layovers_named", name: end_name(go_back)) : t(".end_layovers") %></th>
+            <th class="l"><%= t(".short") %></th>
+          <% end %>
+          <th><%= t(".four_hours") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% day_rows.each do |row| %>
+          <% if row.day_type %>
+            <tr data-day="<%= row.day.iso8601 %>">
+              <td class="l"><%= day_label(row.day) %></td>
+              <td class="l"><%= day_type_text(row) %></td>
+              <td><%= row.n_trips %></td>
+              <td><%= whole_share(row.complete_share) %></td>
+              <td><%= share(row.missing_stop_rate) %></td>
+              <td><%= row.n_vehicles %></td>
+              <% stop_go_backs.each do |go_back| %>
+                <% stopping = row.stopping.fetch(go_back) %>
+                <td><%= stopping.n_layovers %></td>
+                <td class="l metercell"><span class="meter"><i style="width:<%= percent(stopping.short_share) %>%"></i></span><b><%= whole_share(stopping.short_share) %></b></td>
+              <% end %>
+              <td><%= whole_share(row.four_hours_share) %></td>
+            </tr>
+          <% else %>
+            <tr data-day="<%= row.day.iso8601 %>" class="gap">
+              <td class="l"><%= day_label(row.day) %></td>
+              <td class="l" colspan="<%= figure_columns %>"><%= row.reason || NONE %></td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</section>

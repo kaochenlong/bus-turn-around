@@ -53,6 +53,7 @@ Changes can be parked（暫存）— temporarily moved out of `docs/spectra/chan
 - `bin/rubocop`：style 檢查；`bin/brakeman`：安全掃描
 - `bin/push-derived`：把開發資料庫的衍生表推上正式站，不加參數只印要推的內容；`--push` 才會備份正式站、在一個交易裡換掉、再比對列數；正式站有這台沒有的路線日時拒絕推
 - `bin/nightly-load`：在放原始檔的 Mac mini 上把正式站還沒有的路線日寫進正式站，不加參數只印計畫；`--load` 才寫，`--recompute` 連已有的一起重算（可加 `ROUTE=<頁面路線 Id>`）
+- `bin/monthly-cards`：在放原始檔的 Mac mini 上把資料到齊的月份印成定稿的健檢卡 PDF，存進正式站，不加參數只印計畫；`--print` 才印，`--revise` 出更正版（要給 `ROUTE`、`MONTH`、`REASON`），`--sample` 試印不存（要給 `ROUTE`、`MONTH`、`OUT`），`--restore` 在資料庫重建之後把 mini 留的檔存回去
 
 ## 慣例
 

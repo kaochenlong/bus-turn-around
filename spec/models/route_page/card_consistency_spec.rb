@@ -39,6 +39,12 @@ RSpec.describe "路線頁的數字與健檢卡一致", :duckdb, type: :model do
       expect(actual).to eq(expected)
     end
 
+    it "完整趟次的漏站率：月卡的逐日表跟卡上的相同" do
+      route_days.load
+      month_days = RoutePage::MonthDays.new(create(:route_card, month: day.beginning_of_month), stop_go_backs: [])
+      expect(month_days.rows.find { it.day == day }.missing_stop_rate).to eq(card.dig("quality", "missing_stop_rate", "rate"))
+    end
+
     it "載客剖面每格的趟數、中位數與 p90，含站名" do
       expected = card.dig("profile", "rows").map { it.values_at("go_back", "band", "seq", "stop_name", "n_trips", "median", "p90") }
       actual = RoutePage::LoadProfile.new(route_days).rows.map { [ it.go_back, it.band, it.seq, it.stop_name, it.n_trips, it.median, it.p90 ] }
@@ -55,6 +61,17 @@ RSpec.describe "路線頁的數字與健檢卡一致", :duckdb, type: :model do
     end
 
     it_behaves_like "跟卡上的數字一致"
+
+    it "存下來標出的 4 小時視窗，時間範圍就是卡上那條班次串的起訖" do
+      flagged = RouteDayRestWindow.where(route_day: route_days, rule: "four_hours", flagged: true)
+      range = [ flagged.minimum(:start_time), flagged.maximum(:end_time) ].map { it.in_time_zone("Asia/Taipei").strftime("%Y-%m-%d %H:%M") }
+      expect(range).to eq(card.dig("chains", "report").sole.values_at("start_time", "end_time"))
+    end
+
+    it "連續行駛段用來分級的長度，就是 params.sql 兩條規則的長度" do
+      lengths = run_sql_stages(through: "params", query: "SELECT getvariable('rest_window_minutes') AS four, getvariable('long_rest_window_minutes') AS six").sole
+      expect([ RoutePage::RestWindows::FOUR_HOURS, RoutePage::RestWindows::SIX_HOURS ]).to eq(lengths.values_at("four", "six"))
+    end
   end
 
   describe "成員日 2026-10-23，9001 掛 9050：derived:load ROUTE=9001 對 bin/health-card --also-route 9050" do

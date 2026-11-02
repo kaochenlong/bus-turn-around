@@ -1,0 +1,15 @@
+---
+tw: &tw
+  left: "%{site_name}｜%{route_name} 路線健檢卡 %{year} 年 %{month} 月"
+  partial: （部分月份）
+  page_before: "第 "
+  page_between: " 頁，共 "
+  page_after: " 頁"
+zh-TW:
+  <<: *tw
+en:
+  left: "%{site_name} | %{route_name} route health card %{year}-%{month}"
+  partial: " (partial month)"
+  page_before: "Page "
+  page_between: " of "
+  page_after: ""

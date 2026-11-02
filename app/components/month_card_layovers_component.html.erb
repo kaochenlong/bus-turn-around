@@ -1,0 +1,46 @@
+<section data-card-section="layovers">
+  <h2><%= t(".title") %></h2>
+  <p class="lead"><%= t(".lead") %></p>
+  <table>
+    <thead>
+      <tr>
+        <th class="l"></th><th class="l"><%= t(".ending_trip") %></th><th class="l"><%= t(".ending_stop") %></th><th class="l"><%= t(".nature") %></th>
+        <th><%= t(".count") %></th><th>p10</th><th>p50</th><th>p90</th><th><%= t(".short") %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.each do |row| %>
+        <tr data-set="<%= row.set %>" data-go-back="<%= row.go_back %>">
+          <td class="l"><%= set_name(row.set) %></td>
+          <td class="l"><%= direction_name(row.go_back) %></td>
+          <td class="l"><%= row.stop_name %></td>
+          <td class="l"><%= nature_name(row.go_back) %></td>
+          <td><%= row.stat ? row.stat.n_layovers : NONE %></td>
+          <% 3.times do |index| %>
+            <td><%= decimal(row.stat&.percentiles&.at(index)) %></td>
+          <% end %>
+          <td class="strong"><%= share(row.stat&.short_share) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if pass_through? %>
+    <p data-pass-through-note class="note"><%= t(".pass_through_note") %></p>
+  <% end %>
+
+  <% charted_go_backs.each do |go_back| %>
+    <div class="split">
+      <div>
+        <p data-chart-caption class="caption"><%= distribution_caption(go_back) %></p>
+        <%= render MonthCardDistributionChartComponent.new(counts: distribution_counts(go_back)) %>
+      </div>
+      <div>
+        <p data-chart-caption class="caption"><%= hours_caption(go_back) %></p>
+        <%= render MonthCardHourShareChartComponent.new(rows: hour_rows(go_back), go_back:) %>
+      </div>
+    </div>
+  <% end %>
+  <% if charted_go_backs.any? %>
+    <p class="note"><%= t(".few_layovers_note") %></p>
+  <% end %>
+</section>

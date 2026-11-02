@@ -38,6 +38,15 @@ SET VARIABLE rest_window_minutes = 240;
 SET VARIABLE rest_min_minutes = 15;
 SET VARIABLE rest_credit_minutes = 30;
 
+-- The exception to that rule, for work that runs on or for traffic: driving
+-- may go on for at most 360 minutes, and then a single rest of 45 minutes.
+SET VARIABLE long_rest_window_minutes = 360;
+SET VARIABLE long_rest_min_minutes = 45;
+
+-- The same article's limit of 10 hours of driving a day. A vehicle driven for
+-- longer than this on one day has changed drivers, if the limit was kept.
+SET VARIABLE daily_driving_limit_minutes = 600;
+
 -- Time bands by the hour of a trip's start, each including its start hour
 -- and excluding its end hour; every other hour is the "other" band.
 SET VARIABLE morning_peak_start_hour = 7;

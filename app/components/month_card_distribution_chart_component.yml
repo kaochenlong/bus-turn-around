@@ -1,0 +1,13 @@
+---
+tw: &tw
+  bin: "%{lower}–%{upper} 分"
+  last_bin: "%{lower} 分以上"
+  boundary: "%{minutes} 分鐘"
+  bin_aria: "%{label} %{count} 筆"
+zh-TW:
+  <<: *tw
+en:
+  bin: "%{lower}–%{upper} min"
+  last_bin: "%{lower} min or more"
+  boundary: "%{minutes} min"
+  bin_aria: "%{label}: %{count}"

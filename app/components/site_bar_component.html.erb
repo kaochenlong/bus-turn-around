@@ -1,18 +1,22 @@
-<%# 連結的字色跟著 aria-current：班表頁上「班表」是目前這一頁，當天調度頁上是「當天調度」。
-    relative：關於的後半段是 sr-only（絕對定位），以連結為準，不會把版面撐寬 %>
-<% text_link = "relative inline-flex min-h-11 items-center rounded-sm text-table font-medium text-slate-600 select-none hover:text-slate-900 aria-[current=page]:text-slate-900 " \
+<%# 連結的字色跟著 aria-current：班表頁上「班表」是目前這一頁，當天調度頁上是「當天調度」，清單頁與月卡頁上是「健檢卡」。
+    relative：關於的後半段是 sr-only（絕對定位），以連結為準，不會把版面撐寬。
+    不折行：放不下要看得出來，不能擠成兩行 %>
+<% text_link = "relative inline-flex min-h-11 items-center rounded-sm text-note font-medium whitespace-nowrap sm:text-table text-slate-600 select-none hover:text-slate-900 aria-[current=page]:text-slate-900 " \
                "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700" %>
 <header data-site-bar class="border-b border-slate-200 bg-white font-route">
-  <div class="page-column flex items-center gap-4 py-3.5 sm:gap-7">
-    <%= link_to helpers.root_path, class: "inline-flex rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700" do %>
-      <%= image_tag "turnaround-logo.webp", alt: "", width: 640, height: 219, class: "h-12 w-auto", aria: { hidden: true } %>
+  <%# 640px 以下標誌、字級與間距都小一級：路線連結有三個，360 寬也要放得下 %>
+  <div class="page-column flex items-center gap-3 py-3.5 sm:gap-7">
+    <%# 標誌不縮：放不下的時候會變成橫向捲動，測得到，不會被壓扁 %>
+    <%= link_to helpers.root_path, class: "inline-flex shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700" do %>
+      <%= image_tag "turnaround-logo.webp", alt: "", width: 640, height: 219, class: "h-9 w-auto sm:h-12", aria: { hidden: true } %>
       <span class="sr-only"><%= t("site.name") %></span>
     <% end %>
     <%# 標誌之後分兩組：這條路線的連結接在標誌旁邊，講網站本身的推到右端；兩組之間最少跟連結之間一樣寬 %>
-    <div class="flex flex-1 items-center gap-5 sm:gap-7">
+    <div class="flex flex-1 items-center gap-3 sm:gap-7">
       <% if timetable_link? %>
         <%= link_to t(".timetable"), timetable_path, aria: { current: current_for(:timetable) }, data: { timetable_link: true }, class: text_link %>
         <%= link_to t(".day_dispatch"), day_dispatch_path, aria: { current: current_for(:dispatch) }, data: { day_dispatch_link: true }, class: text_link %>
+        <%= link_to t(".month_cards"), month_cards_path, aria: { current: current_for(:cards) }, data: { month_cards_link: true }, class: text_link %>
       <% end %>
       <div class="ml-auto flex items-center gap-6.5">
         <%# GitHub 的 mark 照抄 @primer/octicons 19.42.0 的 mark-github-24.svg。640px 以下不顯示：手機上的路線頁放不下。

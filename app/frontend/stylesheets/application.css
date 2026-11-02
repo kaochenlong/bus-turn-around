@@ -272,3 +272,93 @@
   [data-day-dispatch] > :not([data-day-record]) { display: none !important; }
   [data-record-summary] { break-after: page; page-break-after: always; padding: 10mm 12mm; }
 }
+
+/* 月卡：給印的文件，一份 A4 直式。字級照紙本用 pt，螢幕上就是同一份，所以規則都寫在這一段，不用 utility。
+   頁尾的路線名與月份每份不同，寫在頁面自己的 <style>（MonthCardMarginComponent），這裡只有紙張與邊界。
+   螢幕上的名稱列與 layout 的顯名聲明照舊；印的時候名稱列由上面班表那一段藏起來，顯名聲明在這裡藏，卡片印自己的那一段 */
+@page month-card { size: A4 portrait; margin: 15mm 16mm 17mm; }
+main[data-month-card] {
+  max-width: 178mm;
+  margin-inline: auto;
+  padding-block: 8mm;
+  font-family: var(--font-route);
+  font-size: 9.6pt;
+  line-height: 1.6;
+  color: #1e293b;
+  font-variant-numeric: tabular-nums;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+
+  [data-card-incomplete] { border: 0.75pt solid #94a3b8; background: #f1f5f9; padding: 6pt 9pt; font-size: 8.8pt; line-height: 1.55; margin-bottom: 9pt; }
+  .masthead { display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5pt solid #115e59; padding-bottom: 6pt; margin-bottom: 12pt; }
+  .masthead img { height: 30pt; width: auto; display: block; }
+  .masthead span { font-size: 9.5pt; font-weight: 500; color: #475569; }
+  h1 { font-size: 25pt; font-weight: 700; line-height: 1.2; color: #0f172a; }
+  .sub { font-size: 10pt; color: #475569; margin-top: 2pt; }
+  .month { font-size: 13pt; font-weight: 600; color: #115e59; margin-top: 8pt; }
+  .coverage { font-size: 8.8pt; color: #334155; line-height: 1.6; margin: 5pt 0 10pt; }
+  h2 { font-size: 14.5pt; font-weight: 700; color: #0f172a; line-height: 1.3; margin: 13pt 0 3pt; }
+  h3 { font-size: 10pt; font-weight: 700; color: #115e59; margin: 9pt 0 3pt; }
+  .note { font-size: 8.6pt; line-height: 1.6; color: #475569; margin-top: 4pt; }
+  .lead { font-size: 8.8pt; line-height: 1.6; color: #475569; margin-bottom: 6pt; }
+  .note ul { list-style: disc; padding-left: 12pt; }
+  table { border-collapse: collapse; width: 100%; font-size: 8.6pt; line-height: 1.35; }
+  th, td { padding: 3pt 4pt; text-align: right; vertical-align: baseline; }
+  thead th { font-weight: 600; color: #475569; border-bottom: 0.75pt solid #475569; vertical-align: bottom; line-height: 1.3; }
+  tbody td, tbody th { border-bottom: 0.25pt solid #cbd5e1; }
+  :is(th, td).l { text-align: left; }
+  .strong { font-weight: 600; color: #0f172a; }
+  .muted { color: #94a3b8; }
+  .group-head { text-align: center; border-bottom: 0.25pt solid #94a3b8; }
+  .kpi th { text-align: left; font-weight: 400; color: #334155; }
+  .kpi thead th { text-align: right; font-weight: 600; color: #475569; }
+  .kpi thead th:first-child { text-align: left; }
+  .kpi td { font-size: 9.2pt; white-space: nowrap; }
+  .kpi .strong { font-size: 10pt; }
+  .kpi tr.group th { font-weight: 700; color: #115e59; padding-top: 7pt; border-bottom: 0.5pt solid #94a3b8; }
+  .findings { list-style: decimal; margin: 3pt 0 0; padding-left: 13pt; font-size: 9.2pt; line-height: 1.6; }
+  .findings li { margin-bottom: 2.5pt; }
+  .chart { display: block; width: 100%; height: auto; }
+  .chart .tick { font-size: 10px; fill: #64748b; }
+  .chart .value { font-size: 10.5px; fill: #1e293b; font-weight: 500; }
+  .chart .note { font-size: 10px; fill: #334155; font-weight: 500; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+  .chart .cell { font-size: 9.5px; fill: #1e293b; font-weight: 500; }
+  .chart .count { font-size: 8.5px; fill: #64748b; }
+  .split { display: grid; grid-template-columns: 300fr 343fr; column-gap: 30px; align-items: start; margin-top: 8pt; }
+  .caption { font-size: 8.8pt; font-weight: 600; color: #334155; margin: 6pt 0 3pt; }
+  .legend { display: flex; flex-wrap: wrap; gap: 3pt 12pt; font-size: 8.2pt; color: #475569; margin: 1pt 0 2pt; }
+  .legend i { display: inline-block; vertical-align: -0.5pt; margin-right: 3.5pt; }
+  .key-line { width: 13pt; height: 2pt; vertical-align: 2.5pt !important; }
+  .key-box { width: 11pt; height: 8pt; }
+  .key-shade { background: #f1f5f9; border: 0.25pt solid #cbd5e1; }
+  .hi td { background: #f1f5f9; font-weight: 600; color: #0f172a; }
+  .sep td { border-top: 0.75pt solid #94a3b8; }
+  .total td { border-top: 0.75pt solid #475569; font-weight: 600; }
+  .hours td, .hours th { padding: 1.2pt 3pt; }
+  .hours .n { color: #94a3b8; font-size: 7.6pt; }
+  .hours thead tr:first-child th { text-align: center; border-bottom: 0.25pt solid #94a3b8; }
+  .hours :is(th, td).start { border-left: 0.25pt solid #cbd5e1; }
+  .hours td.smallsample, td.smallsample { color: #94a3b8; }
+  .gap td { color: #64748b; font-size: 8pt; background: #f8fafc; }
+  .meter { display: inline-block; width: 62pt; height: 6pt; background: #e2e8f0; border-radius: 3pt; overflow: hidden; vertical-align: 0.3pt; margin-right: 5pt; }
+  .meter i { display: block; height: 100%; background: #0d9488; border-radius: 0 3pt 3pt 0; }
+  .metercell b { font-weight: 600; }
+  [data-months] td:not([data-end-name]), [data-days] tr:not(.gap) td, [data-days] .gap td:first-child { white-space: nowrap; }
+  [data-days].two-ends .meter { width: 26pt; margin-right: 3pt; }
+  .attribution { font-size: 7.8pt; line-height: 1.55; color: #475569; }
+  .attribution p { margin-bottom: 2pt; }
+}
+@media screen {
+  main[data-month-card] { padding-inline: 16px; overflow-x: auto; }
+}
+@media print {
+  body:has(main[data-month-card]) { background: #fff; }
+  body:has(main[data-month-card]) footer[data-attribution] { display: none !important; }
+  main[data-month-card] { display: block; max-width: none; margin: 0; padding: 0; page: month-card; }
+  /* 第 1 頁自成一頁，可以單獨當附件。之後的區塊不跨頁切開，放不下就整塊換頁。行駛時間與歷史有好幾張表，兩張表之間可以換頁，
+     表本身不切開：兩個停車端的路線整塊放不下時，才不會留下大半頁空白 */
+  main[data-month-card] [data-card-section="layovers"] { break-before: page; }
+  main[data-month-card] [data-card-section="layovers"] > h2:first-child { margin-top: 0; }
+  main[data-month-card] :is([data-card-section]:not([data-card-section="run-times"], [data-card-section="history"]), table, .split, .chart, .legend, .keep-together) { break-inside: avoid; }
+  main[data-month-card] :is(h2, h3, .caption, .lead) { break-after: avoid; }
+}

@@ -22,6 +22,12 @@ RSpec.describe RoutePage::MrtOverlap, type: :model do
     counts.each { |seq, on_board| trip.trip_stop_counts.create!(seq:, on_board:) }
   end
 
+  it "涵蓋日子已經排序（RoutePage::Coverage 給的就是這樣）時，出入口快照日仍取最新一天" do
+    create(:route_day, day: Date.new(2026, 10, 19), mrt_exits_day: Date.new(2026, 10, 19))
+    create(:route_day, day: Date.new(2026, 10, 20), mrt_exits_day: Date.new(2026, 10, 22))
+    expect(described_class.new(RouteDay.order(:day)).mrt_exits_day).to eq(Date.new(2026, 10, 22))
+  end
+
   it "去程五站 900、400、250、450、700 公尺：重疊度 300 公尺 20%、500 公尺 60%、800 公尺 80%" do
     direction = overlap(route_day([ 900, 400, 250, 450, 700 ])).directions.sole
     expect([ direction.go_back, direction.n_stops, direction.shares ]).to eq([ 0, 5, { 300 => 0.2, 500 => 0.6, 800 => 0.8 } ])

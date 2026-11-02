@@ -1,0 +1,35 @@
+---
+tw: &tw
+  title: 折返停留
+  lead: 同一台車本趟末站到站到下一趟起站離站之間的時間。它包含回場、加油、洗車、等發車在內的一切，所以是駕駛休息的上限，不是工時。只算量得到的折返：這一趟有開到末站、下一趟從起站出發，兩趟中間也沒有去開別的路線。p10、p50、p90 分別是一成、一半、九成停不到這麼久。
+  ending_trip: 結束那趟
+  ending_stop: 在這一站結束
+  nature: 折返方式
+  count: 筆數
+  short: 不到 15 分鐘
+  natures:
+    stop: 停車
+    pass_through: 直接折返
+  pass_through_note: 直接折返那一端，車在末站讓乘客下車後不停下來等，直接開到下一趟的起站，所以那裡的折返停留不算休息。
+  stopping_end: 停車端
+  distribution_caption: "%{end_name}折返停留的分佈（平日 %{count} 筆）"
+  hours_caption: "%{end_name}依車回來的小時，不到 15 分鐘的比例（平日）"
+  few_layovers_note: 灰色的柱子筆數不到 10，只看比例會誤判。
+zh-TW:
+  <<: *tw
+en:
+  title: Layovers
+  lead: The time from a vehicle's arrival at the last stop of a trip to its departure from the first stop of the next. It includes everything from returning to the depot to refuelling, washing and waiting to leave, so it is an upper bound on a driver's rest, not working time. Only measurable layovers count. The trip reached its last stop, the next left from its first stop, and the vehicle ran no other route in between. p10, p50 and p90 mean a tenth, half and nine tenths are shorter than this.
+  ending_trip: Ending trip
+  ending_stop: Ends at
+  nature: Turnaround
+  count: Count
+  short: Under 15 min
+  natures:
+    stop: Stops
+    pass_through: Drives on
+  pass_through_note: At a drive-on end the vehicle lets passengers off at the last stop and drives straight to the first stop of the next trip without waiting, so a layover there is not rest.
+  stopping_end: Stopping end
+  distribution_caption: "%{end_name}: layovers by length (weekdays, %{count})"
+  hours_caption: "%{end_name}: share under 15 minutes by the hour the vehicle came back (weekdays)"
+  few_layovers_note: A grey column has fewer than 10 layovers; its share alone can mislead.

@@ -1,0 +1,42 @@
+<div data-month-card-list class="flex flex-col gap-5 sm:gap-6">
+  <header>
+    <%= eyebrow(t(".eyebrow")) %>
+    <h1 class="text-page-sm leading-tight font-bold tracking-[0.01em] text-slate-900 sm:text-page"><%= @route_name %></h1>
+    <p class="mt-2 text-slate-600"><%= t(".intro") %></p>
+  </header>
+  <% if months.empty? %>
+    <p data-first-month class="rounded-2xl border border-slate-200 bg-white px-5 py-4"><%= first_month_text %></p>
+  <% else %>
+    <ul class="flex flex-col gap-3">
+      <% months.each do |month| %>
+        <% newest = month.newest %>
+        <%# 主要的下載連結排在舊版前面，讀螢幕軟體先念到它；寬畫面用格線把它放到右上 %>
+        <li data-card-month="<%= newest.year_month %>" class="grid gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 sm:grid-cols-[1fr_auto] sm:gap-x-6">
+          <div class="flex flex-col gap-1">
+            <h2 class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-lead font-semibold text-slate-900">
+              <%= month_label(newest.month) %>
+              <% if newest.partial? %>
+                <span data-partial-month class="rounded-full border border-amber-300 bg-amber-50 px-2.5 text-label font-medium text-amber-900"><%= t(".partial") %></span>
+              <% end %>
+            </h2>
+            <p class="text-note text-slate-600"><%= coverage_text(newest) %></p>
+            <% if newest.revision_reason.present? %>
+              <p data-revision-reason class="text-note text-slate-600"><%= t(".reason", reason: newest.revision_reason) %></p>
+            <% end %>
+          </div>
+          <%= link_to t(".download", size: size_text(newest)), pdf_path(newest), class: "inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 font-semibold text-slate-700 select-none hover:border-slate-400 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 sm:self-start" %>
+          <% if month.earlier.any? %>
+            <ul class="flex flex-col gap-0.5 text-note text-slate-600 sm:col-span-2">
+              <% month.earlier.each do |earlier| %>
+                <li data-earlier-version>
+                  <%= link_to t(".earlier", version: earlier.version, size: size_text(earlier)), pdf_path(earlier, version: earlier.version), class: "inline-flex min-h-11 items-center font-medium text-teal-700 underline underline-offset-2 hover:text-teal-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700" %>
+                  <% if earlier.revision_reason.present? %><span class="ml-1"><%= t(".reason", reason: earlier.revision_reason) %></span><% end %>
+                </li>
+              <% end %>
+            </ul>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</div>

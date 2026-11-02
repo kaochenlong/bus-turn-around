@@ -1,0 +1,31 @@
+<svg viewBox="0 0 <%= WIDTH %> <%= height %>" class="chart" role="img" aria-label="<%= aria_label %>">
+  <% shaded_hours.each do |hour| %>
+    <rect data-shaded-hour="<%= hour %>" x="<%= x(hour) %>" y="<%= plot_top %>" width="<%= (x(hour + 1) - x(hour)).round(1) %>" height="<%= plot_height %>" fill="<%= SHADE %>"/>
+  <% end %>
+  <% ticks.each do |tick| %>
+    <line x1="<%= LEFT %>" x2="<%= right_edge %>" y1="<%= y(tick) %>" y2="<%= y(tick) %>" stroke="<%= GRID %>" stroke-width="1"/>
+    <text data-value-tick x="<%= LEFT - 6 %>" y="<%= y(tick) + 3.5 %>" text-anchor="end" class="tick"><%= tick %></text>
+  <% end %>
+  <% visible_bands.each do |band| %>
+    <% if band.low == band.high %>
+      <line data-band x1="<%= (x(band.from_hour) + 0.5).round(1) %>" x2="<%= (x(band.to_hour) - 0.5).round(1) %>" y1="<%= y(band.low) %>" y2="<%= y(band.low) %>" stroke="<%= FAINT %>" stroke-width="2" stroke-opacity="<%= BAND_OPACITY %>"/>
+    <% else %>
+      <rect data-band x="<%= (x(band.from_hour) + 0.5).round(1) %>" y="<%= y(band.high) %>" width="<%= (x(band.to_hour) - x(band.from_hour) - 1).round(1) %>" height="<%= (y(band.low) - y(band.high)).round(1) %>" fill="<%= FAINT %>" fill-opacity="<%= BAND_OPACITY %>"/>
+    <% end %>
+  <% end %>
+  <% series.each do |line| %>
+    <g data-series="<%= line.key %>">
+      <polyline points="<%= points_text(line) %>" fill="none" stroke="<%= line.color %>" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <% line.points.each do |hour, value| %>
+        <circle data-hour="<%= hour %>" data-value="<%= value.round(2) %>" cx="<%= x(hour) %>" cy="<%= y(value) %>" r="3.4" fill="<%= line.color %>" stroke="#fff" stroke-width="1.4"/>
+      <% end %>
+    </g>
+  <% end %>
+  <% hour_labels.each do |hour| %>
+    <text data-hour-tick x="<%= x(hour) %>" y="<%= height - 6 %>" text-anchor="middle" class="tick"><%= format("%02d", hour) %></text>
+    <line x1="<%= x(hour) %>" x2="<%= x(hour) %>" y1="<%= base %>" y2="<%= base + 3 %>" stroke="<%= FAINT %>" stroke-width="1"/>
+  <% end %>
+  <% notes.each do |note| %>
+    <text data-chart-note x="<%= x(note.hour) %>" y="<%= y(note.value) - 4 %>" text-anchor="middle" class="note"><%= note.text %></text>
+  <% end %>
+</svg>

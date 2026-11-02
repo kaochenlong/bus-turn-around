@@ -1,0 +1,53 @@
+---
+tw: &tw
+  title: 班表對照
+  lead: 公告班距取自公運處的開放資料（GetSemiTimeTable，%{day} 的快照），量到的發車是這條路線起點落在該時段的趟次，平均到每小時。公開資料只有班距與定時發車的時刻，沒有排定的行駛時間，也沒有核定班次與配車數，所以這裡比得出發車數，比不出「班表給了幾分鐘」，也判斷不了是否脫班。
+  departures_caption: 每小時發車數（平日）
+  departures_aria: 依小時的平日發車數，去程與返程兩條線，公告班距換算的每小時班數是灰色色塊；數字在下面的表
+  departures_note: 公告 %{headway} 分一班
+  direction_legend: "%{direction}：%{first}往%{last}"
+  published_legend: 公告班距換算的每小時班數
+  vehicles_caption: 路上的車與照公告要幾台（平日）
+  vehicles_aria: 依小時的路上的車，照公告要幾台是灰色色塊；數字在下面的表
+  vehicles_note: 照公告 %{needed} 台
+  road_legend: 路上的車：每半小時有跑這條路線的車數，取平均
+  needed_legend: 照公告要幾台：週期中位數 %{p50} 分鐘 ÷ 公告班距
+  period: 公告時段
+  headway_column: 公告班距
+  per_hour: 換算每小時班數
+  measured: 量到每小時發車
+  on_road: 路上的車
+  needed: 照公告要幾台
+  headway: "%{headway} 分"
+  holiday: 假日
+  others: 其餘時段
+  per_day: 每天 %{trips} 趟
+  departures_listed: 定時 %{times}
+  departures_counted: 定時 %{count} 班（%{first} 到 %{last}）
+zh-TW:
+  <<: *tw
+en:
+  title: Published schedule
+  lead: Published headways come from the open data of the Department of Transportation (GetSemiTimeTable, snapshot of %{day}); measured departures are this route's trips starting in the period, per hour. Public data has headways and scheduled departure times, but no planned run times, approved trips or vehicle numbers, so departures can be compared, but not how long the schedule allows or whether a departure was missed.
+  departures_caption: Departures per hour (weekdays)
+  departures_aria: Weekday departures per hour, a line for each direction, with the published departures per hour as grey bands; the figures are in the table below
+  departures_note: Published every %{headway} min
+  direction_legend: "%{direction}: %{first} to %{last}"
+  published_legend: Departures per hour from the published headway
+  vehicles_caption: Vehicles on the road and needed by the published headway (weekdays)
+  vehicles_aria: Vehicles on the road by the hour, with the vehicles needed by the published headway as grey bands; the figures are in the table below
+  vehicles_note: Published needs %{needed}
+  road_legend: "Vehicles on the road: vehicles running this route in each half hour, averaged"
+  needed_legend: "Vehicles needed: median cycle of %{p50} minutes / published headway"
+  period: Published period
+  headway_column: Published headway
+  per_hour: Departures per hour from it
+  measured: Measured departures per hour
+  on_road: Vehicles on the road
+  needed: Vehicles needed
+  headway: "%{headway} min"
+  holiday: Holiday
+  others: Other times
+  per_day: "%{trips} trips a day"
+  departures_listed: Scheduled %{times}
+  departures_counted: "%{count} scheduled (%{first} to %{last})"

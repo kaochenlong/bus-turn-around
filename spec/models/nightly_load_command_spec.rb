@@ -213,7 +213,7 @@ RSpec.describe NightlyLoadCommand, type: :model do
   describe "同時只跑一個" do
     it "另一個 process 拿著 tmp/nightly-load.lock：說另一個還在跑、這次不做，結束碼 0，不開轉送也不呼叫 loader" do
       status, out = while_another_process_holds_the_lock { run_command("--load") }
-      expect([ status, out.chomp, opened, loads ]).to eq([ 0, "另一個 bin/nightly-load 還在跑，這次不做", [], [] ])
+      expect([ status, out.chomp, opened, loads ]).to eq([ 0, "另一個 bin/nightly-load 或 bin/monthly-cards 還在跑，這次不做", [], [] ])
     end
 
     it "開著轉送的整段時間都拿著鎖" do

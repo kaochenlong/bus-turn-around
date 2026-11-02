@@ -1,0 +1,6 @@
+<%# 底色跟路線頁一樣設在 body 上，layout 在頁面之後輸出的顯名聲明 footer 才會同一個底色 %>
+<% content_for :body_class, "bg-slate-50" %>
+<% content_for :title, t(".title", route_name: @route_name, site_name: t("site.name")) %>
+<main data-card-list-page class="page-column py-8 font-route text-body text-slate-800 [font-variant-numeric:tabular-nums]">
+  <%= render MonthCardListComponent.new(route_name: @route_name, route_cards: @route_cards, first_to_print: @first_to_print) %>
+</main>

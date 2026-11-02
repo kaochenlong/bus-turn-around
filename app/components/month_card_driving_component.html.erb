@@ -1,0 +1,29 @@
+<section data-card-section="driving">
+  <h2><%= t(".title") %></h2>
+  <p class="lead"><%= t(".lead") %></p>
+  <table>
+    <thead>
+      <tr>
+        <th class="l"></th><th class="l"><%= t(".condition") %></th><th><%= t(".windows") %></th><th><%= t(".flagged") %></th><th><%= t(".share") %></th><th><%= t(".day_range") %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.each do |row| %>
+        <% rule = figures(row) %>
+        <tr data-set="<%= row.set %>" data-rule="<%= row.rule %>">
+          <td class="l"><%= set_name(row.set) %></td>
+          <td class="l"><%= t(".conditions.#{row.rule}") %></td>
+          <td><%= rule.n_windows %></td>
+          <td><%= rule.n_flagged %></td>
+          <td class="strong"><%= share(rule.flagged_share) %></td>
+          <td><%= share_range(rule.day_low, rule.day_high) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if over_daily_sentence || stretches_sentence %>
+    <p class="note">
+      <% if over_daily_sentence %><span data-over-daily><%= over_daily_sentence %></span><% end %><% if stretches_sentence %><span data-stretches><%= stretches_sentence %></span><% end %>
+    </p>
+  <% end %>
+</section>

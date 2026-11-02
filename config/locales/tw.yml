@@ -15,6 +15,12 @@ tw:
     description: "%{span}，%{coverage}：%{ends}。%{bound}"
     bound: "折返停留是駕駛休息的上限，不是工時。"
     span: "%{departure}－%{destination}"
+  route_cards:
+    index:
+      title: "%{route_name} 健檢卡｜%{site_name}"
+    show:
+      title: "%{route_name} 健檢卡 %{year} 年 %{month} 月｜%{site_name}"
+      needs_reload: 這個月有日子還沒重算，連續行駛或班表對照的數字不完整。
   day_types:
     weekday: 平日
     holiday: 假日

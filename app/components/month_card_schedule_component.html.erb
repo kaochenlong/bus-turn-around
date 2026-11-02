@@ -1,0 +1,61 @@
+<section data-card-section="schedule">
+  <h2><%= t(".title") %></h2>
+  <p data-schedule-lead class="lead"><%= t(".lead", day: snapshot_day) %></p>
+
+  <% if charts? %>
+    <p class="caption"><%= t(".departures_caption") %></p>
+    <div class="legend">
+      <span><i class="key-line" style="background:<%= MonthCardChartComponent::SERIES_FIRST %>"></i><%= outbound_legend %></span>
+      <span><i class="key-line" style="background:<%= MonthCardChartComponent::SERIES_SECOND %>"></i><%= inbound_legend %></span>
+      <% if any_periods? %>
+        <span><i class="key-box" style="background:<%= MonthCardChartComponent::FAINT %>"></i><%= t(".published_legend") %></span>
+      <% end %>
+    </div>
+    <div data-schedule-chart="departures"><%= render departures_chart %></div>
+
+    <p class="caption"><%= t(".vehicles_caption") %></p>
+    <div data-vehicles-legend class="legend">
+      <span><i class="key-line" style="background:<%= MonthCardChartComponent::SERIES_FIRST %>"></i><%= t(".road_legend") %></span>
+      <% if any_needed? %>
+        <span><i class="key-box" style="background:<%= MonthCardChartComponent::FAINT %>"></i><%= needed_legend %></span>
+      <% end %>
+    </div>
+    <div data-schedule-chart="vehicles"><%= render vehicles_chart %></div>
+  <% end %>
+
+  <% tables.each do |table| %>
+    <% if table.title %>
+      <h3 data-version-title><%= table.title %></h3>
+    <% end %>
+    <table data-schedule-table>
+      <thead>
+        <tr>
+          <th class="l" rowspan="2"><%= t(".period") %></th>
+          <th rowspan="2"><%= t(".headway_column") %></th>
+          <th rowspan="2"><%= t(".per_hour") %></th>
+          <th colspan="2" class="group-head"><%= t(".measured") %></th>
+          <th rowspan="2"><%= t(".on_road") %></th>
+          <th rowspan="2"><%= t(".needed") %></th>
+        </tr>
+        <tr><th><%= direction_name(0) %></th><th><%= direction_name(1) %></th></tr>
+      </thead>
+      <tbody>
+        <% table.rows.each_with_index do |row, index| %>
+          <tr class="<%= class_names(hi: row.peak, sep: starts_holidays?(table.rows, index)) %>" <%= "data-peak=true" if row.peak %> <%= "data-member=#{row.member_id}" if row.member_id %>>
+            <td class="l"><%= row.label %></td>
+            <% if row.per_hour %>
+              <td><%= row.headway %></td>
+              <td><%= row.per_hour %></td>
+            <% else %>
+              <td colspan="2"><%= row.headway %></td>
+            <% end %>
+            <td><%= row.outbound %></td>
+            <td><%= row.inbound %></td>
+            <td><%= row.on_road %></td>
+            <td><%= row.needed %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</section>

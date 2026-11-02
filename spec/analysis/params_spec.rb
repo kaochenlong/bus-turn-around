@@ -4,7 +4,7 @@ require_relative "../support/duckdb"
 RSpec.describe "analysis/params.sql" do
   let(:values) do
     names = %w[split_gap_minutes lookback_hours overflow_hours short_layover_minutes rest_window_minutes
-               rest_min_minutes rest_credit_minutes morning_peak_start_hour daytime_start_hour
+               rest_min_minutes rest_credit_minutes long_rest_window_minutes long_rest_min_minutes daily_driving_limit_minutes morning_peak_start_hour daytime_start_hour
                evening_peak_start_hour evening_peak_end_hour jump_threshold min_trip_stops district_min_share_percent]
     run_sql_stages(through: "params", query: "SELECT #{names.map { "getvariable('#{it}') AS #{it}" }.join(', ')}").first
   end
@@ -35,6 +35,10 @@ RSpec.describe "analysis/params.sql" do
     expect(values.values_at("rest_window_minutes", "rest_min_minutes", "rest_credit_minutes")).to eq([ 240, 15, 30 ])
   end
 
+  it "連續 6 小時的視窗 360 分鐘、一次要停滿 45 分鐘，當天行駛的上限 600 分鐘" do
+    expect(values.values_at("long_rest_window_minutes", "long_rest_min_minutes", "daily_driving_limit_minutes")).to eq([ 360, 45, 600 ])
+  end
+
   it "時段邊界是 7、9、17、19 時，跳動門檻 30 人" do
     expect(values.values_at(*%w[morning_peak_start_hour daytime_start_hour evening_peak_start_hour
                                 evening_peak_end_hour jump_threshold])).to eq([ 7, 9, 17, 19, 30 ])
@@ -47,7 +51,7 @@ RSpec.describe "analysis/params.sql" do
   end
 
   it "其他 SQL 檔不出現這些常數的字面數字" do
-    constants = %w[2 3 7 9 15 17 19 30 60 240]
+    constants = %w[2 3 7 9 15 17 19 30 45 60 240 360 600]
     found = Dir[File.join(DuckdbHelpers::ANALYSIS_DIR, "[0-9]*.sql")].to_h { [ File.basename(it), literals_in(it) & constants ] }
     expect(found.reject { |_file, literals| literals.empty? }).to eq({})
   end

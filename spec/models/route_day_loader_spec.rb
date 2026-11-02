@@ -9,7 +9,7 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
 
   def stored_counts
     [ Trip.count, Layover.count, TripStopCount.count, RouteDayStop.count, RouteDay.count, RouteDayEnd.count, RouteDayEndToilet.count, RouteDayEndCell.count,
-      RouteDayShape.count, RouteDayDepot.count, TripStopSpeed.count, RouteDayDistrict.count ]
+      RouteDayShape.count, RouteDayDepot.count, TripStopSpeed.count, RouteDayDistrict.count, RouteDayPublishedHeadway.count, RouteDayPublishedDeparture.count ]
   end
 
   def fixture(path) = File.join(DuckdbHelpers::FIXTURE_DATA, path)
@@ -34,9 +34,106 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     end
   end
 
-  it "fixture 2026-10-19 寫入兩次，趟次 27、折返停留 18、趟次站 96、站序 20（9001 與成員路線 9050 各 10）、路線日 1、兩端 2、公廁 5、靜止格 1、路線軌跡 2、調度站 1、站間車速 1、行政區 2，第二次後不變" do
+  it "fixture 2026-10-19 寫入兩次，趟次 27、折返停留 18、趟次站 96、站序 20（9001 與成員路線 9050 各 10）、路線日 1、兩端 2、公廁 5、靜止格 1、路線軌跡 2、調度站 1、站間車速 1、行政區 2、公告班距 18、定時班次 6，第二次後不變" do
     load_day
-    expect { load_day }.not_to(change { stored_counts }.from([ 27, 18, 96, 20, 1, 2, 5, 1, 2, 1, 1, 2 ]))
+    expect { load_day }.not_to(change { stored_counts }.from([ 27, 18, 96, 20, 1, 2, 5, 1, 2, 1, 1, 2, 18, 6 ]))
+  end
+
+  describe "寫入後的公告班距與定時班次" do
+    before { load_day }
+
+    it "published_schedule_day 是讀到的快照日" do
+      expect(RouteDay.sole.published_schedule_day).to eq(day)
+    end
+
+    it "班距的列照 CSV 寫進去：週一 17:00 到午夜，30 分" do
+      row = RouteDayPublishedHeadway.where(date_value: 2, start_minute: 1020).sole
+      expect(row.attributes.values_at("route_id", "path_attribute_id", "end_minute", "low_minutes", "high_minutes")).to eq([ 9001, 9001, 1440, 30, 30 ])
+    end
+
+    it "定時班次帶自己的路線 Id：成員路線 9050 的 5 列" do
+      expect(RouteDayPublishedDeparture.where(route_id: 9050).order(:date_value, :minute).pluck(:date_value, :minute)).to eq([ [ 1, 540 ], [ 2, 420 ], [ 2, 510 ], [ 6, 420 ], [ 6, 510 ] ])
+    end
+
+    it "路線日讀得到自己的列" do
+      expect([ RouteDay.sole.published_headways.count, RouteDay.sole.published_departures.count ]).to eq([ 18, 6 ])
+    end
+  end
+
+  describe "靜態快照沒有公告的檔" do
+    let(:out) { StringIO.new }
+    let(:root) { Dir.mktmpdir("no-published") }
+
+    after { FileUtils.remove_entry(root) }
+
+    # A data root like the fixture's whose static snapshot of 2026-10-19 has the
+    # four files every day has, GetProvider.gz and the given published schedule files.
+    def data_root_with(*published)
+      %w[bus_event bus_seat_event bus_data external].each { File.symlink(fixture(it), File.join(root, it)) }
+      static = File.join(root, "static/2026-10-19").tap { FileUtils.mkdir_p(it) }
+      [ *%w[GetRoute.gz GetStop.gz GetPathDetail.gz GetBusShape.gz GetProvider.gz], *published ].each { File.symlink(fixture("static/2026-10-19/#{it}"), File.join(static, it)) }
+      root
+    end
+
+    def load_with(*published) = described_class.new(route_id: 9001, day:, data_root: data_root_with(*published), duckdb: "duckdb", out:).call
+
+    it "兩支都沒有：照樣寫入，趟次 27，公告 0 列" do
+      expect(load_with.values_at(:trips, :published_headways, :published_departures)).to eq([ 27, 0, 0 ])
+    end
+
+    it "兩支都沒有：published_schedule_day 是空的" do
+      load_with
+      expect(RouteDay.sole.published_schedule_day).to be_nil
+    end
+
+    it "兩支都沒有：印兩行，各點名日期、路線與缺的檔" do
+      load_with
+      expect(out.string.lines).to match([ a_string_including("2026-10-19", "9001", "GetSemiTimeTable.gz"), a_string_including("2026-10-19", "9001", "GetTimeTable.gz") ])
+    end
+
+    it "只缺 GetTimeTable.gz：班距照寫 18 列、定時班次 0 列，印一行，published_schedule_day 有值" do
+      counts = load_with("GetSemiTimeTable.gz")
+      expect([ counts.values_at(:published_headways, :published_departures), out.string.lines.size, RouteDay.sole.published_schedule_day ]).to eq([ [ 18, 0 ], 1, day ])
+    end
+
+    it "只缺 GetSemiTimeTable.gz：定時班次照寫 6 列、班距 0 列，印一行，published_schedule_day 有值" do
+      counts = load_with("GetTimeTable.gz")
+      expect([ counts.values_at(:published_headways, :published_departures), out.string.lines.size, RouteDay.sole.published_schedule_day ]).to eq([ [ 0, 6 ], 1, day ])
+    end
+  end
+
+  describe "本路線的班距讀不懂" do
+    let(:root) { Dir.mktmpdir("unreadable-published") }
+
+    after { FileUtils.remove_entry(root) }
+
+    # A data root like the fixture's whose GetSemiTimeTable.gz holds one row of
+    # route 9001 with a LongHeadway of `abc`.
+    def data_root_with_unreadable_headway
+      %w[bus_event bus_seat_event bus_data external].each { File.symlink(fixture(it), File.join(root, it)) }
+      static = File.join(root, "static/2026-10-19").tap { FileUtils.mkdir_p(it) }
+      %w[GetRoute.gz GetStop.gz GetPathDetail.gz GetBusShape.gz GetProvider.gz GetTimeTable.gz].each { File.symlink(fixture("static/2026-10-19/#{it}"), File.join(static, it)) }
+      row = { "PathAttributeId" => 9001, "StartTime" => "0600", "EndTime" => "0800", "LongHeadway" => "abc", "LowHeadway" => "10", "DateType" => "0", "DateValue" => "2" }
+      Zlib::GzipWriter.open(File.join(static, "GetSemiTimeTable.gz")) { it.write(JSON.generate("BusInfo" => [ row ])) }
+      root
+    end
+
+    def load_unreadable = described_class.new(route_id: 9001, day:, data_root: data_root_with_unreadable_headway, duckdb: "duckdb", out: StringIO.new).call
+
+    it "那一天失敗，訊息點名檔案與值" do
+      expect { load_unreadable }.to raise_error(RouteDayLoader::Error, /GetSemiTimeTable\.gz.*abc/)
+    end
+
+    def load_unreadable_ignoring_failure
+      load_unreadable
+    rescue RouteDayLoader::Error
+      nil
+    end
+
+    it "已經存的那一天不變" do
+      load_day
+      expect { load_unreadable_ignoring_failure }.not_to(change { stored_counts })
+    end
   end
 
   describe "寫入後的站間車速" do
@@ -75,8 +172,50 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     end
   end
 
-  it "回傳寫入的趟次、折返停留、趟次站、兩端、公廁、靜止格、路線軌跡、調度站與行政區筆數" do
-    expect(load_day).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, trip_stop_speeds: 1, ends: 2, end_toilets: 5, end_cells: 1, shapes: 2, depots: 1, districts: 2)
+  it "回傳寫入的趟次、折返停留、趟次站、兩端、公廁、靜止格、路線軌跡、調度站、行政區、視窗、連續行駛段、公告班距與定時班次筆數" do
+    expect(load_day).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, trip_stop_speeds: 1, ends: 2, end_toilets: 5, end_cells: 1, shapes: 2, depots: 1, districts: 2,
+                           rest_windows: 16, driving_stretches: 15, published_headways: 18, published_departures: 6)
+  end
+
+  describe "寫入後的視窗與連續行駛段" do
+    before { load_day }
+
+    it "4 小時 9 列、其中 2 列標出，6 小時 7 列、都沒標出" do
+      expect(RouteDayRestWindow.group(:rule, :flagged).count).to eq([ "four_hours", true ] => 2, [ "four_hours", false ] => 7, [ "six_hours", false ] => 7)
+    end
+
+    it "標出的是 TEST-0001 從 06:00 與 07:00 起的 4 小時視窗" do
+      rows = RouteDayRestWindow.where(flagged: true).order(:start_time).pluck(:bus_id, :start_time)
+      expect(rows).to eq([ [ "TEST-0001", Time.zone.parse("2026-10-19 06:00") ], [ "TEST-0001", Time.zone.parse("2026-10-19 07:00") ] ])
+    end
+
+    it "這一天沒有車超過當天行駛上限" do
+      expect(RouteDayRestWindow.where(over_daily_driving: true).count).to eq(0)
+    end
+
+    it "連續行駛段 15 列，最長是 TEST-0001 的 06:00 到 11:30、5 趟" do
+      longest = RouteDayDrivingStretch.order(Arel.sql("end_time - start_time DESC")).first
+      expect([ RouteDayDrivingStretch.count, longest.bus_id, longest.start_time, longest.end_time, longest.n_trips ])
+        .to eq([ 15, "TEST-0001", Time.zone.parse("2026-10-19 06:00"), Time.zone.parse("2026-10-19 11:30"), 5 ])
+    end
+
+    it "路線日記下已經算過視窗" do
+      expect(RouteDay.sole.rest_windows_loaded).to be(true)
+    end
+
+    it "同一天再載一次：視窗與連續行駛段還是 16 與 15 列，id 換了" do
+      old_ids = RouteDayRestWindow.ids
+      load_day
+      expect([ RouteDayRestWindow.count, RouteDayDrivingStretch.count, RouteDayRestWindow.ids & old_ids ]).to eq([ 16, 15, [] ])
+    end
+  end
+
+  describe "視窗有一列寫不進去" do
+    before { load_day.then { break_next_export("rest_windows.csv", "TEST-0001,five_hours,2026-10-19 06:00:00+08:00,2026-10-19 10:00:00+08:00,2,0.0,0.0,false,false") } }
+
+    it "那一天失敗，錯誤訊息指出規則的檢查" do
+      expect { load_day }.to raise_error(ActiveRecord::StatementInvalid, /route_day_rest_windows_rule/)
+    end
   end
 
   describe "寫入後的調度站" do
@@ -114,12 +253,12 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     after { FileUtils.remove_entry(root) }
 
     # A data root whose raw files and external snapshots are the fixture's and
-    # whose static snapshot of 2026-10-19 has the fixture's four other files
+    # whose static snapshot of 2026-10-19 has the fixture's six other files
     # and, unless `shapes` is nil, a route shapes file holding `shapes`.
     def data_root_with_shapes(shapes)
       %w[bus_event bus_seat_event bus_data external].each { File.symlink(fixture(it), File.join(root, it)) }
       static = File.join(root, "static/2026-10-19").tap { FileUtils.mkdir_p(it) }
-      %w[GetRoute.gz GetStop.gz GetPathDetail.gz GetProvider.gz].each { File.symlink(fixture("static/2026-10-19/#{it}"), File.join(static, it)) }
+      %w[GetRoute.gz GetStop.gz GetPathDetail.gz GetProvider.gz GetSemiTimeTable.gz GetTimeTable.gz].each { File.symlink(fixture("static/2026-10-19/#{it}"), File.join(static, it)) }
       Zlib::GzipWriter.open(File.join(static, "GetBusShape.gz")) { it.write(JSON.generate(shapes)) } if shapes
       root
     end
@@ -157,7 +296,7 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
     def data_root_without_providers
       %w[bus_event bus_seat_event bus_data external].each { File.symlink(fixture(it), File.join(root, it)) }
       static = File.join(root, "static/2026-10-19").tap { FileUtils.mkdir_p(it) }
-      %w[GetRoute.gz GetStop.gz GetPathDetail.gz GetBusShape.gz].each { File.symlink(fixture("static/2026-10-19/#{it}"), File.join(static, it)) }
+      %w[GetRoute.gz GetStop.gz GetPathDetail.gz GetBusShape.gz GetSemiTimeTable.gz GetTimeTable.gz].each { File.symlink(fixture("static/2026-10-19/#{it}"), File.join(static, it)) }
       root
     end
 
@@ -397,9 +536,9 @@ RSpec.describe RouteDayLoader, :duckdb, type: :model do
 
     def load_unconfigured = described_class.new(route_id: 9001, day:, data_root: DuckdbHelpers::FIXTURE_DATA, duckdb: "duckdb", out:).call
 
-    it "趟次、折返停留、趟次站、站間車速、路線軌跡、調度站與行政區照寫，兩端、公廁與靜止格都是 0 列" do
+    it "趟次、折返停留、趟次站、站間車速、路線軌跡、調度站、行政區、視窗與連續行駛段照寫，兩端、公廁與靜止格都是 0 列" do
       expect(load_unconfigured).to eq(trips: 27, layovers: 18, trip_stop_counts: 96, trip_stop_speeds: 1, ends: 0, end_toilets: 0, end_cells: 0, shapes: 2, depots: 1,
-                                      districts: 2)
+                                      districts: 2, rest_windows: 16, driving_stretches: 15, published_headways: 18, published_departures: 6)
     end
 
     it "資料庫裡兩端、公廁與靜止格都沒有列" do

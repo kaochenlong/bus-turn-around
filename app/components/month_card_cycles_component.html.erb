@@ -1,0 +1,13 @@
+<section data-card-section="cycles">
+  <h2><%= t(".title") %></h2>
+  <p data-cycles-lead class="lead"><%= t(".lead", first: first_stop, last: last_stop) %></p>
+  <% if chart? %>
+    <p class="caption"><%= t(".caption") %></p>
+    <div class="legend">
+      <span><i class="key-line" style="background:<%= MonthCardChartComponent::SERIES_FIRST %>"></i><%= t(".round_trip_legend") %></span>
+      <span><i class="key-line" style="background:<%= MonthCardChartComponent::SERIES_SECOND %>"></i><%= t(".cycle_legend") %></span>
+      <span><i class="key-box key-shade"></i><%= t(".tight_legend") %></span>
+    </div>
+    <%= render chart %>
+  <% end %>
+</section>

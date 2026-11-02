@@ -46,6 +46,31 @@
 
 `GetProvider.gz`（業者營運基本資料）的鍵照真檔：`id`、`nameZn`、`nameEn`、`email`、`phoneInfo`、`stationId`、`stationNameZn`、`stationNameEn`、`type`，`id` 與 `stationId` 是數字。只有一列：`id` 9999、`nameZn` 測試客運、`stationId` 19001、`stationNameZn` 測試站，跟 `GetRoute.gz` 的 `providerId` 9999 同一家。每一支 `bus_event` 小時檔裡每一筆的 `StationID` 都是 19001，所以每一趟的調度站都是 19001：2026-10-19 是 4 台車（TEST-0001 到 TEST-0004）、27 趟，成員日 2026-10-23 是 1 台車（TEST-0005）、3 趟。`static/2026-10-23/GetProvider.gz` 跟 10-19 的位元組相同。
 
+`GetSemiTimeTable.gz`（機動班次時刻表）與 `GetTimeTable.gz`（預定班表資訊）外層照真檔是 `EssentialInfo` 與 `BusInfo`。值的型別也照真檔：`Id`、`PathAttributeId` 是數字，其餘都是字串。`static/2026-10-23/` 的兩支跟 10-19 位元組相同。
+
+班距，共 20 列。`LongHeadway` 是班距的下界、`LowHeadway` 是上界：
+
+| PathAttributeId | DateType | DateValue | StartTime–EndTime | LongHeadway | LowHeadway | 留不留 |
+|---|---|---|---|---|---|---|
+| 9001 | 0 | 2 到 6，各三列 | 0600–0800 | 05 | 10 | 留，15 列 |
+| | | | 0800–1700 | 15 | 20 | |
+| | | | 1700–0000 | 30 | 30 | |
+| 9001 | 0 | 1、7，各一列 | 0600–2200 | 20 | 30 | 留，2 列 |
+| 9002 | 0 | 2 | 0600–0800 | 05 | 10 | 留，1 列，內容跟 9001 重複 |
+| 9100 | 0 | 2 | 0600–2200 | 10 | 10 | 不留，對照路線 |
+| 9001 | 1 | 20260101 | 0600–2200 | 60 | 60 | 不留，指定日期 |
+
+定時班次，共 7 列：
+
+| PathAttributeId | DateValue | DepartureTime | 留不留 |
+|---|---|---|---|
+| 9001 | 2 | 2230 | 留，1 列 |
+| 9050 | 2、6 | 0700、0830 | 留，4 列 |
+| 9050 | 1 | 0900 | 留，1 列 |
+| 9100 | 2 | 0700 | 不留，對照路線 |
+
+以 9001 掛 9050 跑，班距留 18 列、定時班次留 6 列。不掛 9050 時定時班次只留 1 列，班距照樣是 18 列。
+
 ## 辦公日曆
 
 `external/office-calendar/2026/2026-10-19.csv` 是真的 115 年辦公日曆，不是假資料：行政院人事行政總處「中華民國政府行政機關辦公日曆表」（data.gov.tw/dataset/14718，2026-10-23 下載）的原檔去掉開頭的 BOM、CRLF 換成 LF，其餘一個字都沒改，跟 `bin/rails external:office_calendar` 寫出的快照格式相同。檔名的日期是 fixture 日 2026-10-19，不是下載日。

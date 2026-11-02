@@ -43,20 +43,40 @@ RSpec.describe "Site layout", type: :request do
     expect(bar_links.map(&:first)).to eq([ "/", SiteBarComponent::REPOSITORY_URL, SiteBarComponent::ABOUT_URL ])
   end
 
-  it "規格的路線頁的名稱列：五個連結，班表連到該路線的班表頁、當天調度連到當天調度頁，都沒有 aria-current；GitHub 連到 repo；關於的文字照舊是關於這個網站；9001 沒有資料也一樣" do
+  # The bar's links with their aria-current, the given route link marked as the current page.
+  def links_with_current(current = nil)
+    [ [ "/", nil ], [ "/routes/9001/timetable", nil ], [ "/routes/9001/dispatch", nil ], [ "/routes/9001/cards", nil ], [ SiteBarComponent::REPOSITORY_URL, nil ], [ SiteBarComponent::ABOUT_URL, nil ] ]
+      .map { |href, _| [ href, ("page" if href == current) ] }
+  end
+
+  def bar_current = bar_links.map { [ it[0], it[2] ] }
+
+  it "規格的路線頁的名稱列：六個連結，班表、當天調度、健檢卡連到該路線的頁，都沒有 aria-current；GitHub 連到 repo；關於的文字照舊是關於這個網站；9001 沒有資料也一樣" do
     get route_path(9001)
     expect(bar_links).to eq([ [ "/", I18n.t("site.name"), nil ], [ "/routes/9001/timetable", bar_wording("timetable"), nil ], [ "/routes/9001/dispatch", bar_wording("day_dispatch"), nil ],
+                              [ "/routes/9001/cards", bar_wording("month_cards"), nil ],
                               [ SiteBarComponent::REPOSITORY_URL, bar_wording("repository"), nil ], [ SiteBarComponent::ABOUT_URL, bar_wording("about_lead") + bar_wording("about_rest"), nil ] ])
   end
 
-  it "規格的班表頁的名稱列：五個連結，班表連到班表頁本身、帶 aria-current=page，當天調度沒有" do
+  it "規格的班表頁的名稱列：六個連結，班表連到班表頁本身、帶 aria-current=page，其他路線連結沒有" do
     get route_timetable_path(9001)
-    expect(bar_links.map { [ it[0], it[2] ] }).to eq([ [ "/", nil ], [ "/routes/9001/timetable", "page" ], [ "/routes/9001/dispatch", nil ], [ SiteBarComponent::REPOSITORY_URL, nil ], [ SiteBarComponent::ABOUT_URL, nil ] ])
+    expect(bar_current).to eq(links_with_current("/routes/9001/timetable"))
   end
 
-  it "規格的當天調度頁的名稱列：五個連結，當天調度連到當天調度頁本身、帶 aria-current=page，班表沒有" do
+  it "規格的當天調度頁的名稱列：六個連結，當天調度連到當天調度頁本身、帶 aria-current=page，其他路線連結沒有" do
     get route_dispatch_path(9001)
-    expect(bar_links.map { [ it[0], it[2] ] }).to eq([ [ "/", nil ], [ "/routes/9001/timetable", nil ], [ "/routes/9001/dispatch", "page" ], [ SiteBarComponent::REPOSITORY_URL, nil ], [ SiteBarComponent::ABOUT_URL, nil ] ])
+    expect(bar_current).to eq(links_with_current("/routes/9001/dispatch"))
+  end
+
+  it "規格的月份清單的名稱列：六個連結，健檢卡連到清單本身、帶 aria-current=page" do
+    get route_cards_path(9001)
+    expect(bar_current).to eq(links_with_current("/routes/9001/cards"))
+  end
+
+  it "規格的月卡頁的名稱列：六個連結，健檢卡連到清單、帶 aria-current=page" do
+    create(:route_card)
+    get route_card_path(9001, "2026-10")
+    expect(bar_current).to eq(links_with_current("/routes/9001/cards"))
   end
 
   it "首頁的 body 第一個元素是唯一一條網站名稱列，在 main 之前，連回 / 、文字是站名" do
