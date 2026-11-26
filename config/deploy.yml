@@ -7,21 +7,18 @@ image: website
 # Deploy to these servers.
 servers:
   web:
-    - 167.99.28.51
+    # 主機別名，實際位址與連線方式寫在部署者自己的 ~/.ssh/config，不進 repo
+    - bus-pve
   # job:
   #   hosts:
   #     - 192.168.0.1
   #   cmd: bin/jobs
 
-# Enable SSL auto certification via Let's Encrypt and allow for multiple apps on a single web server.
-# If used with Cloudflare, set encryption mode in SSL/TLS setting to "Full" to enable CF-to-app encryption.
-#
-# Using an SSL proxy like this requires turning on config.assume_ssl and config.force_ssl in production.rb!
-#
-# Don't use this when deploying to multiple web servers (then you have to terminate SSL at your load balancer).
-#
+# TLS 由前面的反向代理終止，kamal-proxy 只收 HTTP，並把 X-Forwarded-For / X-Forwarded-Proto 傳給 Rails；
+# production.rb 的 assume_ssl 與 force_ssl 照舊開著。
 proxy:
-  ssl: true
+  ssl: false
+  forward_headers: true
   host: bus.5xcamp.us
 
 # Where you keep your container images.
@@ -91,9 +88,9 @@ builder:
   #   - GITHUB_TOKEN
   #   - RAILS_MASTER_KEY
 
-# Use a different ssh user than root
-# ssh:
-#   user: app
+# 主機用非 root 帳號登入，該帳號已在 docker 群組
+ssh:
+  user: ubuntu
 
 # Use accessory services (secrets come from .kamal/secrets).
 # Postgres 跟 web 同一台，web 容器透過 kamal 的 docker network 以 website-db 連它；
@@ -102,7 +99,7 @@ builder:
 accessories:
   db:
     image: postgres:16
-    host: 167.99.28.51
+    host: bus-pve
     port: "127.0.0.1:5432:5432"
     env:
       clear:
